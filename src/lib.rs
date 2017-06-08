@@ -25,15 +25,14 @@ pub struct Synthesizer<T> where T: Voice {
 }
 
 /// The way new notes will play if all voices are being currently utilized
-///
-/// * `Off` - new notes will simply not be played if all voices are busy
-/// * `First` - stop playing the first voice to start playing in this frame
-/// * `Last` - stop playing the last voice to start playing in this frame
-/// * `Smart` - find the best voice to stop playing
 pub enum StealMode {
+    /// new notes will simply not be played if all voices are busy
     Off,
+    /// stop playing the first voice to start playing in this frame
     First,
+    /// stop playing the last voice to start playing in this frame
     Last,
+    /// find the best voice to stop playing
     Smart
 }
 
