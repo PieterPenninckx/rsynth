@@ -7,6 +7,10 @@ authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
 vst2 = { git = "https://github.com/overdrivenpotato/rust-vst2" }
 asprim = "0.1"
 num-traits = "0.1"
+clippy = {version = "*", optional = true}
+
+[features]
+default = ["clippy"]
 
 [[example]]
 name = "test_synth"
