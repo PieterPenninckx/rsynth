@@ -12,6 +12,7 @@ mod sound;
 pub trait Voice {
 
     /// Begin playing with the specified note
+    ///
     /// * `midi_note` - An integer from 0-127 defining what note to play
     /// * `velocty` - An 8-bit unsigned value that can be used for modulating things such as amplitude
     /// * `pitch` - A float specifying pitch.  Use 0 for no change.
@@ -21,6 +22,7 @@ pub trait Voice {
     fn note_off(&self);
 
     /// Modify an audio buffer with rendered audio from the voice
+    ///
     /// * `buffer` - the audio buffer reference to modify
     fn render_next<T: Float + AsPrim>(&self, buffer: &mut AudioBuffer<T>);
 }

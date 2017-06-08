@@ -11,6 +11,7 @@ pub mod voice;
 
 /// The base structure for handling voices, sounds, and processing
 /// You will always want to make this mutable.
+///
 /// * `voices` - A vector containing multiple objects implementing the `Voice` trait
 /// * `sample_rate` - The sample rate the Synthesizer and voices should use
 pub struct Synthesizer<T> where T: Voice {
@@ -23,6 +24,7 @@ pub struct Synthesizer<T> where T: Voice {
 }
 
 /// The way new notes will play if all voices are being currently utilized
+///
 /// * `Off` - new notes will simply not be played if all voices are busy
 /// * `First` - stop playing the first voice to start playing in this frame
 /// * `Last` - stop playing the last voice to start playing in this frame
@@ -44,6 +46,7 @@ impl<T> Synthesizer<T> where T: Voice {
     }
 
     /// Begin playing with the specified note
+    ///
     /// * `midi_note` - An integer from 0-127 defining what note to play
     /// * `velocty` - An 8-bit unsigned value that can be used for modulating things such as amplitude
     /// * `pitch` - A float specifying pitch.  Use 0 for no change.
@@ -53,6 +56,7 @@ impl<T> Synthesizer<T> where T: Voice {
     }
 
     /// Stop playing a specified note
+    ///
     /// * `midi_note` - An integer from 0-127 defining what note to stop.  
     /// If this note is not currently "on", nothing will happen
     pub fn note_off(&self, midi_note: u8){
@@ -60,6 +64,7 @@ impl<T> Synthesizer<T> where T: Voice {
     }
 
     /// Modify an audio buffer with rendered audio from the voice
+    ///
     /// * `buffer` - the audio buffer reference to modify
     pub fn render_next<U: Float + AsPrim>(&self, buffer: &mut AudioBuffer<U>){
         unimplemented!()
