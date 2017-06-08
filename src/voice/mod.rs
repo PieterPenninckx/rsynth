@@ -6,8 +6,6 @@ use self::asprim::AsPrim;
 use self::vst2::buffer::AudioBuffer;
 use self::num_traits::Float;
 
-mod sound;
-
 /// Contains necessary methods for both sampler and synth voices to implement
 pub trait Voice {
 
