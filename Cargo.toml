@@ -1,0 +1,13 @@
+[package]
+name = "rvst_synth"
+version = "0.1.0"
+authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
+
+[dependencies]
+vst2 = { git = "https://github.com/overdrivenpotato/rust-vst2" }
+easyvst = { git = "https://github.com/Boscop/easyvst" }
+asprim = "0.1"
+num-traits = "0.1"
+
+[[example]]
+name = "test_synth"
