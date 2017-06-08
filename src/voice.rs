@@ -26,7 +26,21 @@ pub trait Voice {
 }
 
 pub struct SamplerVoice {
+    
+}
 
+impl Voice for SamplerVoice {
+    fn note_on(&self, midi_note: u8, velocity: u8, pitch: f32){
+
+    }
+
+    fn note_off(&self){
+
+    }
+
+    fn render_next<T: Float + AsPrim>(&self, buffer: &mut AudioBuffer<T>){
+        
+    }
 }
 
 pub struct SynthVoice {
