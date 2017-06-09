@@ -1,35 +1,53 @@
-extern crate vst2;
-extern crate asprim;
-extern crate num_traits;
-
-use self::asprim::AsPrim;
-use self::vst2::buffer::AudioBuffer;
-use self::num_traits::Float;
-use super::voice::Voice;
-
+use asprim::AsPrim;
+use vst2::buffer::AudioBuffer;
+use num_traits::Float;
+use voice::Voice;
+use voice::VoiceState;
+use voice::Renderable;
 /// The base structure for handling voices, sounds, and processing
 /// You will always want to make this mutable.
 ///
 /// * `voices` - A vector containing multiple objects implementing the `Voice` trait
 /// * `sample_rate` - The sample rate the Synthesizer and voices should use
-pub struct Synthesizer<T> where T: Voice {
+pub struct Synthesizer<T> where T: Renderable {
     
     /// A list of all voices a synthesizer contains.
     /// This is directly related to polyphony
-    pub voices: Vec<T>,
+    pub voices: Vec<Voice<T>>,
     pub sample_rate: f64,
     pub note_steal: StealMode,
 }
 
 
-/// Contains all data needed by the `note_on` functions to work
+/// Contains all data needed to play a note
 pub struct NoteData {
+    /// An integer from 0-127 defining what note to play
     pub note: u8,
+    /// An 8-bit unsigned value that can be used for modulating things such as amplitude
     pub velocity: u8,
-    pub pitch: f32
+    /// A float specifying pitch.  Use 0 for no change.
+    pub pitch: f32,
+    /// The On/Off state for a note
+    pub state: NoteState
+}
+
+impl NoteData {
+    /// return a default note.  This can be useful if you only care about one property
+    fn new() -> NoteData{
+        NoteData { note: 60u8, velocity: 127u8, pitch: 0f32, state: NoteState::On }
+    }
+}
+
+/// A more readable boolean for keeping track of a note's state
+pub enum NoteState {
+    /// the note is on
+    On,
+    /// the note is off and should start `Releasing` a voice, if applicable
+    Off
 }
 
 /// The way new notes will play if all voices are being currently utilized
+/// This will change
 pub enum StealMode {
     /// new notes will simply not be played if all voices are busy
     Off,
@@ -41,14 +59,7 @@ pub enum StealMode {
     Smart
 }
 
-impl<T> Synthesizer<T> where T: Voice {
-
-    /// Stop all notes from all `Voice`s 
-    pub fn all_notes_off(&self){
-        for voice in &self.voices {
-            voice.note_off();
-        }
-    }
+impl<T> Synthesizer<T> where T: Renderable {
 
     /// Begin playing with the specified note
     ///
@@ -56,20 +67,21 @@ impl<T> Synthesizer<T> where T: Voice {
     /// * `velocty` - An 8-bit unsigned value that can be used for modulating things such as amplitude
     /// * `pitch` - A float specifying pitch.  Use 0 for no change.
     #[allow(unused_variables)]
-    pub fn note_on(&self, note_data: &NoteData){
+    pub fn note_on(&self, note_data: NoteData){
 
         // Find a free voice and send this event
         for voice in &self.voices {
-            // optional that tells us the note, or nothing if the voice isn't being utilized
-            let note = voice.get_note();
-            match note {
-                Some(v) => { },
-                None => {
-                    voice.note_on(note_data);
-                    // we're done here!  Exit early.
+
+            match voice.state {
+                VoiceState::On => { },
+                VoiceState::Releasing => { },
+                VoiceState::Off => {
+                    voice.note(NoteData::new());
+                    // we're done here!  Exit early.voice.state
                     return;
                 }
             }
+
         }
 
         // note: this is most definitely not idiomatic rust and will need to be refactored.

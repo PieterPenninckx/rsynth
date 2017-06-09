@@ -4,13 +4,19 @@ version = "0.1.0"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
 
 [dependencies]
-vst2 = { git = "https://github.com/overdrivenpotato/rust-vst2" }
+vst2 = { git = "https://github.com/Boscop/rust-vst2" }
 asprim = "0.1"
 num-traits = "0.1"
+num = "0.1"
 clippy = {version = "*", optional = true}
+
+[dev-dependencies]
+easyvst = { git = "https://github.com/Boscop/easyvst" }
+rand = "0.3"
 
 [features]
 default = ["clippy"]
 
 [[example]]
 name = "test_synth"
+crate-type = ["cdylib"]

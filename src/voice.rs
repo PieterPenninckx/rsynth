@@ -1,32 +1,43 @@
-extern crate vst2;
-extern crate asprim;
-extern crate num_traits;
-
-use self::asprim::AsPrim;
-use self::vst2::buffer::AudioBuffer;
-use self::num_traits::Float;
+use asprim::AsPrim;
+use vst2::buffer::AudioBuffer;
+use num_traits::Float;
 use synthesizer::NoteData;
+use synthesizer::NoteState;
 
-/// Contains necessary methods for synth voices
-pub trait Voice {
 
-    /// Begin playing with the specified note
-    ///
-    /// * `midi_note` - An integer from 0-127 defining what note to play
-    /// * `velocty` - An 8-bit unsigned value that can be used for modulating things such as amplitude
-    /// * `pitch` - A float specifying pitch.  Use 0 for no change.
-    fn note_on(&self, note_data: &NoteData);
-
-    /// Stop playing a specified note
-    fn note_off(&self);
+/// Implement this in order to allow a voice to be renderable
+pub trait Renderable {
 
     /// Modify an audio buffer with rendered audio from the voice
     ///
-    /// * `buffer` - the audio buffer reference to modify
-    fn render_next<T: Float + AsPrim>(&self, buffer: &mut AudioBuffer<T>);
+    /// * `input` - the input audio buffer reference to modify
+    /// * `output` - the output audio buffer reference to modify
+    fn render_next<F: Float + AsPrim>(&mut self, input: &[F], output: &mut [F]);
+}
 
-    /// If the voice is currently playing something, return the note number
-    /// Keep in mind that the `note_off` function is not always a reliable method
-    /// to figure out if the Voice is playing due to ADSR.  Make sure to implement with that in mind.
-    fn get_note(&self) ->  Option<u8>;
+/// A sampler / synthesizer voice. 
+pub struct Voice<T> where T: Renderable {
+    /// Keeps track of what this voice is currently doing
+    pub state: VoiceState,
+    /// A struct that defines how audio will render
+    pub sound: T
+}
+
+impl<T> Voice<T> where T: Renderable {
+    /// Controls the Voice based on note on/off signals
+    ///
+    /// * `note` - the `NoteData` to pass
+    pub fn note(&self, note: NoteData){
+
+    }
+}
+
+/// Keeps track of the current state of any voice
+pub enum VoiceState { 
+    /// the voice is currently in use
+    On,
+    /// the voice has recieved a signal to stop and is now releasing 
+    Releasing,
+    /// the voice is not doing anything and can be used
+    Off
 }
