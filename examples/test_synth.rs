@@ -19,7 +19,6 @@ use rvst_synth::voice::*;
 easyvst!(ParamId, ExState, ExPlugin);
 
 /// A struct containing all usable parameters
-
 #[repr(usize)]
 #[derive(Debug, Copy, Clone)]
 pub enum ParamId {
@@ -51,20 +50,14 @@ type ExPluginState = PluginState<ParamId, ExState>;
 
 #[derive(Default)]
 struct ExPlugin {
+	synth: Synthesizer<Sound>,
 	state: ExPluginState,
-}
-
-#[allow(unused_variables)]
-impl ExPlugin {
-	fn process_one_channel<F: Float + AsPrim>(&mut self, input: &[F], output: &mut [F]) {
-		
-	}
 }
 
 impl EasyVst<ParamId, ExState> for ExPlugin {
 	fn params() -> Vec<ParamDef> {
 		vec![
-			ParamDef::new("Gain", -48., 12., 0.),
+			ParamDef::new("Pitch", -48., 12., 0.),
 		]
 	}
 
@@ -74,10 +67,10 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 
 	fn get_info(&self) -> Info {
 		Info {
-			name: "easygain".to_string(),
-			vendor: "easyvst".to_string(),
-			unique_id: 0x3456DCBA,
-			category: Category::Effect,
+			name: "sinesynth".to_string(),
+			vendor: "sinesynth".to_string(),
+			unique_id: 0x3456DFFA,
+			category: Category::Synth,
 
 			inputs: 2,
 			outputs: 2,
@@ -94,45 +87,38 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 	}
 
 	fn init(&mut self) {
-		
+		self.synth = Synthesizer { 
+				    	sample_rate: 48_000f64, 
+				    	note_steal: StealMode::First, 
+				    	voices: vec![] };
+
 	}
 
 	fn process_f<T: Float + AsPrim>(&mut self, buffer: AudioBuffer<T>) {
-		// split out the input and output buffers into two vectors
 		let (inputs, outputs) = buffer.split();
 
-		// for each buffer, transform the samples
-		for (input_buffer, output_buffer) in inputs.iter().zip(outputs) {
-			self.process_one_channel(input_buffer, output_buffer);
-		}
+		let mut s = Sound { state: VoiceState::On };
+		for (input_buffer, output_buffer) in outputs.iter().zip(inputs) {
+			s.render_next::<T, Sound>(input_buffer, output_buffer);
+            // &self.synth.render_channel(input_buffer, output_buffer);	
+            // Not working :(
+        }
 	}
 }
 
 
-#[allow(unused_mut, unused_variables)]
-fn main(){
-    let mut synth: rvst_synth::synthesizer::Synthesizer<MyVoice> = Synthesizer { 
-									    	sample_rate: 48_000f64, 
-									    	note_steal: StealMode::First, 
-									    	voices: vec![] };
+/// The DSP stuff goes here
+pub struct Sound {
+	pub state: VoiceState
+}
 
+impl Renderable for Sound {
 
-	pub struct MyVoice {
-		pub state: VoiceState
-	}
-
-	impl Voice for MyVoice {
-
-	    /// Do all our processing here
-	    fn render_next<F: Float + AsPrim>(&mut self, input: &[F], output: &mut [F]) {
-	    	// if no note is currently being played, just write zeroes.
-	    	if self.current_note {
-
-	    	}
-
-	    	for o_sample in output {
-	    		*o_sample = num::cast(rand::random::<f64>()).unwrap();
-	    	}
-	    }
-	}
+    /// Do all our DSP stuff here
+    #[allow(unused_variables)]
+    fn render_next<F: Float + AsPrim, T> (&mut self, input: &[F], output: &mut [F]) where T: Renderable {
+    	for o_sample in output {
+    		*o_sample = num::cast(rand::random::<f64>()).unwrap();
+    	}
+    }
 }

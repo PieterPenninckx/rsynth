@@ -18,6 +18,12 @@ pub struct Synthesizer<T> where T: Renderable {
     pub note_steal: StealMode,
 }
 
+impl<T> Default for Synthesizer<T> where T: Renderable{
+    fn default () -> Self {
+        Synthesizer { voices: vec![], sample_rate: 41_000f64, note_steal: StealMode::First }
+    }
+}
+
 
 /// Contains all data needed to play a note
 pub struct NoteData {
@@ -54,9 +60,7 @@ pub enum StealMode {
     /// stop playing the first voice to start playing in this frame
     First,
     /// stop playing the last voice to start playing in this frame
-    Last,
-    /// find the best voice to stop playing
-    Smart
+    Last
 }
 
 impl<T> Synthesizer<T> where T: Renderable {
@@ -73,10 +77,10 @@ impl<T> Synthesizer<T> where T: Renderable {
         for voice in &self.voices {
 
             match voice.state {
-                VoiceState::On => { },
-                VoiceState::Releasing => { },
+                VoiceState::On => { unimplemented!() },
+                VoiceState::Releasing => { unimplemented!() },
                 VoiceState::Off => {
-                    voice.note(NoteData::new());
+                    voice.send_note(NoteData::new());
                     // we're done here!  Exit early.voice.state
                     return;
                 }
@@ -105,11 +109,12 @@ impl<T> Synthesizer<T> where T: Renderable {
 
     /// Modify an audio buffer with rendered audio from the voice
     ///
-    /// * `buffer` - the audio buffer reference to modify
+    /// * `buffer` - the audio buffer to modify
     #[allow(unused_variables)]
-    pub fn render_next<U: Float + AsPrim>(&self, buffer: &mut AudioBuffer<U>){
-        unimplemented!()
-        // TODO: render each voice in loop with some sort of way to combine
+    pub fn render_next<F: Float + AsPrim>(&mut self, buffer: &AudioBuffer<F>) {
+        for voice in &mut self.voices {
+            voice.render_next::<F>(&buffer);
+        }
     }
 }
 
