@@ -96,21 +96,21 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 
 	fn process_f<T: Float + AsPrim>(&mut self, buffer: AudioBuffer<T>) {
 
-		self.synth.render_next::<T>(buffer);
+		self.synth.render_next::<T>(&buffer);
 	}
 }
 
 
 /// The DSP stuff goes here
 pub struct Sound {
-	pub state: VoiceState
+
 }
 
 impl Renderable for Sound {
 
     /// Do all our DSP stuff here
     #[allow(unused_variables)]
-    fn render_next<'a, F: Float + AsPrim, T> (&mut self, buffer: AudioBuffer<'a, F>) -> AudioBuffer<'a, F> where T: Renderable {
-    	buffer
+    fn render_next<F: Float + AsPrim, T> (&self, buffer: &AudioBuffer<F>, voice: &Voice<T>) where T: Renderable {
+    	// do stuff
     }
 }

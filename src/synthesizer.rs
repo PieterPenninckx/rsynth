@@ -111,9 +111,9 @@ impl<T> Synthesizer<T> where T: Renderable {
     ///
     /// * `buffer` - the audio buffer to modify
     #[allow(unused_variables)]
-    pub fn render_next<'a, F: Float + AsPrim>(&mut self, mut buffer: AudioBuffer<'a, F>) {
+    pub fn render_next<'a, F: Float + AsPrim>(&mut self, buffer: &AudioBuffer<'a, F>) {
         for voice in &mut self.voices {
-            buffer = voice.render_next::<F>(buffer);
+            voice.render_next::<F>(buffer);
         }
     }
 }
