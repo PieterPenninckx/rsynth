@@ -9,7 +9,7 @@ extern crate rand;
 use num_traits::Float;
 use asprim::AsPrim;
 
-use vst2::buffer::AudioBuffer;
+use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
 use vst2::plugin::{Category, Info, HostCallback};
 
 use easyvst::*;
@@ -87,16 +87,17 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 	}
 
 	fn init(&mut self) {
+		let voice = Voice { panning: 0f32, sound: Sound { }, state: VoiceState::Off };
 		self.synth = Synthesizer { 
 				    	sample_rate: 48_000f64, 
 				    	note_steal: StealMode::First, 
-				    	voices: vec![] };
+				    	voices: vec![voice] };
 
 	}
 
-	fn process_f<T: Float + AsPrim>(&mut self, buffer: AudioBuffer<T>) {
+	fn process_f<T: Float + AsPrim>(&mut self, buffer: &mut AudioBuffer<T>) {
 
-		self.synth.render_next::<T>(&buffer);
+		self.synth.render_next::<T>(buffer);
 	}
 }
 
@@ -110,7 +111,13 @@ impl Renderable for Sound {
 
     /// Do all our DSP stuff here
     #[allow(unused_variables)]
-    fn render_next<F: Float + AsPrim, T> (&self, buffer: &AudioBuffer<F>, voice: &Voice<T>) where T: Renderable {
-    	// do stuff
+    fn render_next<F: Float + AsPrim, T> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice: &Voice<T>) where T: Renderable {
+    	// for every output
+    	for output in outputs.into_iter() {
+    		// for each value in buffer
+    		for sample in output {
+    			*sample = *sample + rand::random::<f64>().as_();
+    		}
+    	}
     }
 }

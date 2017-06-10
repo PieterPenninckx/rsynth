@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use synthesizer::NoteData;
-use vst2::buffer::AudioBuffer; 
+use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
 
 
 /// Implementing this on a struct will allow for custom audio processing
@@ -11,7 +11,7 @@ pub trait Renderable {
     ///
     /// * `input` - the input audio buffer reference to modify
     /// * `output` - the output audio buffer reference to modify
-    fn render_next<F, T> (&self, buffer: &AudioBuffer<F>, voice: &Voice<T>)
+    fn render_next<F, T> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice: &Voice<T>)
         where T: Renderable,
               F: Float + AsPrim;
 }
@@ -35,8 +35,8 @@ impl<T> Voice<T> where T: Renderable {
     }
 
     /// calls the voice's sound `render_next` function
-    pub fn render_next<F: Float + AsPrim> (&self, buffer: &AudioBuffer<F>) {
-        &self.sound.render_next::<F, T>(buffer, self);
+    pub fn render_next<F: Float + AsPrim> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>) {
+        self.sound.render_next::<F, T>(inputs, outputs, self);
     }
 }
 

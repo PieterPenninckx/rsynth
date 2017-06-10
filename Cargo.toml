@@ -4,14 +4,14 @@ version = "0.1.0"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
 
 [dependencies]
-vst2 = { git = "https://github.com/Boscop/rust-vst2" }
+vst2 = { git = "https://github.com/Boscop/rust-vst2", branch = "optimized" }
 asprim = "0.1"
 num-traits = "0.1"
 num = "0.1"
 clippy = {version = "*", optional = true}
 
 [dev-dependencies]
-easyvst = { git = "https://github.com/Boscop/easyvst" }
+easyvst = { git = "https://github.com/Boscop/easyvst", branch = "optimized" }
 rand = "0.3"
 
 [features]

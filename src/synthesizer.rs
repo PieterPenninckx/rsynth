@@ -25,6 +25,7 @@ impl<T> Default for Synthesizer<T> where T: Renderable{
 }
 
 
+
 /// Contains all data needed to play a note
 pub struct NoteData {
     /// An integer from 0-127 defining what note to play
@@ -111,9 +112,12 @@ impl<T> Synthesizer<T> where T: Renderable {
     ///
     /// * `buffer` - the audio buffer to modify
     #[allow(unused_variables)]
-    pub fn render_next<'a, F: Float + AsPrim>(&mut self, buffer: &AudioBuffer<'a, F>) {
+    pub fn render_next<'a, F: Float + AsPrim>(&mut self, buffer: &mut AudioBuffer<'a, F>) {
+
+        /// split the buffer
+        let (mut inputs, mut outputs) = buffer.split();
         for voice in &mut self.voices {
-            voice.render_next::<F>(buffer);
+            voice.render_next::<F>(&mut inputs, &mut outputs);
         }
     }
 }
