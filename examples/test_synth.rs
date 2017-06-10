@@ -95,14 +95,8 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 	}
 
 	fn process_f<T: Float + AsPrim>(&mut self, buffer: AudioBuffer<T>) {
-		let (inputs, outputs) = buffer.split();
 
-		let mut s = Sound { state: VoiceState::On };
-		for (input_buffer, output_buffer) in outputs.iter().zip(inputs) {
-			s.render_next::<T, Sound>(input_buffer, output_buffer);
-            // &self.synth.render_channel(input_buffer, output_buffer);	
-            // Not working :(
-        }
+		self.synth.render_next::<T>(buffer);
 	}
 }
 
@@ -116,9 +110,7 @@ impl Renderable for Sound {
 
     /// Do all our DSP stuff here
     #[allow(unused_variables)]
-    fn render_next<F: Float + AsPrim, T> (&mut self, input: &[F], output: &mut [F]) where T: Renderable {
-    	for o_sample in output {
-    		*o_sample = num::cast(rand::random::<f64>()).unwrap();
-    	}
+    fn render_next<'a, F: Float + AsPrim, T> (&mut self, buffer: AudioBuffer<'a, F>) -> AudioBuffer<'a, F> where T: Renderable {
+    	buffer
     }
 }

@@ -11,7 +11,12 @@ pub trait Renderable {
     ///
     /// * `input` - the input audio buffer reference to modify
     /// * `output` - the output audio buffer reference to modify
-    fn render_next<F: Float + AsPrim, T> (&mut self, inputs: Vec<&mut [F]>, outputs: Vec<&mut [F]>, voice: &Voice<T>) where T: Renderable;
+    fn render_next<'a, F, T> (&mut self, buffer: AudioBuffer<'a, F>) -> AudioBuffer<'a, F>
+        where T: Renderable,
+              F: Float + AsPrim
+    {
+        buffer
+    }
 }
 
 /// A sampler / synthesizer voice. 
@@ -33,9 +38,8 @@ impl<T> Voice<T> where T: Renderable {
     }
 
     /// calls the voice's sound `render_next` function, passing in self for easy data access
-    pub fn render_next<F: Float + AsPrim> (&mut self, buffer: &AudioBuffer<F>) {
-        let (inputs, outputs) = buffer.split();
-        &self.sound.render_next::<F, T>(inputs, outputs, self);
+    pub fn render_next<'a, F: Float + AsPrim> (&mut self, buffer: AudioBuffer<'a, F>) -> AudioBuffer<'a, F> {
+        self.sound.render_next::<F, T>(buffer)
     }
 }
 
