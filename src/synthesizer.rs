@@ -61,6 +61,7 @@ impl<T> Synthesizer<T> where T: Renderable {
     }
 
     /// Finalize the builder
+    #[allow(unused_variables)]
     pub fn finalize(self) -> Self {
         let (pan_left_amp, pan_right_amp) = constant_power_pan(self.pan);
         Synthesizer { 
@@ -116,7 +117,10 @@ impl<T> Synthesizer<T> where T: Renderable {
     /// Set the panning for the entire instrument
     /// This is done via a function instead of directly setting the field
     /// as the formula is potentially costly and should only be calculated
-    /// when needed.
+    /// when needed.  For instance, do not use this function in a loop for
+    /// every sample.  Instead, update the value only when parameters change.
+    /// If you need to set the panning every block render, consider accessing
+    /// the `pan_raw` field directly.
     ///
     /// * `amount` - a float value between -1 and 1 where 0 is center and 1 is to the right.
     /// Values not within this range will be 
@@ -176,6 +180,7 @@ pub enum Channel {
     Right
 }
 
+#[allow(match_same_arms)]
 fn channel_from_int(channel: usize) -> Channel {
     match channel {
         0 => Channel::Left,

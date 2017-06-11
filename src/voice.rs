@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use synthesizer::NoteData;
-use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
+use vst2::buffer::{Inputs, Outputs}; 
 
 /// Implementing this on a struct will allow for custom audio processing
 pub trait Renderable {
@@ -29,6 +29,7 @@ impl<T> Voice<T> where T: Renderable {
     /// Controls the Voice based on note on/off signals
     ///
     /// * `note` - the `NoteData` to pass
+    #[allow(unused_variables)]
     pub fn send_note(&self, note: NoteData){
         unimplemented!()
     }
