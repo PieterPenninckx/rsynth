@@ -3,10 +3,6 @@
 use std::f32;
 use num::clamp;
 
-/// Constants
-/// The square root of two divided by two used in panning
-const PAN_MULT: f32 = 0.70715;
-
 /// Calculates constant power panning
 /// This function uses `sin` and `cos` so use only when needed
 ///
