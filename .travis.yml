@@ -2,7 +2,7 @@ language: rust
 rust:
   - nightly
 after_success: |
-    cargo doc \
+    cargo rustdoc \
     && echo '<meta http-equiv=refresh content=0;url=rvst_synth/index.html>' > target/doc/index.html && \
     sudo pip install ghp-import && \
     ghp-import -n target/doc && \
