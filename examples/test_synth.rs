@@ -15,6 +15,7 @@ use vst2::plugin::{Category, Info, HostCallback};
 use easyvst::*;
 use rvst_synth::synthesizer::*;
 use rvst_synth::voice::*;
+use rvst_synth::utility::*;
 
 easyvst!(ParamId, ExState, ExPlugin);
 
@@ -27,21 +28,27 @@ pub enum ParamId {
 
 #[derive(Default)]
 struct ExState {
-	pitch: f32
+	// the raw pan amount between -1 and 1
+	pan: f32,
+	// a stereo pan tuple representing amp for pan
+	pan_raw: (f32, f32)
 }
 
 impl UserState<ParamId> for ExState {
 	fn param_changed(&mut self, _host: &mut HostCallback, param_id: ParamId, val: f32) {
 		use ParamId::*;
 		match param_id {
-			Pitch => self.pitch = 0f32
+			Panning => {
+				self.pan_raw = constant_power_pan(val);
+				self.pan = val;
+			}
 		}
 	}
 
 	fn format_param(&self, param_id: ParamId, val: f32) -> String {
 		use ParamId::*;
 		match param_id {
-			Pitch => format!("{:.2}", val),
+			Panning => format!("{:.2}", val),
 		}
 	}
 }
@@ -57,7 +64,7 @@ struct ExPlugin {
 impl EasyVst<ParamId, ExState> for ExPlugin {
 	fn params() -> Vec<ParamDef> {
 		vec![
-			ParamDef::new("Pitch", -48., 12., 0.),
+			ParamDef::new("Panning", -1., 1., 0.),
 		]
 	}
 
@@ -87,16 +94,19 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 	}
 
 	fn init(&mut self) {
-		let voice = Voice { panning: 0f32, sound: Sound { }, state: VoiceState::Off };
-		self.synth = Synthesizer { 
-				    	sample_rate: 48_000f64, 
-				    	note_steal: StealMode::First, 
-				    	voices: vec![voice] };
+		let voice = Voice { pan: 0f32, sound: Sound { }, state: VoiceState::Off };
 
+		self.synth = Synthesizer::new()
+						.voices(vec![voice])
+						.sample_rate(41_000f64)
+						.finalize();
 	}
 
 	fn process_f<T: Float + AsPrim>(&mut self, buffer: &mut AudioBuffer<T>) {
+		// set the panning amount from our state object
+		self.synth.pan_raw = self.state.user_state.pan_raw;
 
+		// render our audio
 		self.synth.render_next::<T>(buffer);
 	}
 }
