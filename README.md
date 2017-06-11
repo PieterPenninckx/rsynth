@@ -4,4 +4,6 @@ A crate for organizing synthesizers for [vst2](https://github.com/overdrivenpota
 
 Provides a very lightweight `Synthesizer` structure, with many voices.  Once a `Voice` trait is implemented, it can be used easily from the `Synthesizer` manager.
 
+[Documentation](piedoom.github.io/rvst_synth)
+
 MIT License. 
