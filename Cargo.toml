@@ -15,7 +15,7 @@ easyvst = { git = "https://github.com/Boscop/easyvst", branch = "optimized" }
 rand = "0.3"
 
 [features]
-default = []
+default = ["clippy"]
 
 [[example]]
 name = "test_synth"

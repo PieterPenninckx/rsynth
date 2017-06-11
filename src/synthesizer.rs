@@ -104,7 +104,7 @@ impl<T> Synthesizer<T> where T: Renderable {
                 VoiceState::On => { unimplemented!() },
                 VoiceState::Releasing => { unimplemented!() },
                 VoiceState::Off => {
-                    voice.send_note(NoteData::new());
+                    // send a note
                     // we're done here!  Exit early.voice.state
                     return;
                 }
@@ -223,13 +223,6 @@ pub struct NoteData {
     pub pitch: f32,
     /// The On/Off state for a note
     pub state: NoteState,
-}
-
-impl NoteData {
-    /// return a default note.  This can be useful if you only care about one property
-    fn new() -> NoteData{
-        NoteData { note: 60u8, velocity: 127u8, pitch: 0f32, state: NoteState::On }
-    }
 }
 
 /// A more readable boolean for keeping track of a note's state
