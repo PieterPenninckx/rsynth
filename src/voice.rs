@@ -8,33 +8,36 @@ pub trait Renderable {
 
     /// Modify an audio buffer with rendered audio from the voice
     ///
-    /// * `input` - the input audio buffer reference to modify
-    /// * `output` - the output audio buffer reference to modify
+    /// * `inputs` - a mutable reference to the input audio buffers 
+    /// * `outputs` - a mutable reference to the output audio buffers to modify
+    /// * `voice` - the `Voice` that conains this `Renderable` implementation.  This is useful
+    /// if we need to access things like velocity in our DSP calculations
     fn render_next<F, T> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice: &Voice<T>)
         where T: Renderable,
               F: Float + AsPrim;
 }
 
-/// A sampler / synthesizer voice.
+/// An instrument voice.
 pub struct Voice<T> where T: Renderable {
     /// Keeps track of what this voice is currently doing
+    /// Unless this value is `VoiceState::Off`, the instrument
+    /// will categorize this particular `Voice` as in-use
     pub state: VoiceState,
-    /// A struct that defines how audio will render
+    /// Our own `Renderable` implementation
     pub sound: T,
-    /// a number from -1 to 1 where 0 is center and positive numbers are to the right
-    pub pan: f32
+    /// A number from -1 to 1 where 0 is center, and positive numbers are to the right
+    pub pan: f32,
+    /// Contains note data useful in determining what pitch to play.  This is used in tandem with the 
+    /// `state` field.
+    pub note: NoteData
 }
 
 impl<T> Voice<T> where T: Renderable {
-    /// Controls the Voice based on note on/off signals
-    ///
-    /// * `note` - the `NoteData` to pass
-    #[allow(unused_variables)]
-    pub fn send_note(&self, note: NoteData){
-        unimplemented!()
-    }
 
     /// calls the voice's sound `render_next` function
+    ///
+    /// * `inputs` - a mutable reference to the input audio buffers 
+    /// * `outputs` - a mutable reference to the output audio buffers to modify
     pub fn render_next<F: Float + AsPrim> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>) {
         
         // Send the buffer to our sound implementation for processing

@@ -5,24 +5,35 @@ use voice::{Voice, VoiceState, Renderable};
 use utility::*;
 
 /// The base structure for handling voices, sounds, and processing
-/// You will always want to make this mutable.
 ///
-/// * `voices` - A vector containing multiple objects implementing the `Voice` trait
-/// * `sample_rate` - The sample rate the Synthesizer and voices should use
+/// * `T` - a struct we create that implements the `Renderable` trait,
+/// and contains all of our DSP code.
 pub struct Synthesizer<T> where T: Renderable {
     
-    /// A list of all voices a synthesizer contains.
-    /// This is directly related to polyphony
+    /// A vector containing multiple objects implementing the `Voice` trait
     pub voices: Vec<Voice<T>>,
+    /// The sample rate the Synthesizer and voices should use
     pub sample_rate: f64,
+    /// What method the synth should use to steal voices (if any)
     pub steal_mode: StealMode,
-    /// The entire balance of the instrument
+    /// The balance of the instrument represented as a float between -1 and 1, 
+    /// where 0 is center and 1 is to the right.
     pan: f32,
     /// The raw amp values for panning
-    /// Only modify these if you know what you're doing
+    /// This can be used in tandem with a state object to set the global
+    /// panning values every block render, without having to perform
+    /// an expensive panning formula every time.  For instance, we can
+    /// calculate `constant_power_pan` in a callback every time the pan knob is moved
+    /// and assign that value to a tuple.
+    /// Then, before calling the `render_next` method on our synth, we can set the
+    /// `pan_raw` field to our aforementioned tuple. 
     pub pan_raw: (f32, f32)
 }
 
+/// Get default values 
+/// This is only really useful with our internal builder methods.
+/// If we try something like `let s = { sample_rate: 48_000, .. Synthesizer::default() };`
+/// the compiler will complain that some fields are private.
 impl<T> Default for Synthesizer<T> where T: Renderable{
     fn default () -> Self {
         Synthesizer { 
@@ -43,24 +54,32 @@ impl<T> Synthesizer<T> where T: Renderable {
     }
 
     /// Set voices using the builder
+    ///
+    /// * `voices` - A vector containing any number of `Voice` structures.
+    /// If our instrument is polyphonic, the number of voices will determine the maximum amount
+    /// of notes it can play at once.
     pub fn voices(mut self, voices: Vec<Voice<T>>) -> Self {
         self.voices = voices;
         self
     }
 
     /// Set the sample rate using the builder
+    ///
+    /// * `sample_rate` - set the sample rate of our instrument
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = sample_rate;
         self
     }
 
     /// Set the note steal mode using the builder
+    ///
+    /// * `steal_mode` - this determines how "voice stealing" will be implemented, if at all.
     pub fn steal_mode(mut self, steal_mode: StealMode) -> Self {
         self.steal_mode = steal_mode;
         self
     }
 
-    /// Finalize the builder
+    /// Finalize the builder and return an immutable `Synthesizer`
     #[allow(unused_variables)]
     pub fn finalize(self) -> Self {
         let (pan_left_amp, pan_right_amp) = constant_power_pan(self.pan);
@@ -74,9 +93,7 @@ impl<T> Synthesizer<T> where T: Renderable {
 
     /// Begin playing with the specified note
     ///
-    /// * `midi_note` - An integer from 0-127 defining what note to play
-    /// * `velocty` - An 8-bit unsigned value that can be used for modulating things such as amplitude
-    /// * `pitch` - A float specifying pitch.  Use 0 for no change.
+    /// * `note_data` - contains all information needed to play a note
     #[allow(unused_variables)]
     pub fn note_on(&self, note_data: NoteData){
 
@@ -142,10 +159,10 @@ impl<T> Synthesizer<T> where T: Renderable {
             voice.render_next::<F>(&mut inputs, &mut outputs);
         }
 
-        // Do some more generic processing on the sound for basic functionality
-        // This happens synth-wide, not per-voice.
-        // WARNING: This essentially loops twice when it isn't needed
-        // This will be changed in the future, most likely
+        /// Do some more generic processing on the sound for basic functionality
+        /// This happens synth-wide, not per-voice.
+        /// WARNING: This essentially loops twice when it isn't needed
+        /// This will be changed in the future, most likely
         for (i, output) in outputs.into_iter().enumerate() {
 
             // Process
@@ -153,7 +170,12 @@ impl<T> Synthesizer<T> where T: Renderable {
         }
     }
 
-    /// Process the entire instrument
+    /// Process the entire instrument through generic effects like instrument-wide panning and volume
+    ///
+    /// * `output` - a mutable reference to a single output buffer
+    /// * `channel_i` - the iterator number that relates to the `output` index.  This determines
+    /// what channel the method is currently processing.  For example, `0 == Channel::Left` and
+    /// `1 == Channel::Right`. 
     fn post_process<F: Float + AsPrim>(&self, output: &mut [F], channel_i: usize) {
         let channel = channel_from_int(channel_i);
 
@@ -174,13 +196,14 @@ impl<T> Synthesizer<T> where T: Renderable {
 }
 
 
-/// An enum to display channel numbers as readable data
+/// An enum to display channel iterator numbers as readable data
 pub enum Channel {
     Left,
     Right
 }
 
 #[allow(match_same_arms)]
+/// Get a human readable `Channel` enum from a normal integer
 fn channel_from_int(channel: usize) -> Channel {
     match channel {
         0 => Channel::Left,
@@ -192,11 +215,11 @@ fn channel_from_int(channel: usize) -> Channel {
 
 /// Contains all data needed to play a note
 pub struct NoteData {
-    /// An integer from 0-127 defining what note to play
+    /// An integer from 0-127 defining what note to play based on the MIDI spec
     pub note: u8,
     /// An 8-bit unsigned value that can be used for modulating things such as amplitude
     pub velocity: u8,
-    /// A float specifying pitch.  Use 0 for no change.
+    /// A float specifying note independent pitch.  Use 0 for no change.
     pub pitch: f32,
     /// The On/Off state for a note
     pub state: NoteState,
