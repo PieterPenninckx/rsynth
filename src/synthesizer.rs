@@ -225,12 +225,51 @@ pub struct NoteData {
     pub state: NoteState,
 }
 
+impl Default for NoteData {
+    fn default() -> NoteData {
+        NoteData { note: 60u8, velocity: 127u8, pitch: 0f32, state: NoteState::Nil }
+    }
+}
+
+/// Builder methods
+impl NoteData {
+    pub fn new() -> Self {
+        NoteData::default()
+    }
+
+    pub fn note(&mut self, note: u8) -> &mut Self {
+        self.note = note;
+        self
+    }
+
+    pub fn velocity(&mut self, velocity: u8) -> &mut Self {
+        self.velocity = velocity;
+        self
+    }
+
+    pub fn pitch(&mut self, pitch: f32) -> &mut Self {
+        self.pitch = pitch;
+        self
+    }
+
+    pub fn state(&mut self, state: NoteState) -> &mut Self {
+        self.state = state;
+        self
+    }
+
+    pub fn finalize(self) -> Self {
+        NoteData { note: self.note, velocity: self.velocity, pitch: self.pitch, state: self.state }
+    }
+}
+
 /// A more readable boolean for keeping track of a note's state
 pub enum NoteState {
-    /// the note is on
+    /// The note is on
     On,
-    /// the note is off and should start `Releasing` a voice, if applicable
-    Off
+    /// The note is off and should start `Releasing` a voice, if applicable
+    Off,
+    /// The note should do nothing.  Used for default.
+    Nil
 }
 
 /// The way new notes will play if all voices are being currently utilized

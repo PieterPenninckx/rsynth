@@ -94,7 +94,11 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 	}
 
 	fn init(&mut self) {
-		let voice = Voice { pan: 0f32, sound: Sound { }, state: VoiceState::Off };
+		let voice = Voice { 
+			pan: 0f32, 
+			sound: Sound { }, 
+			state: VoiceState::Off,
+			note: NoteData::default()  };
 
 		self.synth = Synthesizer::new()
 						.voices(vec![voice])
