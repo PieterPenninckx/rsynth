@@ -11,11 +11,13 @@ use asprim::AsPrim;
 
 use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
 use vst2::plugin::{Category, Info, HostCallback};
+use vst2::api::Events;
 
 use easyvst::*;
 use rvst_synth::synthesizer::*;
 use rvst_synth::voice::*;
 use rvst_synth::utility::*;
+
 
 easyvst!(ParamId, ExState, ExPlugin);
 
@@ -74,8 +76,8 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 
 	fn get_info(&self) -> Info {
 		Info {
-			name: "sinesynth".to_string(),
-			vendor: "sinesynth".to_string(),
+			name: "testsynth".to_string(),
+			vendor: "testsynth".to_string(),
 			unique_id: 0x3456DFFA,
 			category: Category::Synth,
 
@@ -113,6 +115,14 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 		// render our audio
 		self.synth.render_next::<T>(buffer);
 	}
+
+	fn process_events(&mut self, events: &Events) {
+		// send midi data, etc.
+		self.synth.process_events(events);
+	}
+
+	
+
 }
 
 

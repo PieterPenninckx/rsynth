@@ -1,6 +1,6 @@
 use asprim::AsPrim;
 use num_traits::Float;
-use synthesizer::NoteData;
+use utility::*;
 use vst2::buffer::{Inputs, Outputs}; 
 
 /// Implementing this on a struct will allow for custom audio processing
@@ -40,13 +40,27 @@ impl<T> Voice<T> where T: Renderable {
     /// * `outputs` - a mutable reference to the output audio buffers to modify
     pub fn render_next<F: Float + AsPrim> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>) {
         
-        // Send the buffer to our sound implementation for processing
-        self.sound.render_next::<F, T>(inputs, outputs, self);
+        // temporary
+        if self.note.state == NoteState::On {
+            self.sound.render_next::<F, T>(inputs, outputs, self);
+        }
+
+        /*
+        // determine how to play the sound based on the statue of our voice
+        match self.state {
+            VoiceState::Off => { },
+            _ => {
+                // Send the buffer to our sound implementation for processing
+                self.sound.render_next::<F, T>(inputs, outputs, self);
+            }
+        }
+        */
     }
 }
 
 
 /// Keeps track of the current state of any voice
+#[derive(PartialEq)]
 pub enum VoiceState { 
     /// the voice is currently in use
     On,

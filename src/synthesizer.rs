@@ -1,5 +1,7 @@
 use asprim::AsPrim;
 use vst2::buffer::AudioBuffer;
+use vst2::api::Events;
+use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
 use utility::*;
@@ -95,10 +97,12 @@ impl<T> Synthesizer<T> where T: Renderable {
     ///
     /// * `note_data` - contains all information needed to play a note
     #[allow(unused_variables)]
-    pub fn note_on(&self, note_data: NoteData){
+    pub fn note_on(&mut self, note_data: NoteData){
 
         // Find a free voice and send this event
-        for voice in &self.voices {
+        for voice in &mut self.voices {
+
+            voice.note = note_data;
 
             match voice.state {
                 VoiceState::On => { unimplemented!() },
@@ -111,15 +115,6 @@ impl<T> Synthesizer<T> where T: Renderable {
             }
 
         }
-
-        // note: this is most definitely not idiomatic rust and will need to be refactored.
-        // We didn't find a free voice :( Steal one!
-        match self.steal_mode {
-            StealMode::Off => { /* do nothing! */ },
-            _ => {
-                unimplemented!(); // TODO
-            }
-        }
     }
 
     /// Stop playing a specified note
@@ -127,7 +122,7 @@ impl<T> Synthesizer<T> where T: Renderable {
     /// * `midi_note` - An integer from 0-127 defining what note to stop.  
     /// If this note is not currently "on", nothing will happen
     #[allow(unused_variables)]
-    pub fn note_off(&self, midi_note: u8){
+    pub fn note_off(&self, note_data: NoteData){
         unimplemented!()
     }
 
@@ -170,6 +165,8 @@ impl<T> Synthesizer<T> where T: Renderable {
         }
     }
 
+    
+
     /// Process the entire instrument through generic effects like instrument-wide panning and volume
     ///
     /// * `output` - a mutable reference to a single output buffer
@@ -193,6 +190,35 @@ impl<T> Synthesizer<T> where T: Renderable {
         }
     }
 
+    /// 
+    #[allow(match_same_arms)]
+    pub fn process_events(&mut self, events: &Events) {
+        // loop through all events
+        for e in events.events() {
+            // check if the event is a midi signal
+            match e {
+                Event::Midi { data, .. } => {
+
+                    // extract our data and call the appropriate function
+                    let note_data = NoteData::data(data); 
+                    match note_data.state {
+                        NoteState::Off => {
+                            self.note_off(note_data);
+                        }
+                        NoteState::On => {
+                            self.note_on(note_data);
+                        }
+                        _ => {
+                            return
+                        }
+                    }
+                    return
+                }
+                _ => return
+            }
+        }
+    }
+
 }
 
 
@@ -212,22 +238,9 @@ fn channel_from_int(channel: usize) -> Channel {
     }
 }
 
-
-/// Contains all data needed to play a note
-pub struct NoteData {
-    /// An integer from 0-127 defining what note to play based on the MIDI spec
-    pub note: u8,
-    /// An 8-bit unsigned value that can be used for modulating things such as amplitude
-    pub velocity: u8,
-    /// A float specifying note independent pitch.  Use 0 for no change.
-    pub pitch: f32,
-    /// The On/Off state for a note
-    pub state: NoteState,
-}
-
 impl Default for NoteData {
     fn default() -> NoteData {
-        NoteData { note: 60u8, velocity: 127u8, pitch: 0f32, state: NoteState::Nil }
+        NoteData { note: 60u8, velocity: 127u8, state: NoteState::Nil, channel: 0 }
     }
 }
 
@@ -247,8 +260,8 @@ impl NoteData {
         self
     }
 
-    pub fn pitch(&mut self, pitch: f32) -> &mut Self {
-        self.pitch = pitch;
+    pub fn channel(&mut self, channel: u8) -> &mut Self {
+        self.channel = channel;
         self
     }
 
@@ -258,18 +271,8 @@ impl NoteData {
     }
 
     pub fn finalize(self) -> Self {
-        NoteData { note: self.note, velocity: self.velocity, pitch: self.pitch, state: self.state }
+        NoteData { note: self.note, velocity: self.velocity, channel: self.channel, state: self.state }
     }
-}
-
-/// A more readable boolean for keeping track of a note's state
-pub enum NoteState {
-    /// The note is on
-    On,
-    /// The note is off and should start `Releasing` a voice, if applicable
-    Off,
-    /// The note should do nothing.  Used for default.
-    Nil
 }
 
 /// The way new notes will play if all voices are being currently utilized
