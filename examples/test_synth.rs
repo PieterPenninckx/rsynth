@@ -17,6 +17,7 @@ use easyvst::*;
 use rvst_synth::synthesizer::*;
 use rvst_synth::voice::*;
 use rvst_synth::utility::*;
+use rvst_synth::utility::note::*;
 
 easyvst!(ParamId, ExState, ExPlugin);
 
