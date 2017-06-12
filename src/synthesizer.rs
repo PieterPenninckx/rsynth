@@ -93,15 +93,16 @@ impl<T> Synthesizer<T> where T: Renderable {
             pan_raw: self.pan_raw }
     }
 
-    /// Begin playing with the specified note
+    /// Send midi note data to a voice
     ///
     /// * `note_data` - contains all information needed to play a note
     #[allow(unused_variables)]
-    pub fn note_on(&mut self, note_data: NoteData){
+    pub fn set_voice_note(&mut self, note_data: NoteData){
 
         // Find a free voice and send this event
         for voice in &mut self.voices {
 
+            // for now, just set it without checking
             voice.note = note_data;
 
             match voice.state {
@@ -115,15 +116,6 @@ impl<T> Synthesizer<T> where T: Renderable {
             }
 
         }
-    }
-
-    /// Stop playing a specified note
-    ///
-    /// * `midi_note` - An integer from 0-127 defining what note to stop.  
-    /// If this note is not currently "on", nothing will happen
-    #[allow(unused_variables)]
-    pub fn note_off(&self, note_data: NoteData){
-        unimplemented!()
     }
 
     /// Set the panning for the entire instrument
@@ -201,17 +193,7 @@ impl<T> Synthesizer<T> where T: Renderable {
 
                     // extract our data and call the appropriate function
                     let note_data = NoteData::data(data); 
-                    match note_data.state {
-                        NoteState::Off => {
-                            self.note_off(note_data);
-                        }
-                        NoteState::On => {
-                            self.note_on(note_data);
-                        }
-                        _ => {
-                            return
-                        }
-                    }
+                    self.set_voice_note(note_data);
                     return
                 }
                 _ => return

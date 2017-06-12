@@ -18,14 +18,13 @@ use rvst_synth::synthesizer::*;
 use rvst_synth::voice::*;
 use rvst_synth::utility::*;
 
-
 easyvst!(ParamId, ExState, ExPlugin);
 
 /// A struct containing all usable parameters
 #[repr(usize)]
 #[derive(Debug, Copy, Clone)]
 pub enum ParamId {
-	Pitch
+	Panning
 }
 
 #[derive(Default)]
@@ -78,10 +77,10 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 		Info {
 			name: "testsynth".to_string(),
 			vendor: "testsynth".to_string(),
-			unique_id: 0x3456DFFA,
+			unique_id: 1234,
 			category: Category::Synth,
 
-			inputs: 2,
+			inputs: 0,
 			outputs: 2,
 			parameters: 1,
 
@@ -120,9 +119,6 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 		// send midi data, etc.
 		self.synth.process_events(events);
 	}
-
-	
-
 }
 
 
