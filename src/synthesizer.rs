@@ -5,6 +5,7 @@ use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
 use utility::*;
+use utility::note::{NoteData};
 
 /// The base structure for handling voices, sounds, and processing
 ///
@@ -29,6 +30,8 @@ pub struct Synthesizer<T> where T: Renderable {
     /// and assign that value to a tuple.
     /// Then, before calling the `render_next` method on our synth, we can set the
     /// `pan_raw` field to our aforementioned tuple. 
+    /// Note that although the framework supports any number of outputs,
+    /// panning is currently only supported with stereo.
     pub pan_raw: (f32, f32)
 }
 
@@ -182,8 +185,11 @@ impl<T> Synthesizer<T> where T: Renderable {
         }
     }
 
-    /// 
-    #[allow(match_same_arms)]
+    /// Process events from the plugin host.  This is useful if you are
+    /// responding to MIDI notes and data.
+    ///
+    /// * `events` - a reference to an `Events` structure from the `vst2::api::Events`
+    /// module. 
     pub fn process_events(&mut self, events: &Events) {
         // loop through all events
         for e in events.events() {
@@ -210,50 +216,12 @@ pub enum Channel {
     Right
 }
 
-#[allow(match_same_arms)]
 /// Get a human readable `Channel` enum from a normal integer
 fn channel_from_int(channel: usize) -> Channel {
     match channel {
         0 => Channel::Left,
         1 => Channel::Right,
         _ => Channel::Left
-    }
-}
-
-impl Default for NoteData {
-    fn default() -> NoteData {
-        NoteData { note: 60u8, velocity: 127u8, state: NoteState::Nil, channel: 0 }
-    }
-}
-
-/// Builder methods
-impl NoteData {
-    pub fn new() -> Self {
-        NoteData::default()
-    }
-
-    pub fn note(&mut self, note: u8) -> &mut Self {
-        self.note = note;
-        self
-    }
-
-    pub fn velocity(&mut self, velocity: u8) -> &mut Self {
-        self.velocity = velocity;
-        self
-    }
-
-    pub fn channel(&mut self, channel: u8) -> &mut Self {
-        self.channel = channel;
-        self
-    }
-
-    pub fn state(&mut self, state: NoteState) -> &mut Self {
-        self.state = state;
-        self
-    }
-
-    pub fn finalize(self) -> Self {
-        NoteData { note: self.note, velocity: self.velocity, channel: self.channel, state: self.state }
     }
 }
 
