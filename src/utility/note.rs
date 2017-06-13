@@ -72,11 +72,11 @@ const CHANNEL_MASK: u8 = 0x0F;
 /// A more readable boolean for keeping track of a note's state
 #[derive(PartialEq)]
 pub enum NoteState {
+    Nil,
     /// The note is off and should start `Releasing` a voice, if applicable
-    Off = 0b10000000,
+    Off,
     /// The note is on
-    On = 0b10010000, 
-    Nil = 0  
+    On
 }
 
 impl NoteState {
@@ -84,9 +84,9 @@ impl NoteState {
         let status = val & STATUS_MASK;
         let channel = val & CHANNEL_MASK;
         let status_enum = match status {
-            0b10000000 => NoteState::Off,
-            0b10010000 => NoteState::On,
-            _ =>           NoteState::Nil
+            0x80 => NoteState::Off,
+            0x90 => NoteState::On,
+            _ =>    NoteState::Nil
         };
         (status_enum, channel)
     }

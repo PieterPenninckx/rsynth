@@ -5,7 +5,7 @@ use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
 use utility::*;
-use utility::note::{NoteData};
+use utility::note::{NoteData, NoteState};
 
 /// The base structure for handling voices, sounds, and processing
 ///
@@ -15,6 +15,12 @@ pub struct Synthesizer<T> where T: Renderable {
     
     /// A vector containing multiple objects implementing the `Voice` trait
     pub voices: Vec<Voice<T>>,
+    /// A vector that keeps track of currently playing voices
+    /// Each u8 refers to the note being played, and each 32b integer in the vector 
+    /// corresponds to an index in `voices`.  Note that this data is duplicate of data
+    /// in the `Voice` structure itself, so it shouldn't be relied upon for anything external,
+    /// and must be manually updated when notes change.
+    voices_used: Vec<(u8, usize)>,
     /// The sample rate the Synthesizer and voices should use
     pub sample_rate: f64,
     /// What method the synth should use to steal voices (if any)
@@ -46,7 +52,8 @@ impl<T> Default for Synthesizer<T> where T: Renderable{
             sample_rate: 41_000f64, 
             steal_mode: StealMode::First, 
             pan: 0f32,
-            pan_raw: (0f32, 0f32)
+            pan_raw: (0f32, 0f32),
+            voices_used: vec![]
         }
     }
 }
@@ -93,32 +100,8 @@ impl<T> Synthesizer<T> where T: Renderable {
             voices: self.voices, 
             sample_rate: self.sample_rate, 
             steal_mode: self.steal_mode,
-            pan_raw: self.pan_raw }
-    }
-
-    /// Send midi note data to a voice
-    ///
-    /// * `note_data` - contains all information needed to play a note
-    #[allow(unused_variables)]
-    pub fn set_voice_note(&mut self, note_data: NoteData){
-
-        // Find a free voice and send this event
-        for voice in &mut self.voices {
-
-            // for now, just set it without checking
-            voice.note = note_data;
-
-            match voice.state {
-                VoiceState::On => { unimplemented!() },
-                VoiceState::Releasing => { unimplemented!() },
-                VoiceState::Off => {
-                    // send a note
-                    // we're done here!  Exit early.voice.state
-                    return;
-                }
-            }
-
-        }
+            pan_raw: self.pan_raw,
+            voices_used: vec![] }
     }
 
     /// Set the panning for the entire instrument
@@ -196,19 +179,75 @@ impl<T> Synthesizer<T> where T: Renderable {
             // check if the event is a midi signal
             match e {
                 Event::Midi { data, .. } => {
-
-                    // extract our data and call the appropriate function
-                    let note_data = NoteData::data(data); 
-                    self.set_voice_note(note_data);
-                    return
-                }
+                    self.process_midi(NoteData::data(data))
+                },
                 _ => return
             }
         }
     }
 
-}
+    /// Take in note data and turn a note on/off depending on the state
+    fn process_midi(&mut self, note_data: NoteData){
 
+
+        match note_data.state {
+            NoteState::On => self.trigger_note_on(note_data),
+            NoteState::Off => self.trigger_note_off(note_data),
+            _ => return
+        }
+    }
+
+    /// Used to find a voice to start playing.
+    /// If voice stealing is enabled, it will take place here.
+    fn trigger_note_on(&mut self, note_data: NoteData){
+        // TODO: Voice stealing
+        // for now, just find the first available voice
+        // to keep mutability in our voice, use a simple mutable var i and increment in the loop
+        // Here, `i` refers to the index of our `voices` vector.
+        let mut i: usize = 0;
+
+        for voice in &mut self.voices {
+            if voice.state == VoiceState::Off {
+                // Success.  Push our data to the vector containing "on" voices
+                self.voices_used.push((note_data.note, i));
+                // set our note data
+                voice.note_data = note_data;
+                voice.state = VoiceState::On;
+                // exit early
+                break;
+            }
+            // increment our iterator 
+            i += 1;
+        }
+    }
+
+    /// Finds a voice playing the same note as `note_data.note` and triggers that
+    /// voice to begin releasing
+    fn trigger_note_off(&mut self, note_data: NoteData){
+        // index for `voices_used` 
+        // HACK
+        let mut remove_from_voices_used = false;
+        let mut i = 0;
+
+        // find the index of our voice in our `voices_used` array by the note number
+        for &(note, voice_index) in &self.voices_used {
+            if note == note_data.note {
+
+                // Also assign the value `note_data`
+                self.voices[voice_index].note_data = note_data;
+                remove_from_voices_used = true;              
+                break;
+            }
+
+            i += 1;
+        }
+
+        // remove index from the `voices_used` array and free it up for use again.
+        if remove_from_voices_used {
+            self.voices_used.remove(i);
+        }
+    }
+}
 
 /// An enum to display channel iterator numbers as readable data
 pub enum Channel {

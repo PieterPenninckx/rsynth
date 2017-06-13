@@ -100,7 +100,7 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 			pan: 0f32, 
 			sound: Sound { }, 
 			state: VoiceState::Off,
-			note: NoteData::default()  };
+			note_data: NoteData::default()  };
 
 		self.synth = Synthesizer::new()
 						.voices(vec![voice])

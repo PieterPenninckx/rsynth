@@ -29,7 +29,7 @@ pub struct Voice<T> where T: Renderable {
     pub pan: f32,
     /// Contains note data useful in determining what pitch to play.  This is used in tandem with the 
     /// `state` field.
-    pub note: NoteData
+    pub note_data: NoteData
 }
 
 impl<T> Voice<T> where T: Renderable {
@@ -38,11 +38,13 @@ impl<T> Voice<T> where T: Renderable {
     ///
     /// * `inputs` - a mutable reference to the input audio buffers 
     /// * `outputs` - a mutable reference to the output audio buffers to modify
-    pub fn render_next<F: Float + AsPrim> (&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>) {
-        
+    pub fn render_next<F: Float + AsPrim> (&mut self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>) {
         // temporary
-        if self.note.state == NoteState::On {
+
+        if self.note_data.state == NoteState::On {
             self.sound.render_next::<F, T>(inputs, outputs, self);
+        } else {
+            self.state = VoiceState::Off;
         }
 
         /*
