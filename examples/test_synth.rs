@@ -103,7 +103,7 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 			note_data: NoteData::default()  };
 
 		self.synth = Synthesizer::new()
-						.voices(vec![voice])
+						.voices(vec![voice; 6])
 						.sample_rate(41_000f64)
 						.finalize();
 	}
@@ -124,6 +124,7 @@ impl EasyVst<ParamId, ExState> for ExPlugin {
 
 
 /// The DSP stuff goes here
+#[derive(Clone)]
 pub struct Sound {
 
 }
@@ -137,7 +138,7 @@ impl Renderable for Sound {
     	for output in outputs.into_iter() {
     		// for each value in buffer
     		for sample in output {
-    			*sample = *sample + rand::random::<f64>().as_();
+    			*sample = *sample + ((rand::random::<f64>() / 4f64) * (voice.note_data.velocity as f64 / 127f64) ).as_();
     		}
     	}
     }

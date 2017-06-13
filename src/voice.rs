@@ -18,6 +18,7 @@ pub trait Renderable {
 }
 
 /// An instrument voice.
+#[derive(Clone)]
 pub struct Voice<T> where T: Renderable {
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
@@ -62,7 +63,7 @@ impl<T> Voice<T> where T: Renderable {
 
 
 /// Keeps track of the current state of any voice
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum VoiceState { 
     /// the voice is currently in use
     On,

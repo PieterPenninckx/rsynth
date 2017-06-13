@@ -1,4 +1,5 @@
 /// Contains all data needed to play a note
+#[derive(Clone)]
 pub struct NoteData {
     /// An integer from 0-127 defining what note to play based on the MIDI spec
     pub note: u8,
@@ -70,7 +71,7 @@ const STATUS_MASK: u8 = 0xF0;
 const CHANNEL_MASK: u8 = 0x0F;
 
 /// A more readable boolean for keeping track of a note's state
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum NoteState {
     Nil,
     /// The note is off and should start `Releasing` a voice, if applicable
