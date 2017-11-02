@@ -3,7 +3,7 @@
 extern crate num_traits;
 extern crate num;
 extern crate asprim;
-extern crate rvst_synth;
+extern crate rsynth;
 extern crate rand;
 
 use num_traits::Float;
@@ -14,10 +14,10 @@ use vst2::plugin::{Category, Info, HostCallback};
 use vst2::api::Events;
 
 use easyvst::*;
-use rvst_synth::synthesizer::*;
-use rvst_synth::voice::*;
-use rvst_synth::utility::*;
-use rvst_synth::utility::note::*;
+use rsynth::synthesizer::*;
+use rsynth::voice::*;
+use rsynth::utility::*;
+use rsynth::utility::note::*;
 
 easyvst!(ParamId, ExState, ExPlugin);
 

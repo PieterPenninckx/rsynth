@@ -3,7 +3,7 @@ rust:
   - nightly
 after_success: |
     cargo rustdoc \
-    && echo '<meta http-equiv=refresh content=0;url=rvst_synth/index.html>' > target/doc/index.html && \
+    && echo '<meta http-equiv=refresh content=0;url=rsynth/index.html>' > target/doc/index.html && \
     sudo pip install ghp-import && \
     ghp-import -n target/doc && \
     git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages

@@ -126,7 +126,7 @@ impl<T> Synthesizer<T> where T: Renderable {
     #[allow(unused_variables)]
     pub fn render_next<'a, F: Float + AsPrim>(&mut self, buffer: &mut AudioBuffer<'a, F>) {
 
-        /// split the buffer
+        // split the buffer
         let (mut inputs, mut outputs) = buffer.split();
         for voice in &mut self.voices {
             voice.render_next::<F>(&mut inputs, &mut outputs);
@@ -178,8 +178,8 @@ impl<T> Synthesizer<T> where T: Renderable {
         for e in events.events() {
             // check if the event is a midi signal
             match e {
-                Event::Midi { data, .. } => {
-                    self.process_midi(NoteData::data(data))
+                Event::Midi(ev) => {
+                    self.process_midi(NoteData::data(ev.data))
                 },
                 _ => return
             }
@@ -188,8 +188,6 @@ impl<T> Synthesizer<T> where T: Renderable {
 
     /// Take in note data and turn a note on/off depending on the state
     fn process_midi(&mut self, note_data: NoteData){
-
-
         match note_data.state {
             NoteState::On => self.trigger_note_on(note_data),
             NoteState::Off => self.trigger_note_off(note_data),
