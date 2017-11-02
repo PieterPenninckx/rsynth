@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
 
 [dependencies]
-vst2 = { git = "https://github.com/Boscop/rust-vst2", branch = "optimized" }
+vst2 = { git = "https://github.com/rust-dsp/rust-vst" }
 asprim = "0.1"
 num-traits = "0.1"
 num = "0.1"

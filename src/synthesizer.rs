@@ -132,10 +132,10 @@ impl<T> Synthesizer<T> where T: Renderable {
             voice.render_next::<F>(&mut inputs, &mut outputs);
         }
 
-        /// Do some more generic processing on the sound for basic functionality
-        /// This happens synth-wide, not per-voice.
-        /// WARNING: This essentially loops twice when it isn't needed
-        /// This will be changed in the future, most likely
+        // Do some more generic processing on the sound for basic functionality
+        // This happens synth-wide, not per-voice.
+        // WARNING: This essentially loops twice when it isn't needed
+        // This will be changed in the future, most likely
         for (i, output) in outputs.into_iter().enumerate() {
 
             // Process
