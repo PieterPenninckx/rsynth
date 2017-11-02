@@ -1,9 +1,23 @@
 # rsynth
 
-A crate for organizing synthesizers for [vst2](https://github.com/overdrivenpotato/rust-vst2) and [easyvst](https://github.com/Boscop/easyvst).  Inspired by JUCE's API.
+A crate for organizing synthesizers using [rust-vst](https://github.com/rust-dsp/rust-vst), inspired by JUCE's API.
 
-Provides a very lightweight `Synthesizer` structure, with many voices.  Once a `Voice` trait is implemented, it can be used easily from the `Synthesizer` manager.
+rsynth provides a very lightweight `Synthesizer` structure, with many voices.  Once a `Voice` trait is implemented, it can be used easily from the `Synthesizer` manager.
 
 [Documentation](https://resamplr.github.io/rsynth)
 
-MIT License. 
+# Use Cases
+
+rsynth is well suited as a bootstrap for common audio plugin generators.  rsynth will handle voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP. 
+
+# Current State
+
+rsynth is not in a stable (or quite usable) state right now.  However, it may still be useful.  Contributions and suggestions are welcome.
+
+# Sponsorship
+
+rsynth is helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
+
+# License 
+
+MIT/BSD-3 License
