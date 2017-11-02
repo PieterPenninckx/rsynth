@@ -131,41 +131,6 @@ impl<T> Synthesizer<T> where T: Renderable {
         for voice in &mut self.voices {
             voice.render_next::<F>(&mut inputs, &mut outputs);
         }
-
-        // Do some more generic processing on the sound for basic functionality
-        // This happens synth-wide, not per-voice.
-        // WARNING: This essentially loops twice when it isn't needed
-        // This will be changed in the future, most likely
-        for (i, output) in outputs.into_iter().enumerate() {
-
-            // Process
-            self.post_process(output, i);
-        }
-    }
-
-    
-
-    /// Process the entire instrument through generic effects like instrument-wide panning and volume
-    ///
-    /// * `output` - a mutable reference to a single output buffer
-    /// * `channel_i` - the iterator number that relates to the `output` index.  This determines
-    /// what channel the method is currently processing.  For example, `0 == Channel::Left` and
-    /// `1 == Channel::Right`. 
-    fn post_process<F: Float + AsPrim>(&self, output: &mut [F], channel_i: usize) {
-        let channel = channel_from_int(channel_i);
-
-        for sample in output {
-
-            // Do channel specific stuff first
-            match channel {
-                Channel::Left => {
-                    *sample = *sample * self.pan_raw.0.as_();
-                }
-                Channel::Right => {
-                    *sample = *sample * self.pan_raw.1.as_();
-                }
-            }
-        }
     }
 
     /// Process events from the plugin host.  This is useful if you are
@@ -244,21 +209,6 @@ impl<T> Synthesizer<T> where T: Renderable {
         if remove_from_voices_used {
             self.voices_used.remove(i);
         }
-    }
-}
-
-/// An enum to display channel iterator numbers as readable data
-pub enum Channel {
-    Left,
-    Right
-}
-
-/// Get a human readable `Channel` enum from a normal integer
-fn channel_from_int(channel: usize) -> Channel {
-    match channel {
-        0 => Channel::Left,
-        1 => Channel::Right,
-        _ => Channel::Left
     }
 }
 
