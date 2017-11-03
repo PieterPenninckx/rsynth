@@ -10,6 +10,24 @@ rsynth provides a very lightweight `Synthesizer` structure, with many voices.  O
 
 rsynth is well suited as a bootstrap for common audio plugin generators.  rsynth will handle voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP. 
 
+# Roadmap
+
+- [ ] rsynth
+  - [x] Voices
+  - [X] Polyphony
+  - [X] MIDI Processing
+  - [X] Event Processing
+  - [ ] Voice Stealing
+  - [ ] Synthesizer
+- [ ] rsynth_gui
+  - [ ] GUI Integration
+- [ ] rsynth_gen
+  - [ ] Envelope Generators
+  - [ ] Generic Oscillators
+- [ ] rsynth_dsp
+  - [x] Equal Power Pan (to be moved)
+  - [ ] TBD
+
 # Current State
 
 rsynth is not in a stable (or quite usable) state right now.  However, it may still be useful.  Contributions and suggestions are welcome.
