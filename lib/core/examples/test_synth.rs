@@ -4,7 +4,6 @@ extern crate rsynth_core;
 extern crate rand;
 extern crate asprim;
 extern crate num_traits;
-extern crate num;
 
 use vst2::plugin::{Category, Info, Plugin};
 use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 

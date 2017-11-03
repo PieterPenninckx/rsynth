@@ -1,4 +1,5 @@
 [workspace]
 members = [
-    "lib/core"
+    "lib/core",
+    "lib/dsp"
 ]

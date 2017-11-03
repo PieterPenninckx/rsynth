@@ -1,9 +1,7 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
 extern crate vst2;
 extern crate asprim;
 extern crate num_traits;
-extern crate num;
+extern crate rsynth_dsp;
 
 pub mod voice;
 pub mod synthesizer;

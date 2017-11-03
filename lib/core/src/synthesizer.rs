@@ -4,9 +4,8 @@ use vst2::api::Events;
 use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
-use utility::*;
-use utility::note::{NoteData, NoteState};
-
+use utility::note::*;
+use rsynth_dsp::pan;
 /// The base structure for handling voices, sounds, and processing
 ///
 /// * `T` - a struct we create that implements the `Renderable` trait,
@@ -94,7 +93,7 @@ impl<T> Synthesizer<T> where T: Renderable {
     /// Finalize the builder and return an immutable `Synthesizer`
     #[allow(unused_variables)]
     pub fn finalize(self) -> Self {
-        let (pan_left_amp, pan_right_amp) = constant_power_pan(self.pan);
+        let (pan_left_amp, pan_right_amp) = pan::constant_power(self.pan);
         Synthesizer { 
             pan: self.pan, 
             voices: self.voices, 
@@ -116,7 +115,7 @@ impl<T> Synthesizer<T> where T: Renderable {
     /// Values not within this range will be 
     pub fn set_pan(&mut self, amount: f32){
         self.pan = amount;
-        let (pan_left_amp, pan_right_amp) = constant_power_pan(self.pan);
+        let (pan_left_amp, pan_right_amp) = pan::constant_power(self.pan);
         self.pan_raw = (pan_left_amp, pan_right_amp);
     }
 
