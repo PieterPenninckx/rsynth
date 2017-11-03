@@ -8,3 +8,9 @@ extern crate num;
 pub mod voice;
 pub mod synthesizer;
 pub mod utility;
+
+pub mod rvst_core {
+	pub use voice;
+	pub use synthesizer;
+	pub use utility;
+}

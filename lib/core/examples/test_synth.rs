@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate vst2;
-extern crate rsynth;
+extern crate rsynth_core;
 extern crate rand;
 extern crate asprim;
 extern crate num_traits;
@@ -9,9 +9,9 @@ extern crate num;
 use vst2::plugin::{Category, Info, Plugin};
 use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
 use vst2::api::Events;
-use rsynth::synthesizer::*;
-use rsynth::voice::*;
-use rsynth::utility::note::NoteData;
+use rsynth_core::synthesizer::*;
+use rsynth_core::voice::*;
+use rsynth_core::utility::note::NoteData;
 use num_traits::Float;
 use asprim::AsPrim;
 
