@@ -27,7 +27,7 @@ rsynth is also split into multiple crates for maximum reusability.  Only include
   - [ ] Envelope Generators
   - [ ] Generic Oscillators
 - [x] rsynth-dsp
-  - [x] Equal Power Pan (to be moved)
+  - [x] Equal Power Pan
   - [ ] TBD
 
 # Current State

@@ -13,6 +13,15 @@ use rsynth_core::voice::*;
 use rsynth_core::utility::note::NoteData;
 use num_traits::Float;
 use asprim::AsPrim;
+use rand::{thread_rng, Rng};
+use std::cell::Cell;
+
+// The total number of samples to pre-calculate
+// This is like recording a sample of white noise and then
+// using it as an oscillator.  It saves on CPU overhead by 
+// preventing us from having to use a random function each sample.
+static SAMPLE_SIZE: usize = 65536;
+static AMPLIFY_MULTIPLIER: f32 = 0.2;
 
 #[derive(Default)]
 struct RSynthExample {
@@ -32,9 +41,13 @@ impl Plugin for RSynthExample {
     }
 
     fn init(&mut self) {
+        // generate our random sample
+        let mut rng = thread_rng();
+        let samples: Vec<f32> = rng.gen_iter::<f32>().take(SAMPLE_SIZE).collect::<Vec<f32>>();        
+
 		let voice = Voice { 
 			pan: 0f32, 
-			sound: Sound { }, 
+			sound: Sound { sample_count: samples.len(), white_noise: samples, position: Cell::new(0usize) }, 
 			state: VoiceState::Off,
 			note_data: NoteData::default()  };
 
@@ -59,7 +72,10 @@ impl Plugin for RSynthExample {
 
 #[derive(Clone)]
 pub struct Sound {
-
+    white_noise: Vec<f32>,
+    sample_count: usize,
+    // we use cell here for interior mutability
+    position: Cell<usize>
 }
 
 /// The DSP stuff goes here
@@ -69,8 +85,17 @@ impl Renderable for Sound {
     	// for every output
     	for output in outputs.into_iter() {
     		// for each value in buffer
-    		for sample in output {
-    			*sample = *sample + ((rand::random::<f64>() / 4f64) * (voice.note_data.velocity as f64 / 127f64) ).as_();
+    		for (i, sample) in output.into_iter().enumerate() {
+                // Increment the position of our sound sample.
+                // We loop this easily by using modulo.
+                self.position.set((self.position.get() + 1) % self.sample_count);
+
+                // Our random function only generates from 0 - 1.  We can make
+                // it distribute equally by multiplying by 2 and subtracting by 1.
+                let r = 2f32 *(self.white_noise[self.position.get()]) - 1f32;
+
+                // Set our output buffer
+    			*sample = *sample + ( (r * AMPLIFY_MULTIPLIER) * (voice.note_data.velocity as f32 / 127f32) ).as_();
     		}
     	}
     }
