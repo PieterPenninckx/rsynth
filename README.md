@@ -2,7 +2,7 @@
 
 A crate for organizing synthesizers using [rust-vst](https://github.com/rust-dsp/rust-vst), inspired by JUCE's API.
 
-rsynth provides a very lightweight `Synthesizer` structure, with many voices.  Once a `Voice` trait is implemented, it can be used easily from the `Synthesizer` manager.
+rsynth provides a very lightweight `Synth` structure, with many voices.  Once a `Voice` trait is implemented, it can be used easily from the `Synth` manager.
 
 [Documentation](https://resamplr.github.io/rsynth)
 
