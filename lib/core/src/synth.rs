@@ -4,13 +4,13 @@ use vst2::api::Events;
 use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
-use utility::note::*;
+use note::*;
 use rsynth_dsp::pan;
 /// The base structure for handling voices, sounds, and processing
 ///
 /// * `T` - a struct we create that implements the `Renderable` trait,
 /// and contains all of our DSP code.
-pub struct Synthesizer<T> where T: Renderable {
+pub struct Synth<T> where T: Renderable {
     
     /// A vector containing multiple objects implementing the `Voice` trait
     pub voices: Vec<Voice<T>>,
@@ -44,9 +44,9 @@ pub struct Synthesizer<T> where T: Renderable {
 /// This is only really useful with our internal builder methods.
 /// If we try something like `let s = { sample_rate: 48_000, .. Synthesizer::default() };`
 /// the compiler will complain that some fields are private.
-impl<T> Default for Synthesizer<T> where T: Renderable{
+impl<T> Default for Synth<T> where T: Renderable{
     fn default () -> Self {
-        Synthesizer { 
+        Synth { 
             voices: vec![], 
             sample_rate: 41_000f64, 
             steal_mode: StealMode::First, 
@@ -57,11 +57,11 @@ impl<T> Default for Synthesizer<T> where T: Renderable{
     }
 }
 
-impl<T> Synthesizer<T> where T: Renderable {
+impl<T> Synth<T> where T: Renderable {
 
     /// Constructor for the Synthesizer utilizing a builder pattern
     pub fn new() -> Self {
-        Synthesizer::default()
+        Synth::default()
     }
 
     /// Set voices using the builder
@@ -90,11 +90,11 @@ impl<T> Synthesizer<T> where T: Renderable {
         self
     }
 
-    /// Finalize the builder and return an immutable `Synthesizer`
+    /// Finalize the builder and return an immutable `Synth`
     #[allow(unused_variables)]
     pub fn finalize(self) -> Self {
         let (pan_left_amp, pan_right_amp) = pan::constant_power(self.pan);
-        Synthesizer { 
+        Synth { 
             pan: self.pan, 
             voices: self.voices, 
             sample_rate: self.sample_rate, 

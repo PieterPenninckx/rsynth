@@ -1,6 +1,6 @@
 use asprim::AsPrim;
 use num_traits::Float;
-use utility::note::{NoteData, NoteState};
+use note::{NoteData, NoteState};
 use vst2::buffer::{Inputs, Outputs}; 
 
 /// Implementing this on a struct will allow for custom audio processing

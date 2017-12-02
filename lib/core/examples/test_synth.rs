@@ -8,9 +8,9 @@ extern crate num_traits;
 use vst2::plugin::{Category, Info, Plugin};
 use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
 use vst2::api::Events;
-use rsynth_core::synthesizer::*;
+use rsynth_core::synth::*;
 use rsynth_core::voice::*;
-use rsynth_core::utility::note::NoteData;
+use rsynth_core::note::NoteData;
 use num_traits::Float;
 use asprim::AsPrim;
 use rand::{thread_rng, Rng};
@@ -25,7 +25,7 @@ static AMPLIFY_MULTIPLIER: f32 = 0.2;
 
 #[derive(Default)]
 struct RSynthExample {
-	synth: Synthesizer<Sound>,
+	synth: Synth<Sound>,
 }
 
 impl Plugin for RSynthExample {
@@ -51,7 +51,7 @@ impl Plugin for RSynthExample {
 			state: VoiceState::Off,
 			note_data: NoteData::default()  };
 
-		self.synth = Synthesizer::new()
+		self.synth = Synth::new()
 						.voices(vec![voice; 6])
 						.sample_rate(41_000f64)
 						.finalize();
