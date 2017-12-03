@@ -11,10 +11,13 @@ use vst2::api::Events;
 use rsynth_core::synth::*;
 use rsynth_core::voice::*;
 use rsynth_core::note::NoteData;
+use rsynth_core::envelope::Envelope;
 use num_traits::Float;
 use asprim::AsPrim;
 use rand::{thread_rng, Rng};
 use std::cell::Cell;
+
+const DEFAULT_SAMPLE_RATE: f64 = 48_000f64;
 
 // The total number of samples to pre-calculate
 // This is like recording a sample of white noise and then
@@ -43,17 +46,14 @@ impl Plugin for RSynthExample {
     fn init(&mut self) {
         // generate our random sample
         let mut rng = thread_rng();
-        let samples: Vec<f32> = rng.gen_iter::<f32>().take(SAMPLE_SIZE).collect::<Vec<f32>>();        
+        let samples: Vec<f32> = rng.gen_iter::<f32>().take(SAMPLE_SIZE).collect::<Vec<f32>>();  
+        let sound = Sound { sample_count: samples.len(), white_noise: samples, position: Cell::new(0usize) };
 
-		let voice = Voice { 
-			pan: 0f32, 
-			sound: Sound { sample_count: samples.len(), white_noise: samples, position: Cell::new(0usize) }, 
-			state: VoiceState::Off,
-			note_data: NoteData::default()  };
+		let voice = VoiceBuilder::new_with_sound(sound).sample_rate(DEFAULT_SAMPLE_RATE).finalize();
 
 		self.synth = Synth::new()
 						.voices(vec![voice; 6])
-						.sample_rate(41_000f64)
+						.sample_rate(DEFAULT_SAMPLE_RATE) // TODO: use host sample rate
 						.finalize();
 	}
 

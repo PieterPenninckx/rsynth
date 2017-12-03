@@ -21,7 +21,7 @@ pub struct Synth<T> where T: Renderable {
     /// and must be manually updated when notes change.
     voices_used: Vec<(u8, usize)>,
     /// The sample rate the Synthesizer and voices should use
-    pub sample_rate: f64,
+    sample_rate: f64,
     /// What method the synth should use to steal voices (if any)
     pub steal_mode: StealMode,
     /// The balance of the instrument represented as a float between -1 and 1, 
@@ -37,7 +37,10 @@ pub struct Synth<T> where T: Renderable {
     /// `pan_raw` field to our aforementioned tuple. 
     /// Note that although the framework supports any number of outputs,
     /// panning is currently only supported with stereo.
-    pub pan_raw: (f32, f32)
+    pub pan_raw: (f32, f32),
+    /// The number of samples passed since the plugin started.  Can represent 24372 centuries of
+    /// samples at 48kHz, so wrapping shouldn't be a problem.
+    pub sample_counter: f64
 }
 
 /// Get default values 
@@ -48,11 +51,12 @@ impl<T> Default for Synth<T> where T: Renderable{
     fn default () -> Self {
         Synth { 
             voices: vec![], 
-            sample_rate: 41_000f64, 
+            sample_rate: 48_000f64, 
             steal_mode: StealMode::First, 
             pan: 0f32,
             pan_raw: (0f32, 0f32),
-            voices_used: vec![]
+            voices_used: vec![],
+            sample_counter: 0f64
         }
     }
 }
@@ -74,11 +78,16 @@ impl<T> Synth<T> where T: Renderable {
         self
     }
 
-    /// Set the sample rate using the builder
+    /// Set the sample rate using the builder.  This is also useful after the `Synth` is finalized
+    /// if the host sample rate is changed, or a voice is added during execution with `default` filling
+    /// in the sample rate.
     ///
     /// * `sample_rate` - set the sample rate of our instrument
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = sample_rate;
+        for voice in &self.voices {
+            voice.sample_rate.set(sample_rate);
+        }
         self
     }
 
@@ -100,7 +109,8 @@ impl<T> Synth<T> where T: Renderable {
             sample_rate: self.sample_rate, 
             steal_mode: self.steal_mode,
             pan_raw: self.pan_raw,
-            voices_used: vec![] }
+            voices_used: vec![],
+            sample_counter: 0f64 }
     }
 
     /// Set the panning for the entire instrument
