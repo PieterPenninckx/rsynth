@@ -5,7 +5,7 @@ use vst2::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
 use note::*;
-use rsynth_dsp::pan;
+use dsp::pan;
 /// The base structure for handling voices, sounds, and processing
 ///
 /// * `T` - a struct we create that implements the `Renderable` trait,
