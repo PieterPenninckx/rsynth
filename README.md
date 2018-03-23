@@ -34,6 +34,10 @@ rsynth is also split into multiple crates for maximum reusability.  Only include
 
 rsynth is not in a stable (or quite usable) state right now.  However, it may still be useful.  Contributions and suggestions are welcome.
 
+## Activity
+
+rsynth is gathering a bit of dust, but it's not dead.  I'm busy with college projects at the moment and will resume work soon!
+
 # Sponsorship
 
 rsynth is helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
