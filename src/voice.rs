@@ -145,7 +145,7 @@ impl<T> VoiceBuilder<T> where T: Renderable {
         self
     }
 
-    pub fn finalize(mut self) -> Voice<T> {
+    pub fn finalize(self) -> Voice<T> {
         Voice {
             sample_rate: self.sample_rate,
             state: self.state,

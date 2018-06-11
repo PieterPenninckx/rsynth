@@ -10,8 +10,6 @@ use vst::buffer::{AudioBuffer, Inputs, Outputs};
 use vst::api::Events;
 use rsynth::synth::*;
 use rsynth::voice::*;
-use rsynth::note::NoteData;
-use rsynth::envelope::Envelope;
 use num_traits::Float;
 use asprim::AsPrim;
 use rand::{thread_rng, Rng};

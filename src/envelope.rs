@@ -10,6 +10,7 @@ impl Envelope {
 
 	/// Finds the amplitude at a certain value on the `x` axis.  Note that the envelope ends at `x = 1`
 	/// and not the last `x` value specified. 
+	#[allow(unused)]
 	pub fn interpolate(&self, x: f64) -> f64 {
 		// TODO
 		1f64
@@ -21,6 +22,7 @@ impl Envelope {
 	/// - `total_length` - the total length, in milliseconds, that the envelope lasts.  Note that
 	/// the envelope ends at the last `x` value specified.  This is to make time scaling / adding
 	/// additional values after the last point easier.
+	#[allow(unused)]
 	pub fn interpolate_at_time(&self, time: f64, total_length: f64) -> f64 {
 		// TODO
 		1f64
