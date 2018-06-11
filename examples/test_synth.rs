@@ -1,13 +1,13 @@
 #[macro_use]
-extern crate vst2;
+extern crate vst;
 extern crate rsynth;
 extern crate rand;
 extern crate asprim;
 extern crate num_traits;
 
-use vst2::plugin::{Category, Info, Plugin};
-use vst2::buffer::{AudioBuffer, Inputs, Outputs}; 
-use vst2::api::Events;
+use vst::plugin::{Category, Info, Plugin};
+use vst::buffer::{AudioBuffer, Inputs, Outputs}; 
+use vst::api::Events;
 use rsynth::synth::*;
 use rsynth::voice::*;
 use rsynth::note::NoteData;

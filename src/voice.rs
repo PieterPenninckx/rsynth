@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use note::{NoteData, NoteState};
-use vst2::buffer::{Inputs, Outputs}; 
+use vst::buffer::{Inputs, Outputs}; 
 use envelope::Envelope;
 use std::cell::Cell;
 

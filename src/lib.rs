@@ -1,4 +1,4 @@
-extern crate vst2;
+extern crate vst;
 extern crate asprim;
 extern crate num_traits;
 extern crate num;

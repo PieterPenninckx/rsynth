@@ -1,7 +1,7 @@
 use asprim::AsPrim;
-use vst2::buffer::AudioBuffer;
-use vst2::api::Events;
-use vst2::event::Event;
+use vst::buffer::AudioBuffer;
+use vst::api::Events;
+use vst::event::Event;
 use num_traits::Float;
 use voice::{Voice, VoiceState, Renderable};
 use note::*;
@@ -145,7 +145,7 @@ impl<T> Synth<T> where T: Renderable {
     /// Process events from the plugin host.  This is useful if you are
     /// responding to MIDI notes and data.
     ///
-    /// * `events` - a reference to an `Events` structure from the `vst2::api::Events`
+    /// * `events` - a reference to an `Events` structure from the `vst::api::Events`
     /// module. 
     pub fn process_events(&mut self, events: &Events) {
         // loop through all events
