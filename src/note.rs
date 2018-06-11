@@ -1,4 +1,3 @@
-
 /// 11110000
 const STATUS_MASK: u8 = 0xF0;
 /// 00001111
@@ -20,27 +19,33 @@ pub struct NoteData {
     /// The On/Off state for a note
     pub state: NoteState,
     /// the intended channel
-    pub channel: u8
+    pub channel: u8,
 }
 
 /// Return a default `NoteData` object, with full velocity and a note of middle C.
 impl Default for NoteData {
     fn default() -> NoteData {
-        NoteData { note: DEFAULT_NOTE, velocity: DEFAULT_VELOCITY, state: NoteState::Nil, channel: DEFAULT_CHANNEL }
+        NoteData {
+            note: DEFAULT_NOTE,
+            velocity: DEFAULT_VELOCITY,
+            state: NoteState::Nil,
+            channel: DEFAULT_CHANNEL,
+        }
     }
 }
 
 /// This contains all data that can be constructed from a MIDI note signal.
-impl NoteData { 
+impl NoteData {
     /// Convert note data obtained from the host into a `NoteData` structure.
     pub fn data(data: [u8; 3]) -> NoteData {
-		let (state, channel) = NoteState::state_and_channel(data[0]);
-		NoteData { 
-			state: state, 
-			note: data[1], 
-			velocity: data[2],
-			channel: channel }
-	}
+        let (state, channel) = NoteState::state_and_channel(data[0]);
+        NoteData {
+            state: state,
+            note: data[1],
+            velocity: data[2],
+            channel: channel,
+        }
+    }
 }
 
 /// A more readable boolean for keeping track of a note's state
@@ -50,7 +55,7 @@ pub enum NoteState {
     /// The note is off and should start `Releasing` a voice, if applicable
     Off,
     /// The note is on
-    On
+    On,
 }
 
 impl NoteState {
@@ -60,7 +65,7 @@ impl NoteState {
         let status_enum = match status {
             0x80 => NoteState::Off,
             0x90 => NoteState::On,
-            _ =>    NoteState::Nil
+            _ => NoteState::Nil,
         };
         (status_enum, channel)
     }

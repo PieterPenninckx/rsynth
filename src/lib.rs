@@ -1,11 +1,11 @@
-extern crate vst;
 extern crate asprim;
-extern crate num_traits;
 extern crate num;
+extern crate num_traits;
+extern crate vst;
 
-pub mod voice;
-pub mod synth;
-pub mod note;
-pub mod envelope;
-pub mod point;
 pub mod dsp;
+pub mod envelope;
+pub mod note;
+pub mod point;
+pub mod synth;
+pub mod voice;
