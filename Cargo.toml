@@ -2,6 +2,8 @@
 name = "rsynth"
 version = "0.0.1"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
+description = "An easier way to create VST synths."
+license = "BSD-3-Clause"
 
 [dependencies]
 vst = "0.0.1"
