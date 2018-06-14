@@ -1,10 +1,10 @@
 [package]
 name = "rsynth"
-version = "0.1.0"
+version = "0.1"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>"]
 
 [dependencies]
-vst = { git = "https://github.com/rust-dsp/rust-vst" }
+vst = "0.1"
 asprim = "0.1"
 num-traits = "0.1"
 num = "0.1"
