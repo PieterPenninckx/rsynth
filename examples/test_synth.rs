@@ -54,9 +54,12 @@ impl Plugin for RSynthExample {
             position: Cell::new(0usize),
         };
 
-        let voice = VoiceBuilder::new_with_sound(sound)
-            .sample_rate(DEFAULT_SAMPLE_RATE)
-            .finalize();
+        let voice = Voice::new(
+            VoiceDataBuilder::default()
+                .sample_rate(DEFAULT_SAMPLE_RATE)
+                .finalize(),
+            sound
+        );
 
         self.synth = Synth::new()
 						.voices(vec![voice; 6])
@@ -86,13 +89,12 @@ pub struct Sound {
 /// The DSP stuff goes here
 impl Renderable for Sound {
     #[allow(unused_variables)]
-    fn render_next<F: Float + AsPrim, T>(
-        &self,
+    fn render_next<F: Float + AsPrim>(
+        &mut self,
         inputs: &mut Inputs<F>,
         outputs: &mut Outputs<F>,
-        voice: &Voice<T>,
-    ) where
-        T: Renderable,
+        voice_data: &VoiceData
+    )
     {
         // for every output
         for output in outputs.into_iter() {
@@ -109,7 +111,7 @@ impl Renderable for Sound {
 
                 // Set our output buffer
                 *sample = *sample
-                    + ((r * AMPLIFY_MULTIPLIER) * (voice.note_data.velocity as f32 / 127f32)).as_();
+                    + ((r * AMPLIFY_MULTIPLIER) * (voice_data.note_data.velocity as f32 / 127f32)).as_();
             }
         }
     }

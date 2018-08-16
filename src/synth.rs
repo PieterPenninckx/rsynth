@@ -93,7 +93,7 @@ where
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = sample_rate;
         for voice in &self.voices {
-            voice.sample_rate.set(sample_rate);
+            voice.voice_data.sample_rate.set(sample_rate);
         }
         self
     }
@@ -184,12 +184,12 @@ where
         let mut i: usize = 0;
 
         for voice in &mut self.voices {
-            if voice.state == VoiceState::Off {
+            if voice.voice_data.state == VoiceState::Off {
                 // Success.  Push our data to the vector containing "on" voices
                 self.voices_used.push((note_data.note, i));
                 // set our note data
-                voice.note_data = note_data;
-                voice.state = VoiceState::On;
+                voice.voice_data.note_data = note_data;
+                voice.voice_data.state = VoiceState::On;
                 // exit early
                 break;
             }
@@ -210,7 +210,7 @@ where
         for &(note, voice_index) in &self.voices_used {
             if note == note_data.note {
                 // Also assign the value `note_data`
-                self.voices[voice_index].note_data = note_data;
+                self.voices[voice_index].voice_data.note_data = note_data;
                 remove_from_voices_used = true;
                 break;
             }
