@@ -13,9 +13,8 @@ pub trait Renderable {
     /// * `outputs` - a mutable reference to the output audio buffers to modify
     /// * `voice` - the `Voice` that conains this `Renderable` implementation.  This is useful
     /// if we need to access things like velocity in our DSP calculations
-    fn render_next<F, T>(&self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice: &Voice<T>)
-    where
-        T: Renderable,
+    fn render_next<F>(&mut self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice_data: &VoiceData)
+    where 
         F: Float + AsPrim;
 }
 
@@ -25,14 +24,21 @@ pub struct Voice<T>
 where
     T: Renderable,
 {
+    /// Our own `Renderable` implementation
+    pub sound: T,
+    /// Meta-data about this voice
+    pub voice_data: VoiceData
+}
+
+#[derive(Clone)]
+pub struct VoiceData
+{
     /// The sample rate of the voice.  This is changed usually by the parent `Synth`
     pub sample_rate: Cell<f64>,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
     pub state: VoiceState,
-    /// Our own `Renderable` implementation
-    pub sound: T,
     /// A number from -1 to 1 where 0 is center, and positive numbers are to the right
     pub pan: f64,
     /// Contains note data useful in determining what pitch to play.  This is used in tandem with the
@@ -46,10 +52,22 @@ where
     pub amplitude_modifier: f64,
 }
 
+impl Default for VoiceData {
+	fn default() -> Self {
+		VoiceDataBuilder::default().finalize()
+	}
+}
+
 impl<T> Voice<T>
 where
     T: Renderable,
 {
+	pub fn new(voice_data: VoiceData, sound: T) -> Self {
+		Voice {
+			voice_data,
+			sound
+		}
+	}
     /// calls the voice's sound `render_next` function
     ///
     /// * `inputs` - a mutable reference to the input audio buffers
@@ -61,18 +79,18 @@ where
     ) {
         // temporary
 
-        if self.note_data.state == NoteState::On {
+        if self.voice_data.note_data.state == NoteState::On {
             // calculate our amplitude envelope
-            self.amplitude_modifier = self.envelopes.amplitude.interpolate(0f64);
+            self.voice_data.amplitude_modifier = self.voice_data.envelopes.amplitude.interpolate(0f64);
             // render the user-defined audio stuff
-            self.sound.render_next::<F, T>(inputs, outputs, self);
+            self.sound.render_next::<F>(inputs, outputs, &self.voice_data);
             // increment the samples (time) counter
-            self.sample_counter += 1f64;
+            self.voice_data.sample_counter += 1f64;
         } else {
             // TODO: release voice properly
             // reset the time counter
-            self.sample_counter = 0f64;
-            self.state = VoiceState::Off;
+            self.voice_data.sample_counter = 0f64;
+            self.voice_data.state = VoiceState::Off;
         }
 
         /*
@@ -102,15 +120,13 @@ impl Default for EnvelopeContainer {
     }
 }
 
-pub struct VoiceBuilder<T> {
+pub struct VoiceDataBuilder {
     /// The sample rate of the voice.  This is changed usually by the parent `Synth`
     sample_rate: Cell<f64>,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
     state: VoiceState,
-    /// Our own `Renderable` implementation
-    sound: T,
     /// A number from -1 to 1 where 0 is center, and positive numbers are to the right
     pan: f64,
     /// Contains note data useful in determining what pitch to play.  This is used in tandem with the
@@ -124,23 +140,21 @@ pub struct VoiceBuilder<T> {
     amplitude_modifier: f64,
 }
 
-impl<T> VoiceBuilder<T>
-where
-    T: Renderable,
-{
-    pub fn new_with_sound(sound: T) -> Self {
-        VoiceBuilder {
+impl Default for VoiceDataBuilder {
+	fn default() -> Self {
+        VoiceDataBuilder {
             sample_rate: Cell::new(48_000f64),
             state: VoiceState::Off,
-            sound: sound,
             pan: 0f64,
             note_data: NoteData::default(),
             sample_counter: 0f64,
             envelopes: EnvelopeContainer::default(),
             amplitude_modifier: 1f64,
-        }
-    }
+        }		
+	}
+}
 
+impl VoiceDataBuilder {
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = Cell::new(sample_rate);
         self
@@ -156,11 +170,10 @@ where
         self
     }
 
-    pub fn finalize(self) -> Voice<T> {
-        Voice {
+    pub fn finalize(self) -> VoiceData {
+        VoiceData {
             sample_rate: self.sample_rate,
             state: self.state,
-            sound: self.sound,
             pan: self.pan,
             note_data: self.note_data,
             sample_counter: self.sample_counter,
