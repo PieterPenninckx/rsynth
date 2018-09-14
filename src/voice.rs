@@ -44,8 +44,6 @@ pub struct VoiceData
     /// Contains note data useful in determining what pitch to play.  This is used in tandem with the
     /// `state` field.
     pub note_data: NoteData,
-    /// The number of samples that have passed since the voice has begun playing
-    sample_counter: f64,
     /// Contains the envelopes used for modifying various aspects of the `Voice`.
     pub envelopes: EnvelopeContainer,
     /// The current amplitude modifier, updated every sample
@@ -84,12 +82,8 @@ where
             self.voice_data.amplitude_modifier = self.voice_data.envelopes.amplitude.interpolate(0f64);
             // render the user-defined audio stuff
             self.sound.render_next::<F>(inputs, outputs, &self.voice_data);
-            // increment the samples (time) counter
-            self.voice_data.sample_counter += 1f64;
         } else {
             // TODO: release voice properly
-            // reset the time counter
-            self.voice_data.sample_counter = 0f64;
             self.voice_data.state = VoiceState::Off;
         }
 
@@ -132,8 +126,6 @@ pub struct VoiceDataBuilder {
     /// Contains note data useful in determining what pitch to play.  This is used in tandem with the
     /// `state` field.
     note_data: NoteData,
-    /// The number of samples that have passed since the voice has begun playing
-    sample_counter: f64,
     /// Contains the envelope used for modifying aspects of the voice.
     envelopes: EnvelopeContainer,
     /// The current amplitude modifier, updated every sample
@@ -147,7 +139,6 @@ impl Default for VoiceDataBuilder {
             state: VoiceState::Off,
             pan: 0f64,
             note_data: NoteData::default(),
-            sample_counter: 0f64,
             envelopes: EnvelopeContainer::default(),
             amplitude_modifier: 1f64,
         }		
@@ -176,7 +167,6 @@ impl VoiceDataBuilder {
             state: self.state,
             pan: self.pan,
             note_data: self.note_data,
-            sample_counter: self.sample_counter,
             envelopes: self.envelopes,
             amplitude_modifier: self.amplitude_modifier,
         }

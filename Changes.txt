@@ -1,0 +1,7 @@
+2018-09-14: Remove field `sample_counter` from `Voice` struct.
+The documentation of the field says it is updated every sample, but it is only updated for
+every buffer. Because we leave it up to the plugin to decide in which way to iterate over
+the generated samples (e.g. first iterate over the outputs and for each output, iterate over
+the samples), it is hard to ensure that the field `sample_counter` will contain the correct
+data at any time, so we simply remove it, leaving it up to the plugin to keep track of the number
+of samples played.
