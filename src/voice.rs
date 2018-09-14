@@ -25,7 +25,7 @@ where
     T: Renderable,
 {
     /// Our own `Renderable` implementation
-    pub sound: T,
+    pub renderable: T,
     /// Meta-data about this voice
     pub voice_data: VoiceData
 }
@@ -63,8 +63,8 @@ where
 	pub fn new(voice_data: VoiceData, sound: T) -> Self {
 		Voice {
 			voice_data,
-			sound
-		}
+            renderable: sound
+        }
 	}
     /// calls the voice's sound `render_next` function
     ///
@@ -81,7 +81,7 @@ where
             // calculate our amplitude envelope
             self.voice_data.amplitude_modifier = self.voice_data.envelopes.amplitude.interpolate(0f64);
             // render the user-defined audio stuff
-            self.sound.render_next::<F>(inputs, outputs, &self.voice_data);
+            self.renderable.render_next::<F>(inputs, outputs, &self.voice_data);
         } else {
             // TODO: release voice properly
             self.voice_data.state = VoiceState::Off;

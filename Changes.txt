@@ -5,3 +5,6 @@ the generated samples (e.g. first iterate over the outputs and for each output, 
 the samples), it is hard to ensure that the field `sample_counter` will contain the correct
 data at any time, so we simply remove it, leaving it up to the plugin to keep track of the number
 of samples played.
+
+2018-09-14: Rename Voice.sound to Voice.renderable. 
+This is more consistent with the name of the data-type, so hopefully more easy to remember.
