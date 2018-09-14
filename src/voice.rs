@@ -46,8 +46,6 @@ pub struct VoiceData
     pub note_data: NoteData,
     /// Contains the envelopes used for modifying various aspects of the `Voice`.
     pub envelopes: EnvelopeContainer,
-    /// The current amplitude modifier, updated every sample
-    pub amplitude_modifier: f64,
 }
 
 impl Default for VoiceData {
@@ -78,8 +76,6 @@ where
         // temporary
 
         if self.voice_data.note_data.state == NoteState::On {
-            // calculate our amplitude envelope
-            self.voice_data.amplitude_modifier = self.voice_data.envelopes.amplitude.interpolate(0f64);
             // render the user-defined audio stuff
             self.renderable.render_next::<F>(inputs, outputs, &self.voice_data);
         } else {
@@ -128,8 +124,6 @@ pub struct VoiceDataBuilder {
     note_data: NoteData,
     /// Contains the envelope used for modifying aspects of the voice.
     envelopes: EnvelopeContainer,
-    /// The current amplitude modifier, updated every sample
-    amplitude_modifier: f64,
 }
 
 impl Default for VoiceDataBuilder {
@@ -140,7 +134,6 @@ impl Default for VoiceDataBuilder {
             pan: 0f64,
             note_data: NoteData::default(),
             envelopes: EnvelopeContainer::default(),
-            amplitude_modifier: 1f64,
         }		
 	}
 }
@@ -148,11 +141,6 @@ impl Default for VoiceDataBuilder {
 impl VoiceDataBuilder {
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = Cell::new(sample_rate);
-        self
-    }
-
-    pub fn amplitude_envelope(mut self, envelope: Envelope) -> Self {
-        self.envelopes.amplitude = envelope;
         self
     }
 
@@ -168,7 +156,6 @@ impl VoiceDataBuilder {
             pan: self.pan,
             note_data: self.note_data,
             envelopes: self.envelopes,
-            amplitude_modifier: self.amplitude_modifier,
         }
     }
 }
