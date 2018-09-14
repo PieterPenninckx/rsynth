@@ -11,3 +11,6 @@ This is more consistent with the name of the data-type, so hopefully more easy t
 
 2018-09-14: Remove field `amplitude_modifier`.
 Same as `sample_counter`: it's hard to ensure that this is indeed updated every sample.
+
+2018-09-14: No longer put `sample_rate` inside a `Cell`
+No interial mutability is needed here, as far as I can tell.
