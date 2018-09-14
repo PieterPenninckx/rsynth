@@ -92,8 +92,8 @@ where
     /// * `sample_rate` - set the sample rate of our instrument
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
         self.sample_rate = sample_rate;
-        for voice in &self.voices {
-            voice.voice_data.sample_rate.set(sample_rate);
+        for voice in &mut self.voices {
+            voice.voice_data.sample_rate = sample_rate;
         }
         self
     }

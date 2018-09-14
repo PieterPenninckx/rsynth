@@ -2,7 +2,6 @@ use asprim::AsPrim;
 use envelope::Envelope;
 use note::{NoteData, NoteState};
 use num_traits::Float;
-use std::cell::Cell;
 use vst::buffer::{Inputs, Outputs};
 
 /// Implementing this on a struct will allow for custom audio processing
@@ -34,7 +33,7 @@ where
 pub struct VoiceData
 {
     /// The sample rate of the voice.  This is changed usually by the parent `Synth`
-    pub sample_rate: Cell<f64>,
+    pub sample_rate: f64,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
@@ -112,7 +111,7 @@ impl Default for EnvelopeContainer {
 
 pub struct VoiceDataBuilder {
     /// The sample rate of the voice.  This is changed usually by the parent `Synth`
-    sample_rate: Cell<f64>,
+    sample_rate: f64,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
@@ -129,7 +128,7 @@ pub struct VoiceDataBuilder {
 impl Default for VoiceDataBuilder {
 	fn default() -> Self {
         VoiceDataBuilder {
-            sample_rate: Cell::new(48_000f64),
+            sample_rate: 48_000f64,
             state: VoiceState::Off,
             pan: 0f64,
             note_data: NoteData::default(),
@@ -140,7 +139,7 @@ impl Default for VoiceDataBuilder {
 
 impl VoiceDataBuilder {
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
-        self.sample_rate = Cell::new(sample_rate);
+        self.sample_rate = sample_rate;
         self
     }
 
