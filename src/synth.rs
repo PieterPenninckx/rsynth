@@ -6,6 +6,7 @@ use voice::{Renderable, Voice, VoiceState};
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::event::Event;
+
 /// The base structure for handling voices, sounds, and processing
 ///
 /// * `T` - a struct we create that implements the `Renderable` trait,
