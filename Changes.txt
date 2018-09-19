@@ -13,4 +13,11 @@ This is more consistent with the name of the data-type, so hopefully more easy t
 Same as `sample_counter`: it's hard to ensure that this is indeed updated every sample.
 
 2018-09-14: No longer put `sample_rate` inside a `Cell`
-No interial mutability is needed here, as far as I can tell.
+No internal mutability is needed here, as far as I can tell.
+
+many dates: Add optional dependency on jack crate.
+We're putting vst's `Inputs` and (a wrapper of) jack's `Port<AudioIn>` behind a common trait.
+Or something like that.
+The idea is that we're putting vst's API and the jack API behind a common interface.
+Client code then only needs to know about that common interface to support both.
+Still work in progress.
