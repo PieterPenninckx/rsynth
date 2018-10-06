@@ -146,7 +146,7 @@ where
         // split the buffer
         let (mut inputs, mut outputs) = buffer.split();
         for voice in &mut self.voices {
-            voice.render_next::<F>(&mut inputs, &mut outputs);
+            voice.render_next::<F, _, _>(&mut inputs, &mut outputs);
         }
     }
 

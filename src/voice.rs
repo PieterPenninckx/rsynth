@@ -2,7 +2,7 @@ use asprim::AsPrim;
 use envelope::Envelope;
 use note::{NoteData, NoteState};
 use num_traits::Float;
-use vst::buffer::{Inputs, Outputs};
+use backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
 
 /// Implementing this on a struct will allow for custom audio processing
 pub trait Renderable {
@@ -10,12 +10,16 @@ pub trait Renderable {
     ///
     /// * `inputs` - a mutable reference to the input audio buffers
     /// * `outputs` - a mutable reference to the output audio buffers to modify
-    /// * `voice` - the `Voice` that conains this `Renderable` implementation.  This is useful
-    /// if we need to access things like velocity in our DSP calculations
-    fn render_next<F>(&mut self, inputs: &mut Inputs<F>, outputs: &mut Outputs<F>, voice_data: &VoiceData)
+    /// * `voice_data` - the `VoiceData` associated to the `Voice` that contains this `Renderable` implementation.
+    /// This is useful if we need to access things like velocity in our DSP calculations
+    fn render_next<'a, F, In, Out>(&mut self, inputs: &mut In, outputs: &'a mut Out, voice_data: &VoiceData)
     where 
-        F: Float + AsPrim;
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        &'a mut Out:IntoIterator<Item = &'a mut[F]>;
 }
+
 
 /// An instrument voice.
 #[derive(Clone)]
@@ -67,16 +71,21 @@ where
     ///
     /// * `inputs` - a mutable reference to the input audio buffers
     /// * `outputs` - a mutable reference to the output audio buffers to modify
-    pub fn render_next<F: Float + AsPrim>(
+    pub fn render_next<'a, F, In, Out>(
         &mut self,
-        inputs: &mut Inputs<F>,
-        outputs: &mut Outputs<F>,
-    ) {
+        inputs: &mut In,
+        outputs: &'a mut Out,
+    )
+    where
+    F: Float + AsPrim,
+    In: InputAudioChannelGroup<F>,
+    Out: OutputAudioChannelGroup<F>,
+    &'a mut Out: IntoIterator<Item = &'a mut [F]> {
         // temporary
 
         if self.voice_data.note_data.state == NoteState::On {
             // render the user-defined audio stuff
-            self.renderable.render_next::<F>(inputs, outputs, &self.voice_data);
+            self.renderable.render_next::<F, _, _>(inputs, outputs, &self.voice_data);
         } else {
             // TODO: release voice properly
             self.voice_data.state = VoiceState::Off;
@@ -164,7 +173,7 @@ impl VoiceDataBuilder {
 pub enum VoiceState {
     /// the voice is currently in use
     On,
-    /// the voice has recieved a signal to stop and is now releasing
+    /// the voice has received a signal to stop and is now releasing
     Releasing,
     /// the voice is not doing anything and can be used
     Off,

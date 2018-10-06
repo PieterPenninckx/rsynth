@@ -9,11 +9,14 @@ license = "BSD-3-Clause"
 jack-backend=["jack"]
 
 [dependencies]
-vst = "0.0.1"
+vst = "0.0.2"
 asprim = "0.1"
 num-traits = "0.1"
 num = "0.1"
 jack = {version = "0.6.0", optional = true}
+
+[patch.crates-io]
+vst = {git = "https://github.com/PieterPenninckx/rust-vst.git"}
 
 
 [dev-dependencies]

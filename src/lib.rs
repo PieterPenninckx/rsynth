@@ -11,4 +11,4 @@ pub mod note;
 pub mod point;
 pub mod synth;
 pub mod voice;
-mod backend;
+pub mod backend;

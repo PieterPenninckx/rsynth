@@ -10,9 +10,10 @@ use num_traits::Float;
 use rand::{thread_rng, Rng};
 use rsynth::synth::*;
 use rsynth::voice::*;
+use rsynth::backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
 use std::cell::Cell;
 use vst::api::Events;
-use vst::buffer::{AudioBuffer, Inputs, Outputs};
+use vst::buffer::{AudioBuffer};
 use vst::plugin::{Category, Info, Plugin};
 
 const DEFAULT_SAMPLE_RATE: f64 = 48_000f64;
@@ -89,12 +90,17 @@ pub struct Sound {
 /// The DSP stuff goes here
 impl Renderable for Sound {
     #[allow(unused_variables)]
-    fn render_next<F: Float + AsPrim>(
+    fn render_next<'a, F, In, Out>(
         &mut self,
-        inputs: &mut Inputs<F>,
-        outputs: &mut Outputs<F>,
+        inputs: &mut In,
+        outputs: &'a mut Out,
         voice_data: &VoiceData
     )
+    where
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        &'a mut Out: IntoIterator<Item = &'a mut [F]>
     {
         // for every output
         for output in outputs.into_iter() {

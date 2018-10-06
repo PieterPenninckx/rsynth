@@ -15,9 +15,11 @@ Same as `sample_counter`: it's hard to ensure that this is indeed updated every 
 2018-09-14: No longer put `sample_rate` inside a `Cell`
 No internal mutability is needed here, as far as I can tell.
 
-many dates: Add optional dependency on jack crate.
+2018-09 to 2018-10: Add optional dependency on jack crate.
 We're putting vst's `Inputs` and (a wrapper of) jack's `Port<AudioIn>` behind a common trait.
-Or something like that.
 The idea is that we're putting vst's API and the jack API behind a common interface.
 Client code then only needs to know about that common interface to support both.
+The `render_next` method in the `Renderable` trait takes arguments of a generic type that
+implements the common traits. 
+
 Still work in progress.
