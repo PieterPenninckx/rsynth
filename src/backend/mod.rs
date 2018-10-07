@@ -73,6 +73,7 @@ impl<'a, T: 'a> OutputAudioChannelGroup<T> for Outputs<'a, T> {
 
 #[cfg(feature="jack-backend")]
 mod jack_backend {
+	use std::ops::{Index, IndexMut};
     use jack::{Port, AudioIn, AudioOut, ProcessScope};
     #[cfg(test)]
     use jack::{Client, ClosureProcessHandler, ClientOptions, Control};
@@ -82,15 +83,17 @@ mod jack_backend {
         OutputAudioChannelGroup
     };
 
+	#[derive(Clone, Copy)]
     struct JackInputs<'ps, 'p> {
         process_scope: &'ps ProcessScope,
         audio_in_ports: &'p [Port<AudioIn>]
     }
-
-
-    struct JackOutputs<'ps, 'p> {
-        process_scope: &'ps ProcessScope,
-        audio_out_ports: &'p mut [Port<AudioOut>]
+    
+    impl<'ps, 'p> Index<usize> for JackInputs<'ps, 'p> {
+    	type Output = [f32];
+    	fn index(&self, index: usize) -> &Self::Output {
+    		self.audio_in_ports[index].as_slice(&self.process_scope)
+    	}
     }
 
     impl<'ps, 'p> InputAudioChannelGroup<f32> for JackInputs<'ps, 'p>
@@ -124,7 +127,26 @@ mod jack_backend {
             (first, last)
         }
     }
-
+    
+    struct JackOutputs<'ps, 'p> {
+        process_scope: &'ps ProcessScope,
+        audio_out_ports: &'p mut [Port<AudioOut>]
+    }
+    
+    impl<'ps, 'p> Index<usize> for JackOutputs<'ps, 'p> {
+    	type Output = [f32];
+    	fn index(&self, index: usize) -> &Self::Output {
+    		// TODO: Add a normal implementation.
+    		// There is no `as_slice` method on `JackOutputs`
+    		unimplemented!();
+    	}
+    }
+    
+    impl<'ps, 'p> IndexMut<usize> for JackOutputs<'ps, 'p> {
+    	fn index_mut(&mut self, index: usize) -> &mut [f32] {
+    		self.audio_out_ports[index].as_mut_slice(&self.process_scope)
+    	}
+    }
 
     impl<'ps, 'p> OutputAudioChannelGroup<f32> for JackOutputs<'ps, 'p> {
         fn number_of_channels(&self) -> usize {

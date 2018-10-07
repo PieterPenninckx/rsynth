@@ -17,7 +17,7 @@ pub trait Renderable {
         F: Float + AsPrim,
         In: InputAudioChannelGroup<F>,
         Out: OutputAudioChannelGroup<F>,
-        &'a mut Out:IntoIterator<Item = &'a mut[F]>;
+        &'a mut Out: IntoIterator<Item = &'a mut[F]>;
 }
 
 
