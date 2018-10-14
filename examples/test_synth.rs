@@ -11,7 +11,6 @@ use rand::{thread_rng, Rng};
 use rsynth::synth::*;
 use rsynth::voice::*;
 use rsynth::backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
-use std::cell::Cell;
 use vst::api::Events;
 use vst::buffer::{AudioBuffer};
 use vst::plugin::{Category, Info, Plugin};
@@ -52,12 +51,11 @@ impl Plugin for RSynthExample {
         let sound = Sound {
             sample_count: samples.len(),
             white_noise: samples,
-            position: Cell::new(0usize),
+            position: 0,
         };
 
         let voice = Voice::new(
             VoiceDataBuilder::default()
-                .sample_rate(DEFAULT_SAMPLE_RATE)
                 .finalize(),
             sound
         );
@@ -75,7 +73,8 @@ impl Plugin for RSynthExample {
 
     fn process(&mut self, buffer: &mut AudioBuffer<f32>) {
         // render our audio
-        self.synth.render_next::<f32>(buffer);
+        let (inputs, mut outputs) = buffer.split();
+        self.synth.render_next::<f32, _, _>(&inputs, &mut outputs);
     }
 }
 
@@ -83,8 +82,7 @@ impl Plugin for RSynthExample {
 pub struct Sound {
     white_noise: Vec<f32>,
     sample_count: usize,
-    // we use cell here for interior mutability
-    position: Cell<usize>,
+    position: usize,
 }
 
 /// The DSP stuff goes here
@@ -92,9 +90,10 @@ impl Renderable for Sound {
     #[allow(unused_variables)]
     fn render_next<'a, F, In, Out>(
         &mut self,
-        inputs: &mut In,
+        inputs: &In,
         outputs: &'a mut Out,
-        voice_data: &VoiceData
+        voice_data: &VoiceData,
+        synth_data: &SynthData
     )
     where
         F: Float + AsPrim,
@@ -108,12 +107,11 @@ impl Renderable for Sound {
             for (i, sample) in output.into_iter().enumerate() {
                 // Increment the position of our sound sample.
                 // We loop this easily by using modulo.
-                self.position
-                    .set((self.position.get() + 1) % self.sample_count);
+                self.position = (self.position + 1) % self.sample_count;
 
                 // Our random function only generates from 0 - 1.  We can make
                 // it distribute equally by multiplying by 2 and subtracting by 1.
-                let r = 2f32 * (self.white_noise[self.position.get()]) - 1f32;
+                let r = 2f32 * (self.white_noise[self.position]) - 1f32;
 
                 // Set our output buffer
                 *sample = *sample

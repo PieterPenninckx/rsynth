@@ -2,9 +2,9 @@ use asprim::AsPrim;
 use dsp::pan;
 use note::*;
 use num_traits::Float;
+use backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
 use voice::{Renderable, Voice, VoiceState};
 use vst::api::Events;
-use vst::buffer::AudioBuffer;
 use vst::event::Event;
 
 /// The base structure for handling voices, sounds, and processing
@@ -23,10 +23,15 @@ where
     /// in the `Voice` structure itself, so it shouldn't be relied upon for anything external,
     /// and must be manually updated when notes change.
     voices_used: Vec<(u8, usize)>,
-    /// The sample rate the Synthesizer and voices should use
-    sample_rate: f64,
     /// What method the synth should use to steal voices (if any)
     pub steal_mode: StealMode,
+    synth_data: SynthData
+
+}
+
+pub struct SynthData{
+    /// The sample rate the Synthesizer and voices should use
+    pub sample_rate: f64,
     /// The balance of the instrument represented as a float between -1 and 1,
     /// where 0 is center and 1 is to the right.
     pan: f32,
@@ -44,6 +49,19 @@ where
     /// The number of samples passed since the plugin started.  Can represent 24372 centuries of
     /// samples at 48kHz, so wrapping shouldn't be a problem.
     pub sample_counter: f64,
+    // Probably some other fields to be added
+}
+
+impl Default for SynthData {
+    fn default() -> Self {
+        let pan = 0.0;
+        SynthData {
+            sample_rate: 48_000.0,
+            pan: pan,
+            pan_raw: pan::constant_power(pan),
+            sample_counter: 0.0,
+        }
+    }
 }
 
 /// Get default values
@@ -57,12 +75,9 @@ where
     fn default() -> Self {
         Synth {
             voices: vec![],
-            sample_rate: 48_000f64,
             steal_mode: StealMode::First,
-            pan: 0f32,
-            pan_raw: (0f32, 0f32),
             voices_used: vec![],
-            sample_counter: 0f64,
+            synth_data: SynthData::default()
         }
     }
 }
@@ -87,15 +102,11 @@ where
     }
 
     /// Set the sample rate using the builder.  This is also useful after the `Synth` is finalized
-    /// if the host sample rate is changed, or a voice is added during execution with `default` filling
-    /// in the sample rate.
+    /// if the host sample rate is changed.
     ///
     /// * `sample_rate` - set the sample rate of our instrument
     pub fn sample_rate(mut self, sample_rate: f64) -> Self {
-        self.sample_rate = sample_rate;
-        for voice in &mut self.voices {
-            voice.voice_data.sample_rate = sample_rate;
-        }
+        self.synth_data.sample_rate = sample_rate;
         self
     }
 
@@ -108,18 +119,10 @@ where
     }
 
     /// Finalize the builder and return an immutable `Synth`
+    // TODO: This is an unusual way to use the builder pattern.
     #[allow(unused_variables)]
     pub fn finalize(self) -> Self {
-        let (pan_left_amp, pan_right_amp) = pan::constant_power(self.pan);
-        Synth {
-            pan: self.pan,
-            voices: self.voices,
-            sample_rate: self.sample_rate,
-            steal_mode: self.steal_mode,
-            pan_raw: self.pan_raw,
-            voices_used: vec![],
-            sample_counter: 0f64,
-        }
+        self
     }
 
     /// Set the panning for the entire instrument
@@ -133,20 +136,26 @@ where
     /// * `amount` - a float value between -1 and 1 where 0 is center and 1 is to the right.
     /// Values not within this range will be
     pub fn set_pan(&mut self, amount: f32) {
-        self.pan = amount;
-        let (pan_left_amp, pan_right_amp) = pan::constant_power(self.pan);
-        self.pan_raw = (pan_left_amp, pan_right_amp);
+        self.synth_data.pan = amount;
+        let (pan_left_amp, pan_right_amp) = pan::constant_power(self.synth_data.pan);
+        self.synth_data.pan_raw = (pan_left_amp, pan_right_amp);
     }
 
     /// Modify an audio buffer with rendered audio from the voice
     ///
     /// * `buffer` - the audio buffer to modify
     #[allow(unused_variables)]
-    pub fn render_next<'a, F: Float + AsPrim>(&mut self, buffer: &mut AudioBuffer<'a, F>) {
-        // split the buffer
-        let (mut inputs, mut outputs) = buffer.split();
+    pub fn render_next<'a, F, In, Out>(&mut self, inputs: &In, outputs: &'a mut Out)
+    where
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        for<'b> &'b mut Out: IntoIterator<Item = &'b mut [F]>
+    {
         for voice in &mut self.voices {
-            voice.render_next::<F, _, _>(&mut inputs, &mut outputs);
+            {
+                voice.render_next::<F, _, _>(inputs, outputs, &self.synth_data);
+            }
         }
     }
 

@@ -1,8 +1,9 @@
 use asprim::AsPrim;
 use envelope::Envelope;
-use note::{NoteData, NoteState};
+use note::{NoteData};
 use num_traits::Float;
 use backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
+use synth::SynthData;
 
 /// Implementing this on a struct will allow for custom audio processing
 pub trait Renderable {
@@ -10,9 +11,15 @@ pub trait Renderable {
     ///
     /// * `inputs` - a mutable reference to the input audio buffers
     /// * `outputs` - a mutable reference to the output audio buffers to modify
-    /// * `voice_data` - the `VoiceData` associated to the `Voice` that contains this `Renderable` implementation.
-    /// This is useful if we need to access things like velocity in our DSP calculations
-    fn render_next<'a, F, In, Out>(&mut self, inputs: &mut In, outputs: &'a mut Out, voice_data: &VoiceData)
+    /// * `voice_data` - the `VoiceData` associated to the `Voice` that contains this `Renderable`
+    ///     implementation. This is useful if we need to access things like velocity
+    ///     in our DSP calculations
+    fn render_next<'a, F, In, Out>(
+            &mut self, inputs: &In,
+            outputs: &'a mut Out,
+            voice_data: &VoiceData,
+            synth_data: &SynthData,
+    )
     where 
         F: Float + AsPrim,
         In: InputAudioChannelGroup<F>,
@@ -36,8 +43,6 @@ where
 #[derive(Clone)]
 pub struct VoiceData
 {
-    /// The sample rate of the voice.  This is changed usually by the parent `Synth`
-    pub sample_rate: f64,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
@@ -73,34 +78,20 @@ where
     /// * `outputs` - a mutable reference to the output audio buffers to modify
     pub fn render_next<'a, F, In, Out>(
         &mut self,
-        inputs: &mut In,
+        inputs: &In,
         outputs: &'a mut Out,
+        synth_data: &SynthData
     )
     where
-    F: Float + AsPrim,
-    In: InputAudioChannelGroup<F>,
-    Out: OutputAudioChannelGroup<F>,
-    &'a mut Out: IntoIterator<Item = &'a mut [F]> {
-        // temporary
-
-        if self.voice_data.note_data.state == NoteState::On {
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        &'a mut Out: IntoIterator<Item = &'a mut [F]>
+    {
+        if self.voice_data.state != VoiceState::Off {
             // render the user-defined audio stuff
-            self.renderable.render_next::<F, _, _>(inputs, outputs, &self.voice_data);
-        } else {
-            // TODO: release voice properly
-            self.voice_data.state = VoiceState::Off;
+            self.renderable.render_next::<F, _, _>(inputs, outputs, &self.voice_data, synth_data);
         }
-
-        /*
-        // determine how to play the sound based on the statue of our voice
-        match self.state {
-            VoiceState::Off => { },
-            _ => {
-                // Send the buffer to our sound implementation for processing
-                self.sound.render_next::<F, T>(inputs, outputs, self);
-            }
-        }
-        */
     }
 }
 
@@ -119,8 +110,6 @@ impl Default for EnvelopeContainer {
 }
 
 pub struct VoiceDataBuilder {
-    /// The sample rate of the voice.  This is changed usually by the parent `Synth`
-    sample_rate: f64,
     /// Keeps track of what this voice is currently doing
     /// Unless this value is `VoiceState::Off`, the instrument
     /// will categorize this particular `Voice` as in-use
@@ -137,7 +126,6 @@ pub struct VoiceDataBuilder {
 impl Default for VoiceDataBuilder {
 	fn default() -> Self {
         VoiceDataBuilder {
-            sample_rate: 48_000f64,
             state: VoiceState::Off,
             pan: 0f64,
             note_data: NoteData::default(),
@@ -147,10 +135,7 @@ impl Default for VoiceDataBuilder {
 }
 
 impl VoiceDataBuilder {
-    pub fn sample_rate(mut self, sample_rate: f64) -> Self {
-        self.sample_rate = sample_rate;
-        self
-    }
+
 
     pub fn envelopes(mut self, envelopes: EnvelopeContainer) -> Self {
         self.envelopes = envelopes;
@@ -159,7 +144,6 @@ impl VoiceDataBuilder {
 
     pub fn finalize(self) -> VoiceData {
         VoiceData {
-            sample_rate: self.sample_rate,
             state: self.state,
             pan: self.pan,
             note_data: self.note_data,

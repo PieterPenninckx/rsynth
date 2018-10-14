@@ -73,6 +73,7 @@ impl<'a, T: 'a> OutputAudioChannelGroup<T> for Outputs<'a, T> {
 
 #[cfg(feature="jack-backend")]
 mod jack_backend {
+    use std::slice;
 	use std::ops::{Index, IndexMut};
     use jack::{Port, AudioIn, AudioOut, ProcessScope};
     #[cfg(test)]
@@ -136,9 +137,16 @@ mod jack_backend {
     impl<'ps, 'p> Index<usize> for JackOutputs<'ps, 'p> {
     	type Output = [f32];
     	fn index(&self, index: usize) -> &Self::Output {
-    		// TODO: Add a normal implementation.
-    		// There is no `as_slice` method on `JackOutputs`
-    		unimplemented!();
+            // TODO: Add tests for this.
+            let port = &self.audio_out_ports[index];
+            assert_eq!(port.client_ptr(), self.process_scope.client_ptr());
+            let buff = unsafe {
+                slice::from_raw_parts(
+                    port.buffer(self.process_scope.n_frames()) as *const f32,
+                    self.process_scope.n_frames() as usize,
+                )
+            };
+            buff
     	}
     }
     
