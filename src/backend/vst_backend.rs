@@ -24,7 +24,7 @@ impl<'a, T:'a> InputAudioChannelGroup<T> for Inputs<'a, T> {
     }
 
     fn split_at(self, index: usize) -> (Self, Self) {
-        // Takes `self` byvalue, not strictly necessary, only to be
+        // Takes `self` by value, not strictly necessary, only to be
         // consistent with the `split_at_mut`.
         Inputs::split_at(&self, index)
     }
