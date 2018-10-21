@@ -7,6 +7,18 @@ use voice::{Renderable, Voice, VoiceState};
 use vst::api::Events;
 use vst::event::Event;
 
+
+pub trait Plugin<E> {
+	fn set_sample_rate(&mut self, sample_rate: f64);
+    fn render_next<'a, F, In, Out>(&mut self, inputs: &In, outputs: &'a mut Out)
+    where
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        for<'b> &'b mut Out: IntoIterator<Item = &'b mut [F]>;
+    fn handle_event(&mut self, event: &E);
+}
+
 /// The base structure for handling voices, sounds, and processing
 ///
 /// * `T` - a struct we create that implements the `Renderable` trait,
@@ -101,15 +113,6 @@ where
         self
     }
 
-    /// Set the sample rate using the builder.  This is also useful after the `Synth` is finalized
-    /// if the host sample rate is changed.
-    ///
-    /// * `sample_rate` - set the sample rate of our instrument
-    pub fn sample_rate(mut self, sample_rate: f64) -> Self {
-        self.synth_data.sample_rate = sample_rate;
-        self
-    }
-
     /// Set the note steal mode using the builder
     ///
     /// * `steal_mode` - this determines how "voice stealing" will be implemented, if at all.
@@ -139,40 +142,6 @@ where
         self.synth_data.pan = amount;
         let (pan_left_amp, pan_right_amp) = pan::constant_power(self.synth_data.pan);
         self.synth_data.pan_raw = (pan_left_amp, pan_right_amp);
-    }
-
-    /// Modify an audio buffer with rendered audio from the voice
-    ///
-    /// * `buffer` - the audio buffer to modify
-    #[allow(unused_variables)]
-    pub fn render_next<'a, F, In, Out>(&mut self, inputs: &In, outputs: &'a mut Out)
-    where
-        F: Float + AsPrim,
-        In: InputAudioChannelGroup<F>,
-        Out: OutputAudioChannelGroup<F>,
-        for<'b> &'b mut Out: IntoIterator<Item = &'b mut [F]>
-    {
-        for voice in &mut self.voices {
-            {
-                voice.render_next::<F, _, _>(inputs, outputs, &self.synth_data);
-            }
-        }
-    }
-
-    /// Process events from the plugin host.  This is useful if you are
-    /// responding to MIDI notes and data.
-    ///
-    /// * `events` - a reference to an `Events` structure from the `vst::api::Events`
-    /// module.
-    pub fn process_events(&mut self, events: &Events) {
-        // loop through all events
-        for e in events.events() {
-            // check if the event is a midi signal
-            match e {
-                Event::Midi(ev) => self.process_midi(NoteData::data(ev.data)),
-                _ => return,
-            }
-        }
     }
 
     /// Take in note data and turn a note on/off depending on the state
@@ -234,6 +203,38 @@ where
         }
     }
 }
+
+impl<T> Plugin<Events> for Synth<T>
+where
+    T: Renderable 
+{
+    fn set_sample_rate(&mut self, sample_rate: f64) {
+        self.synth_data.sample_rate = sample_rate;
+    }
+
+    fn render_next<'a, F, In, Out>(&mut self, inputs: &In, outputs: &'a mut Out)
+    where
+        F: Float + AsPrim,
+        In: InputAudioChannelGroup<F>,
+        Out: OutputAudioChannelGroup<F>,
+        for<'b> &'b mut Out: IntoIterator<Item = &'b mut [F]>
+    {
+        for voice in &mut self.voices {
+            voice.render_next::<F, _, _>(inputs, outputs, &self.synth_data);
+        }
+    }
+    
+    fn handle_event(&mut self, events: &Events) {
+        for e in events.events() {
+            // check if the event is a midi signal
+            match e {
+                Event::Midi(ev) => self.process_midi(NoteData::data(ev.data)),
+                _ => return,
+            }
+        }
+    }
+}
+
 
 /// The way new notes will play if all voices are being currently utilized
 /// This will change

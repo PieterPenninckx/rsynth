@@ -13,7 +13,8 @@ use rsynth::voice::*;
 use rsynth::backend::{InputAudioChannelGroup, OutputAudioChannelGroup};
 use vst::api::Events;
 use vst::buffer::{AudioBuffer};
-use vst::plugin::{Category, Info, Plugin};
+use vst::plugin::{Category, Info, Plugin as VstPlugin};
+use rsynth::synth::Plugin;
 
 const DEFAULT_SAMPLE_RATE: f64 = 48_000f64;
 
@@ -29,7 +30,7 @@ struct RSynthExample {
     synth: Synth<Sound>,
 }
 
-impl Plugin for RSynthExample {
+impl VstPlugin for RSynthExample {
     fn get_info(&self) -> Info {
         Info {
             name: "RSynth Example".to_string(),
@@ -62,13 +63,13 @@ impl Plugin for RSynthExample {
 
         self.synth = Synth::new()
 						.voices(vec![voice; 6])
-						.sample_rate(DEFAULT_SAMPLE_RATE) // TODO: use host sample rate
 						.finalize();
+		self.synth.set_sample_rate(DEFAULT_SAMPLE_RATE);
     }
 
     fn process_events(&mut self, events: &Events) {
         // send midi data, etc.
-        self.synth.process_events(events);
+        self.synth.handle_event(events);
     }
 
     fn process(&mut self, buffer: &mut AudioBuffer<f32>) {
