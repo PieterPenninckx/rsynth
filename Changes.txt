@@ -16,12 +16,11 @@ Same as `sample_counter`: it's hard to ensure that this is indeed updated every 
 No internal mutability is needed here, as far as I can tell.
 
 2018-09 to 2018-10: Add optional dependency on jack crate.
-We're putting vst's `Inputs` and (a wrapper of) jack's `Port<AudioIn>` behind a common trait.
 The idea is that we're putting vst's API and the jack API behind a common interface.
-Client code then only needs to know about that common interface to support both.
-The `render_next` method in the `Renderable` trait takes arguments of a generic type that
-implements the common traits.
-Also the `render_next` method from the `Synth` struct takes arguments of generic types.
+Client code then only needs to know about that common trait to support both.
+The `Renderable` trait is renamed to `Plugin` and gets a lot more functions.
+It is now the trait that a plugin needs to implement in order to support both Jack and Vst.
+The `render_next` method is renamed to `render_buffer`.
 
 2018-10-14: In the test_synth: no longer put `position` inside a `Cell`.
 
@@ -29,4 +28,16 @@ Also the `render_next` method from the `Synth` struct takes arguments of generic
 The idea is that this can be used for synth-wide data that does not need to be duplicated
 per voice, e.g. the samplerate.
 
-Still work in progress.
+2018-10-31: `Synth` is renamed to `Polyphonic` and the code that is not related to polyphony is split off.
+
+2018-10-31: Change the `render_next` method so that the inputs and the outputs are now just
+slices of slices instead of generic types that implement a complicated trait.
+This significantly simplifies the borrow-checker issues I was having.
+
+2018-11-**: Split the example into two: one for working with a VST back-end and one for working
+with a JACK back-end.
+
+2018-12-07: Create a macro `vst_init!` in the vst back-end that removes the need for implementing
+`Default` everywhere. 
+Now that `Default` does not need to be implemented anymore, we can give `Polyphonic` a "normal"
+constructor that takes a vector of voices.

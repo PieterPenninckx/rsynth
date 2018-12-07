@@ -1,136 +1,202 @@
 use std::slice;
-use std::ops::{Index, IndexMut};
-use jack::{Port, AudioIn, AudioOut, ProcessScope};
-#[cfg(test)]
-use jack::{Client, ClosureProcessHandler, ClientOptions, Control};
+use jack::{Port, AudioIn, AudioOut, ProcessScope, MidiIn};
+use super::{Plugin, Event, RawMidiEvent};
+use jack::{Client, ClientOptions, Control, ProcessHandler};
+use core::cmp;
+use std::io;
+use backend::Hibernation;
 
-use super::{
-    InputAudioChannelGroup,
-    OutputAudioChannelGroup
-};
 
-#[derive(Clone, Copy)]
-struct JackInputs<'ps, 'p> {
-    process_scope: &'ps ProcessScope,
-    audio_in_ports: &'p [Port<AudioIn>]
-}
-
-impl<'ps, 'p> Index<usize> for JackInputs<'ps, 'p> {
-    type Output = [f32];
-    fn index(&self, index: usize) -> &Self::Output {
-        self.audio_in_ports[index].as_slice(&self.process_scope)
-    }
-}
-
-impl<'ps, 'p> InputAudioChannelGroup<f32> for JackInputs<'ps, 'p>
+fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
+where P: Plugin<E>
 {
-    fn number_of_channels(&self) -> usize {
-        self.audio_in_ports.len()
+    let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
+    for index in 0 .. P::MAX_NUMBER_OF_AUDIO_INPUTS {
+        let name = P::audio_input_name(index);
+        let port = client.register_port(&name, AudioIn::default());
+        match port {
+            Ok(p) => {
+                in_ports.push(p);
+            },
+            Err(e) => {
+                error!("Failed to open audio input port with index {} and name {}: {:?}", index, name, e);
+            }
+        }
     }
+    in_ports
+}
 
-    fn channel_length(&self) -> usize {
-        self.process_scope.n_frames() as usize
+fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
+    where P: Plugin<E>
+{
+    let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+    for index in 0 .. P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
+        let name = P::audio_output_name(index);
+        let port = client.register_port(&name, AudioOut::default());
+        match port {
+            Ok(p) => {
+                out_ports.push(p);
+            },
+            Err(e) => {
+                error!("Failed to open audio output port with index {} and name {}: {:?}", index, name, e);
+            }
+        }
     }
+    out_ports
+}
 
-    fn get(&self, index: usize) -> Option<&[f32]> {
-        if let Some(channel) = self.audio_in_ports.get(index) {
-            Some(channel.as_slice(&self.process_scope))
-        } else {
-            None
+struct JackProcessHandler<P>
+{
+    audio_in_ports: Vec<Port<AudioIn>>,
+    audio_out_ports: Vec<Port<AudioOut>>,
+    midi_in_port: Option<Port<MidiIn>>,
+    plugin: P,
+    inputs: Hibernation,
+    outputs: Hibernation
+}
+
+impl<P> JackProcessHandler<P>
+where
+    P: Send,
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+{
+    fn new(client: &Client, plugin: P) -> Self {
+        let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
+            Ok(mip) => Some(mip),
+            Err(e) => {
+                error!("Failed to open mini in port: {:?}", e);
+                None
+            }
+        };
+        let audio_in_ports = audio_in_ports::<P, _>(&client);
+        let audio_out_ports = audio_out_ports::<P, _>(&client);
+
+        let inputs = Hibernation::new::<&[f32]>(P::MAX_NUMBER_OF_AUDIO_INPUTS);
+
+        let outputs = Hibernation::new::<&mut[f32]>(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+
+        JackProcessHandler {
+            audio_in_ports,
+            audio_out_ports,
+            midi_in_port,
+            plugin,
+            inputs,
+            outputs
         }
     }
 
-    fn split_at(self, index: usize) -> (Self, Self) {
-        let (first_channels, last_channels) = self.audio_in_ports.split_at(index);
-        let first = JackInputs {
-            process_scope: self.process_scope,
-            audio_in_ports: first_channels
-        };
-        let last = JackInputs {
-            process_scope: self.process_scope,
-            audio_in_ports: last_channels
-        };
-        (first, last)
-    }
-}
-
-struct JackOutputs<'ps, 'p> {
-    process_scope: &'ps ProcessScope,
-    audio_out_ports: &'p mut [Port<AudioOut>]
-}
-
-impl<'ps, 'p> Index<usize> for JackOutputs<'ps, 'p> {
-    type Output = [f32];
-    fn index(&self, index: usize) -> &Self::Output {
-        // TODO: Add tests for this.
-        let port = &self.audio_out_ports[index];
-        assert_eq!(port.client_ptr(), self.process_scope.client_ptr());
-        let buff = unsafe {
-            slice::from_raw_parts(
-                port.buffer(self.process_scope.n_frames()) as *const f32,
-                self.process_scope.n_frames() as usize,
-            )
-        };
-        buff
-    }
-}
-
-impl<'ps, 'p> IndexMut<usize> for JackOutputs<'ps, 'p> {
-    fn index_mut(&mut self, index: usize) -> &mut [f32] {
-        self.audio_out_ports[index].as_mut_slice(&self.process_scope)
-    }
-}
-
-impl<'ps, 'p> OutputAudioChannelGroup<f32> for JackOutputs<'ps, 'p> {
-    fn number_of_channels(&self) -> usize {
-        self.audio_out_ports.len()
-    }
-
-    fn channel_length(&self) -> usize {
-        self.process_scope.n_frames() as usize
-    }
-
-    fn get_mut(&mut self, index: usize) -> Option<&mut [f32]> {
-        if let Some(channel) = self.audio_out_ports.get_mut(index) {
-            Some(channel.as_mut_slice(&self.process_scope))
-        } else {
-            None
+    fn handle_events(&mut self, process_scope: &ProcessScope) {
+        if let Some(ref mut midi_in_port) = self.midi_in_port {
+            for input_event in midi_in_port.iter(process_scope) {
+                let raw_midi_event = RawMidiEvent {
+                    data: input_event.bytes
+                };
+                let event = Event::Timed {
+                    event: raw_midi_event,
+                    samples: input_event.time
+                };
+                self.plugin.handle_event(&event);
+            }
         }
     }
-
-    fn split_at_mut(self, index: usize) -> (JackOutputs<'ps, 'p>, JackOutputs<'ps, 'p>) {
-        let (first_channels, last_channels) = self.audio_out_ports.split_at_mut(index);
-        let first = JackOutputs {
-            process_scope: self.process_scope,
-            audio_out_ports: first_channels
-        };
-        let last = JackOutputs {
-            process_scope: self.process_scope,
-            audio_out_ports: last_channels
-        };
-        (first, last)
-    }
 }
 
-#[test]
-#[ignore]
-fn using_jack_client_compiles() {
-    let (client, _status) =
-        Client::new("client", ClientOptions::NO_START_SERVER).unwrap();
+impl<P> ProcessHandler for JackProcessHandler<P>
+where
+    P: Send,
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+{
+    fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
+        self.handle_events(process_scope);
+        // We avoid memory allocation in this piece of the code.
+        // The slices themselves are allocated by Jack,
+        // we only need a vector to store them in.
+        // We allocate this vector upon creation, "wake it up" for each call to `process`
+        // and let it "hibernate" between two calls to `process`.
+        let mut inputs : Vec<&[f32]> = unsafe { self.inputs.wake_up() };
+        for i in 0 .. cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
+            inputs.push(self.audio_in_ports[i].as_slice(process_scope));
+        }
 
-    let out_port = client
-        .register_port("out", AudioOut::default())
-        .unwrap();
-    let mut out_ports = vec![out_port];
-    let cback = move |_: &Client, ps: &ProcessScope| -> Control {
-        let mut jack_outputs = JackOutputs{
-            process_scope: ps,
-            audio_out_ports: &mut out_ports
-        };
-        let _slice = jack_outputs.get_mut(0).unwrap();
+        let mut outputs: Vec<&mut[f32]> = unsafe { self.outputs.wake_up()};
+        let number_of_frames = process_scope.n_frames();
+        for i in 0 .. cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
+            let buffer = unsafe {
+                slice::from_raw_parts_mut(
+                    self.audio_out_ports[i].buffer(number_of_frames) as *mut f32,
+                    number_of_frames as usize,
+                )
+            };
+            outputs.push(buffer);
+        }
+
+        self.plugin.render_buffer(&inputs, &mut outputs);
+
+        // Make sure to clear all input- and output slices before "hibernation".
+        self.inputs.hibernate(inputs);
+        self.outputs.hibernate(outputs);
+
         Control::Continue
+    }
+}
+
+impl<P> Drop for JackProcessHandler<P>
+{
+    fn drop(&mut self) {
+        unsafe {
+            self.inputs.drop::<&[f32]>();
+            self.outputs.drop::<&mut [f32]>();
+        }
+    }
+}
+
+
+// Run the plugin indefinitely. There is currently no way to stop it.
+pub fn run<P>(plugin: P)
+where
+    P: Send,
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+{
+    let (client, _status) =
+        Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
+    //       For now, we keep the midi input ports (and name) hard-coded, but maybe we should
+    //       probably define something like the following:
+    //       ```
+    //           pub trait JackPlugin : Plugin {
+    //               const NUMBER_OF_MIDI_INPUTS: usize = 1; // Do we support defaults here?
+    //               const NUMBER_OF_MIDI_OUTPUTS: usize = 0;
+    //               fn midi_input_name(index: usize) -> String {
+    //                   "midi_in".to_string()
+    //               }
+    //               fn midi_output_name(index: usize) -> String {
+    //                   "midi_out".to_string()
+    //               }
+    //               fn handle_midi_in(&mut self, &SomeDataTypeAboutMidiInputPorts);
+    //               fn handle_midi_out(&mut self, &mut SomeDataTypeAboutMidiOutputPorts);
+    //           }
+    //       And then the order to call the functions would be:
+    //       1. handle_events   (is input for the plugin)
+    //       2. handle_midi_in  (is input for the plugin)
+    //       3. process_buffer  (is both input and output for the plugin,
+    //                           must be after all other input and before all other output)
+    //       4. handle_midi_out (is output for the plugin)
+    //       ```
+    let jack_process_handler = JackProcessHandler::new(&client, plugin);
+    let active_client = match client.activate_async((), jack_process_handler) {
+        Ok(c) => c,
+        Err(e) => {
+            error!("Failed to activate client: {:?}", e);
+            return;
+        }
     };
-    let _active_client = client
-        .activate_async((), ClosureProcessHandler::new(cback))
-        .unwrap();
+
+    println!("Press any key to quit");
+    let mut user_input = String::new();
+    io::stdin().read_line(&mut user_input).ok();
+    match active_client.deactivate() {
+        Ok(_) => (),
+        Err(e) => {
+            error!("Failed to deactivate client: {:?}", e);
+        }
+    }
 }
