@@ -4,7 +4,8 @@ use super::{Plugin, Event, RawMidiEvent};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
 use core::cmp;
 use std::io;
-use backend::Hibernation;
+use backend::utilities::Hibernation;
+use backend::utilities::HibernationMut;
 
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
@@ -52,7 +53,7 @@ struct JackProcessHandler<P>
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
     inputs: Hibernation,
-    outputs: Hibernation
+    outputs: HibernationMut
 }
 
 impl<P> JackProcessHandler<P>
@@ -71,9 +72,9 @@ where
         let audio_in_ports = audio_in_ports::<P, _>(&client);
         let audio_out_ports = audio_out_ports::<P, _>(&client);
 
-        let inputs = Hibernation::new::<&[f32]>(P::MAX_NUMBER_OF_AUDIO_INPUTS);
+        let inputs = Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS);
 
-        let outputs = Hibernation::new::<&mut[f32]>(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+        let outputs = HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
 
         JackProcessHandler {
             audio_in_ports,
@@ -113,12 +114,12 @@ where
         // we only need a vector to store them in.
         // We allocate this vector upon creation, "wake it up" for each call to `process`
         // and let it "hibernate" between two calls to `process`.
-        let mut inputs : Vec<&[f32]> = unsafe { self.inputs.wake_up() };
+        let mut inputs = self.inputs.borrow_mut();
         for i in 0 .. cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
             inputs.push(self.audio_in_ports[i].as_slice(process_scope));
         }
 
-        let mut outputs: Vec<&mut[f32]> = unsafe { self.outputs.wake_up()};
+        let mut outputs = self.outputs.borrow_mut();
         let number_of_frames = process_scope.n_frames();
         for i in 0 .. cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
             let buffer = unsafe {
@@ -130,26 +131,11 @@ where
             outputs.push(buffer);
         }
 
-        self.plugin.render_buffer(&inputs, &mut outputs);
-
-        // Make sure to clear all input- and output slices before "hibernation".
-        self.inputs.hibernate(inputs);
-        self.outputs.hibernate(outputs);
+        self.plugin.render_buffer(inputs.as_slice(), outputs.as_mut_slice());
 
         Control::Continue
     }
 }
-
-impl<P> Drop for JackProcessHandler<P>
-{
-    fn drop(&mut self) {
-        unsafe {
-            self.inputs.drop::<&[f32]>();
-            self.outputs.drop::<&mut [f32]>();
-        }
-    }
-}
-
 
 // Run the plugin indefinitely. There is currently no way to stop it.
 pub fn run<P>(plugin: P)

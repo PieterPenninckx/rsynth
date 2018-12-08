@@ -16,7 +16,7 @@
 //! You can add features, such as polyphony, to your plug-in by using middleware.
 //! Typically, suppose `M` is middleware and your plugin `P` implement the `Plugin` trait and
 //! any other backend-specific trait, then `M<P>` also implements the `Plugin` trait
-//! and the backend-pecific traits `P` implements.
+//! and the backend-specific traits `P` implements.
 //! Currently, supported middle ware is
 //!
 //! * polyphony

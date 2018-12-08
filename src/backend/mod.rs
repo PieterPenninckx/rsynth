@@ -1,7 +1,5 @@
 use num_traits::Float;
 use asprim::AsPrim;
-use std::mem;
-use std::process;
 
 pub mod vst_backend;
 #[cfg(feature="jack-backend")]
@@ -56,51 +54,246 @@ pub enum Event<T, U> {
     UnTimed(U)
 }
 
-#[derive(Debug)]
-pub struct Hibernation {
-    ptr: usize,
-    length: usize,
-    capacity: usize
-}
-
-impl Hibernation {
-    fn new<T>(capacity: usize) -> Self {
-        let mut vector : Vec<T> = Vec::with_capacity(capacity);
-        let result = Self {
-            ptr: vector.as_mut_ptr() as usize,
-            length: vector.len(),
-            capacity: vector.capacity()
-        };
-        mem::forget(vector);
-        result
-    }
-
-    /// Must be called with the same data-type as the `new` function was called with.
-    unsafe fn wake_up<T>(&self) -> Vec<T> {
-        #[allow(unused_unsafe)]
-        unsafe {
-            Vec::from_raw_parts(self.ptr as *mut T, self.length, self.capacity)
-        }
-    }
-
-    /// Must be called with the result from `wake_up`.
-    fn hibernate<T>(&mut self, mut vector: Vec<T>) {
-        vector.clear();
-        self.ptr = vector.as_mut_ptr() as usize;
-        self.length = vector.len();
-        self.capacity = vector.capacity();
-        mem::forget(vector);
-    }
-
-    /// May only be called once.
-    /// Must be called with the same data-type as the `new` function was called with.
-    unsafe fn drop<T>(&mut self) {
-        self.wake_up::<T>();
-    }
-}
-
+/// A utility trait for defining middleware that can work with different back-ends.
+/// Suppose `M` is middleware and a plugin `P` implement the `Plugin` trait and
+/// a other backend-specific trait, then a blanket impl defined for the backend
+/// will ensure that `M<P>` will also implement the backend-specific trait if
+/// `M<P>' implements `Transparent<Inner=P>`
 pub trait Transparent {
     type Inner;
     fn get(&self) -> &Self::Inner;
     fn get_mut(&mut self) -> &mut Self::Inner;
 }
+
+/// Utilities to be used when developing backends.
+pub mod utilities {
+    use std::mem;
+    use std::ops::Deref;
+    use std::ops::DerefMut;
+    use std::marker::PhantomData;
+
+    #[derive(Debug)]
+    pub struct Hibernation {
+        ptr: usize,
+        capacity: usize,
+        is_locked: bool
+    }
+
+    #[derive(Debug)]
+    pub struct HibernationMut {
+        ptr: usize,
+        capacity: usize,
+        is_locked: bool
+    }
+
+    pub struct BorrowGuard<'h, 'b, T>
+    where T: ?Sized
+    {
+        hibernation: &'h mut Hibernation,
+        // We use an `Option` here because the compiler does not (yet)
+        // allow us to `mem::forget` our fields, i.e. `drop` is always
+        // called recursively, see https://doc.rust-lang.org/nomicon/destructors.html
+        borrow: Option<Vec<&'b T>>
+    }
+
+    pub struct BorrowGuardMut<'h, 'b, T>
+    where T: ?Sized
+    {
+        hibernation: &'h mut HibernationMut,
+        // We use an `Option` here because the compiler does not (yet)
+        // allow us to `mem::forget` our fields, i.e. `drop` is always
+        // called recursively, see https://doc.rust-lang.org/nomicon/destructors.html
+        borrow: Option<Vec<&'b mut T>>
+    }
+
+    impl<'h, 'b, T> Deref for BorrowGuard<'h, 'b, T>
+    where T : ?Sized
+    {
+        type Target = Vec<&'b T>;
+
+        fn deref(&self) -> &Vec<&'b T> {
+            self.borrow.as_ref().expect("`BorrowGuard` should be constructed with `Some<Vec>`")
+        }
+    }
+
+    impl<'h, 'b, T> Deref for BorrowGuardMut<'h, 'b, T>
+    where T : ?Sized
+    {
+        type Target = Vec<&'b mut T>;
+
+        fn deref(&self) -> &Vec<&'b mut T> {
+            self.borrow.as_ref().expect("`BorrowGuardMut` should be constructed with `Some<Vec>`")
+        }
+    }
+
+    impl<'h, 'b, T> DerefMut for BorrowGuard<'h, 'b, T>
+    where T : ?Sized
+    {
+        fn deref_mut(&mut self) -> &mut Vec<&'b T> {
+            self.borrow.as_mut().expect("`BorrowGuard` should be constructed with `Some<Vec>`")
+        }
+    }
+
+    impl<'h, 'b, T> DerefMut for BorrowGuardMut<'h, 'b, T>
+    where T : ?Sized
+    {
+        fn deref_mut(&mut self) -> &mut Vec<&'b mut T> {
+            self.borrow.as_mut().expect("`BorrowGuardMut` should be constructed with `Some<Vec>`")
+        }
+    }
+
+    impl<'h, 'b, T> Drop for BorrowGuard<'h, 'b, T>
+    where T : ?Sized {
+        fn drop(&mut self) {
+            let mut v = self.borrow.take().expect("`BorrowGuard` should be constructed with `Some<Vec>`");
+
+            v.clear();
+            self.hibernation.ptr = v.as_mut_ptr() as usize;
+            debug_assert_eq!(v.len(), 0);
+            self.hibernation.capacity = v.capacity();
+
+            mem::forget(v);
+
+            self.hibernation.is_locked = false;
+        }
+    }
+
+    impl<'h, 'b, T> Drop for BorrowGuardMut<'h, 'b, T>
+    where T : ?Sized {
+        fn drop(&mut self) {
+            let mut v = self.borrow.take().expect("`BorrowGuardMut` should be constructed with `Some<Vec>`");
+
+            v.clear();
+            self.hibernation.ptr = v.as_mut_ptr() as usize;
+            debug_assert_eq!(v.len(), 0);
+            self.hibernation.capacity = v.capacity();
+
+            mem::forget(v);
+
+            self.hibernation.is_locked = false;
+        }
+    }
+
+    impl Hibernation {
+        pub fn new(capacity: usize) -> Self {
+            // All references have the same size and alignment.
+            let mut vector: Vec<&()> = Vec::with_capacity(capacity);
+            debug_assert_eq!(vector.len(), 0);
+            let result = Self {
+                is_locked: false,
+                ptr: vector.as_mut_ptr() as usize,
+                capacity: vector.capacity()
+            };
+            mem::forget(vector);
+            result
+        }
+
+        /// # Panics
+        /// Panics if `mem::forget()` was called on a `BorrowGuard`.
+        pub fn borrow_mut<'h, 'b, T>(&'h mut self) -> BorrowGuard<'h, 'b, T>
+        where T : ?Sized
+        {
+            // If `mem::forget()` was called on a `BorrowGuard`, then
+            // the `drop()` on the `BorrowGuard` did not run and
+            // the ptr and the capacity of the underlying vector may not be
+            // correct anymore.
+            // It is then undefined behaviour to use `Vec::from_raw_parts`.
+            // Hence this check.
+            if self.is_locked {
+                panic!("`Hibernation` has been locked. Probably `mem::forget()` was called on a `BorrowGuard`.");
+            }
+            self.is_locked = true;
+
+
+            let vector;
+            #[allow(unused_unsafe)]
+            unsafe {
+                vector = Vec::from_raw_parts(self.ptr as *mut &T, 0, self.capacity)
+            }
+            BorrowGuard {
+                borrow: Some(vector),
+                hibernation: self
+            }
+        }
+    }
+
+    impl HibernationMut {
+        pub fn new(capacity: usize) -> Self {
+            // All references have the same size and alignment.
+            let mut vector: Vec<&()> = Vec::with_capacity(capacity);
+            debug_assert_eq!(vector.len(), 0);
+            let result = Self {
+                is_locked: false,
+                ptr: vector.as_mut_ptr() as usize,
+                capacity: vector.capacity()
+            };
+            mem::forget(vector);
+            result
+        }
+
+        /// # Panics
+        /// Panics if `mem::forget()` was called on a `BorrowGuardMut`.
+        pub fn borrow_mut<'h, 'b, T>(&'h mut self) -> BorrowGuardMut<'h, 'b, T>
+        where T : ?Sized
+        {
+            // If `mem::forget()` was called on a `BorrowGuard`, then
+            // the `drop()` on the `BorrowGuardMut` did not run and
+            // the ptr and the capacity of the underlying vector may not be
+            // correct anymore.
+            // It is then undefined behaviour to use `Vec::from_raw_parts`.
+            // Hence this check.
+            if self.is_locked {
+                panic!("`Hibernation` has been locked. Probably `mem::forget()` was called on a `BorrowGuardMut`.");
+            }
+            self.is_locked = true;
+
+
+            let vector;
+            #[allow(unused_unsafe)]
+                unsafe {
+                vector = Vec::from_raw_parts(self.ptr as *mut &mut T, 0, self.capacity)
+            }
+            BorrowGuardMut {
+                borrow: Some(vector),
+                hibernation: self
+            }
+        }
+    }
+
+    impl Drop for Hibernation {
+        fn drop(&mut self) {
+            if ! self.is_locked {
+                unsafe {
+                    mem::drop(Vec::from_raw_parts(self.ptr as *mut &(), 0, self.capacity));
+                }
+            } else {
+                // If `mem::forget()` was called on a `BorrowGuard`, then
+                // the `drop()` on the `BorrowGuard` did not run and
+                // the ptr and the capacity of the underlying vector may not be
+                // correct anymore.
+                // It is probably not a good idea to panic inside the `drop()` function,
+                // so let's just leak some memory (`mem::forget()` was called after all.)
+                // We do nothing in this `else` branch.
+            }
+        }
+    }
+
+    impl Drop for HibernationMut {
+        fn drop(&mut self) {
+            if ! self.is_locked {
+                unsafe {
+                    mem::drop(Vec::from_raw_parts(self.ptr as *mut &(), 0, self.capacity));
+                }
+            } else {
+                // If `mem::forget()` was called on a `BorrowGuardMut`, then
+                // the `drop()` on the `BorrowGuard` did not run and
+                // the ptr and the capacity of the underlying vector may not be
+                // correct anymore.
+                // It is probably not a good idea to panic inside the `drop()` function,
+                // so let's just leak some memory (`mem::forget()` was called after all.)
+                // We do nothing in this `else` branch.
+            }
+        }
+    }
+}
+

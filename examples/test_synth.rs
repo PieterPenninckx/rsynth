@@ -91,7 +91,7 @@ impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for Sound {
 
                 let value : F = ((r * AMPLIFY_MULTIPLIER) * (self.velocity as f32 / 127f32)).as_();
                 // Set our output buffer
-                *sample += value; // This is for a polyphonic context.
+                *sample = *sample + value; // This is for a polyphonic context.
                 // In a monophonic context, you would have to write `*sample = value;`.
             }
         }

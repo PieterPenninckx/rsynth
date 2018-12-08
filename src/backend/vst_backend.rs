@@ -6,7 +6,7 @@ use backend::Transparent;
 use core::cmp;
 use backend::RawMidiEvent;
 use backend::Event;
-use backend::Hibernation;
+use backend::utilities::Hibernation;
 use vst::plugin::Info;
 use vst::channels::ChannelInfo;
 use vst::buffer::Inputs;
@@ -15,6 +15,7 @@ use vst::plugin::HostCallback;
 use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::api::Events;
+use backend::utilities::HibernationMut;
 
 pub trait VstPlugin {
     const PLUGIN_ID: i32;
@@ -31,30 +32,10 @@ where T:Transparent,
 pub struct VstPluginWrapper<P>
 {
     plugin: P,
-    inputs: Hibernation,
-    outputs: Hibernation,
-}
-
-impl<P> VstPluginWrapper<P>
-where
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
-{
-    unsafe fn get_inputs<'b, F>(&self, vst_inputs: Inputs<'b, F>) -> Vec<&'b [F]> {
-        let mut inputs : Vec<&[F]> = unsafe {self.inputs.wake_up() };
-        for i in 0 .. cmp::min(inputs.capacity(), vst_inputs.len()) {
-            inputs.push(vst_inputs.get(i));
-        }
-        inputs
-    }
-
-
-    unsafe fn get_outputs<'b, F>(&self, vst_outputs: Outputs<'b, F>) -> Vec<&'b mut[F]> {
-        let mut outputs: Vec<&mut[F]> = unsafe {self.outputs.wake_up()};
-        for i in 0 .. cmp::min(outputs.capacity(), vst_outputs.len()) {
-            outputs.push(vst_outputs.get_mut(i));
-        }
-        outputs
-    }
+    inputs_f32: Hibernation,
+    outputs_f32: HibernationMut,
+    inputs_f64: Hibernation,
+    outputs_f64: HibernationMut
 }
 
 impl<P> VstPluginWrapper<P>
@@ -78,27 +59,43 @@ where
     {
         Self {
             plugin,
-            inputs: Hibernation::new::<&[f32]>(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs: Hibernation::new::<&mut[f32]>(P::MAX_NUMBER_OF_AUDIO_OUTPUTS)
+            inputs_f32: Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS),
+            outputs_f32: HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
+            inputs_f64: Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS),
+            outputs_f64: HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS)
         }
     }
 
     pub fn process<'b>(&mut self, buffer: &mut AudioBuffer<'b, f32>) {
         let (input_buffers, output_buffers) = buffer.split();
-        let inputs = unsafe {self.get_inputs(input_buffers)};
-        let mut outputs = unsafe {self.get_outputs(output_buffers)};
-        self.plugin.render_buffer::<f32>(&inputs, &mut outputs);
-        self.inputs.hibernate(inputs);
-        self.outputs.hibernate(outputs);
+
+        let mut inputs = self.inputs_f32.borrow_mut();
+        for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
+            inputs.push(input_buffers.get(i));
+        }
+
+        let mut outputs = self.outputs_f32.borrow_mut();
+        for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+            outputs.push(output_buffers.get_mut(i));
+        }
+
+        self.plugin.render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice());
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
         let (input_buffers, output_buffers) = buffer.split();
-        let inputs = unsafe {self.get_inputs(input_buffers)};
-        let mut outputs = unsafe {self.get_outputs(output_buffers)};
-        self.plugin.render_buffer::<f64>(&inputs, &mut outputs);
-        self.inputs.hibernate(inputs);
-        self.outputs.hibernate(outputs);
+
+        let mut inputs = self.inputs_f64.borrow_mut();
+        for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
+            inputs.push(input_buffers.get(i));
+        }
+
+        let mut outputs = self.outputs_f64.borrow_mut();
+        for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+            outputs.push(output_buffers.get_mut(i));
+        }
+
+        self.plugin.render_buffer::<f64>(&*inputs, &mut *outputs);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
