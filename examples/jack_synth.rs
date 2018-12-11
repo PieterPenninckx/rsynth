@@ -9,16 +9,26 @@ extern crate rsynth;
 mod test_synth;
 #[cfg(feature="jack-backend")]
 use test_synth::*;
+use simplelog::*;
 
 
-use rsynth::polyphony::{Polyphonic, SimpleVoiceStealer};
+use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
+use rsynth::middleware::zero_init::ZeroInit;
 #[cfg(feature="jack-backend")]
 use rsynth::backend::jack_backend::run;
 
 #[cfg(feature="jack-backend")]
 fn main() {
-    let plugin = Sound::default();
-    run(plugin);
+    CombinedLogger::init(
+        vec![TermLogger::new(LevelFilter::Warn, Config::default()).unwrap()]
+    ).unwrap();
+    let mut voices = Vec::new();
+    for _ in 0 .. 6 {
+        voices.push(Sound::default());
+    }
+    let polyphony = Polyphonic::new(SimpleVoiceStealer::new(), voices);
+    let zero_initialized = ZeroInit::new(polyphony);
+    run(zero_initialized);
 }
 
 #[cfg(not(feature="jack-backend"))]

@@ -5,7 +5,16 @@ pub mod vst_backend;
 #[cfg(feature="jack-backend")]
 pub mod jack_backend;
 
+/// The trait that all plugins need to implement.
+/// The type parameter `E` represents the type of events the plugin supports.
 pub trait Plugin<E> {
+    /// This indicates whether the plugin "adds" something to the output,
+    /// or substitutes the output value.
+    /// Use `output_mode::Addition` for a plugin that defines a single voice
+    /// to be used in a polyphonic context and `output_mode::Substitution`
+    /// for a monophonic plugin.
+    type Mode: output_mode::OutputMode;
+
     /// The name of the plugin.
     const NAME: &'static str;
 
@@ -45,6 +54,35 @@ pub trait Plugin<E> {
     fn handle_event(&mut self, event: &E);
 }
 
+pub mod output_mode {
+    use num_traits::Float;
+    pub trait OutputMode: Default {
+        fn set<F>(f: &mut F, value: F) where F: Float;
+    }
+
+    #[derive(Default)]
+    pub struct Additive {}
+
+    impl OutputMode for Additive {
+        #[inline(always)]
+        fn set<F>(f: &mut F, value: F) where F: Float {
+            *f = *f + value;
+        }
+    }
+
+    #[derive(Default)]
+    pub struct Substitution {}
+
+    impl OutputMode for Substitution {
+        #[inline(always)]
+        fn set<F>(f: &mut F, value: F) where F: Float {
+            *f = value;
+        }
+    }
+}
+
+
+
 pub struct RawMidiEvent<'a> {
     pub data: &'a [u8]
 }
@@ -54,7 +92,7 @@ pub enum Event<T, U> {
     UnTimed(U)
 }
 
-/// A utility trait for defining middleware that can work with different back-ends.
+/// A trait for defining middleware that can work with different back-ends.
 ///
 /// Suppose `M` is middleware and a plugin `P` implements the `Plugin` trait and
 /// another backend-specific trait. Then a blanket impl defined for the backend
@@ -116,8 +154,9 @@ pub trait Transparent {
 /// but it does not borrow anything.
 /// You can create a `VecGuard` with the `vec_guard` method.
 /// The `VecGuard` uses the memory from the `VecStorage` and can temporarily
-/// be used just like a `Vec<&T>`.
-/// When it goes out of scope, the memory "goes back to the `VecStorage`" and
+/// be used just like a `Vec<&T>`
+/// (i.e.: it implements `Deref<Target=Vec<&T>>` and `DerefMut<Target=Vec<&T>>`)
+/// When the `VecGuard` is dropped, the memory "goes back to the `VecStorage`" and
 /// can be re-used later on to store references with a different lifetime.
 ///
 /// `VecStorageMut<T>` is similar: it allows you to create a `VecGuardMut`, which
@@ -177,7 +216,9 @@ pub mod utilities {
             {
                 fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
                     self.borrow.as_mut()
-                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($VecGuard))
+                        .expect(
+                            guards_borrow_field_not_initialised_with_some_value_error!($VecGuard)
+                        )
                 }
             }
 
@@ -185,7 +226,9 @@ pub mod utilities {
             where $T : ?Sized {
                 fn drop(&mut self) {
                     let mut v = self.borrow.take()
-                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($VecGuard));
+                        .expect(
+                            guards_borrow_field_not_initialised_with_some_value_error!($VecGuard)
+                        );
                     v.clear();
                     self.hibernation.ptr = v.as_mut_ptr() as usize;
                     debug_assert_eq!(v.len(), 0);

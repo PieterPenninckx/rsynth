@@ -12,18 +12,18 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-use rsynth::polyphony::{Polyphonic, SimpleVoiceStealer};
-use rsynth::backend::vst_backend::VstPlugin;
+use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
+use rsynth::backend::{output_mode::Additive, vst_backend::VstPlugin};
 
 use vst::plugin::Category;
 
-impl VstPlugin for Sound {
+impl<M> VstPlugin for Sound<M> {
     const PLUGIN_ID: i32 = 123;
     const CATEGORY: Category = Category::Synth;
 }
 
 vst_init!(
-    fn init() -> Polyphonic<Sound, SimpleVoiceStealer<Sound>> {
+    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>> {
         let mut voices = Vec::new();
         for _ in 0 .. 6 {
             voices.push(Sound::default());

@@ -1,11 +1,8 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::polyphony::Voice;
-use rsynth::backend::Plugin;
-use rsynth::backend::Event;
-use rsynth::backend::RawMidiEvent;
-use simplelog::*;
+use rsynth::middleware::polyphony::Voice;
+use rsynth::backend::{Plugin, Event, RawMidiEvent, output_mode::OutputMode};
 use std::fs::File;
 
 // The total number of samples to pre-calculate
@@ -16,15 +13,16 @@ static SAMPLE_SIZE: usize = 65536;
 static AMPLIFY_MULTIPLIER: f32 = 0.2;
 
 #[derive(Clone)]
-pub struct Sound {
+pub struct Sound<M> {
     white_noise: Vec<f32>,
     sample_count: usize,
     position: usize,
     velocity: u8,
-    is_playing: bool
+    is_playing: bool,
+    mode: M
 }
 
-impl Default for Sound {
+impl<M> Default for Sound<M> where M: OutputMode {
     fn default() -> Self {
         // You can use the `log` crate for debugging purposes.
         trace!("");
@@ -38,13 +36,17 @@ impl Default for Sound {
             white_noise: samples,
             position: 0,
             velocity: 0,
-            is_playing: false
+            is_playing: false,
+            mode: M::default()
         }
     }
 }
 
 /// The DSP stuff goes here
-impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for Sound {
+impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
+where M: OutputMode
+{
+    type Mode = M;
     const NAME: &'static str = "RSynth Example";
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
@@ -90,9 +92,10 @@ impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for Sound {
                 let r = 2f32 * (self.white_noise[self.position]) - 1f32;
 
                 let value : F = ((r * AMPLIFY_MULTIPLIER) * (self.velocity as f32 / 127f32)).as_();
+
                 // Set our output buffer
-                *sample = *sample + value; // This is for a polyphonic context.
-                // In a monophonic context, you would have to write `*sample = value;`.
+                // This works both in a monophonic context and a polyphonic context.
+                M::set(sample, value);
             }
         }
     }
@@ -114,7 +117,7 @@ impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for Sound {
 }
 
 // This enables using it in a polyphonic context.
-impl Voice for Sound {
+impl<M> Voice for Sound<M> {
     fn is_playing(&self) -> bool {
         self.is_playing
     }

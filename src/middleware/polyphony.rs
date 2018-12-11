@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use note::*;
 use num_traits::Float;
-use backend::Plugin;
+use backend::{Plugin, output_mode::Additive};
 use backend::{Event, RawMidiEvent, Transparent};
 use std::marker::PhantomData;
 use std::default::Default;
@@ -44,6 +44,13 @@ pub trait VoiceStealMode
 }
 
 /// `Polyphonic` is middleware that adds polyphony.
+///
+/// # Notes
+///
+/// The voices are assumed to add values to the output buffer.
+/// If you are using a back-end that does not initialize the output buffers to zero
+/// before calling the plugin, then you will probably need to use the `ZeroInit` middleware as well:
+/// create a `ZeroInit::new(Polyphonic::new(...))`.
 pub struct Polyphonic<Vc, VSM: VoiceStealMode<V=Vc>>
 {
     voices: Vec<VoiceWithState<Vc, VSM::State>>,
@@ -76,8 +83,9 @@ impl<'e, Vc, VSM, U> Plugin<Event<RawMidiEvent<'e>, U>> for Polyphonic<Vc, VSM>
 where
     VSM: VoiceStealMode<V=Vc>,
     Vc: Voice,
-    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>>
+    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>, Mode=Additive>
 {
+    type Mode = Additive;
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_OUTPUTS;
@@ -99,11 +107,6 @@ where
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]])
     where F: Float + AsPrim
     {
-        for output in outputs.iter_mut() {
-            for v in output.iter_mut() {
-                *v = F::zero();
-            }
-        }
         for mut voice in self.voices.iter_mut() {
             if voice.voice.is_playing() {
                 voice.voice.render_buffer::<F>(inputs, outputs);

@@ -5,6 +5,7 @@ use jack::{Client, ClientOptions, Control, ProcessHandler};
 use core::cmp;
 use std::io;
 use backend::utilities::{VecStorage, VecStorageMut};
+use backend::output_mode::Substitution;
 
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
@@ -104,7 +105,7 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, Mode=Substitution>
 {
     fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope);
@@ -136,11 +137,18 @@ where
     }
 }
 
-// Run the plugin indefinitely. There is currently no way to stop it.
+/// Run the plugin indefinitely. There is currently no way to stop it.
+/// # Note
+/// If you get the error following error:
+/// ```text
+/// expected struct `rsynth::backend::output_mode::Additive`, found struct `rsynth::backend::output_mode::Substitution`
+/// ```
+/// then this probably means that you should zero-initialize your polyphonic plugin,
+/// see the documentation of the `ZeroInit` struct.
 pub fn run<P>(plugin: P)
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, Mode=Substitution>
 {
     let (client, _status) =
         Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
