@@ -32,10 +32,10 @@ where T:Transparent,
 pub struct VstPluginWrapper<P>
 {
     plugin: P,
-    inputs_f32: Hibernation,
-    outputs_f32: HibernationMut,
-    inputs_f64: Hibernation,
-    outputs_f64: HibernationMut
+    inputs_f32: Hibernation<[f32]>,
+    outputs_f32: HibernationMut<[f32]>,
+    inputs_f64: Hibernation<[f64]>,
+    outputs_f64: HibernationMut<[f64]>
 }
 
 impl<P> VstPluginWrapper<P>

@@ -52,8 +52,8 @@ struct JackProcessHandler<P>
     audio_out_ports: Vec<Port<AudioOut>>,
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
-    inputs: Hibernation,
-    outputs: HibernationMut
+    inputs: Hibernation<[f32]>,
+    outputs: HibernationMut<[f32]>
 }
 
 impl<P> JackProcessHandler<P>
