@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::polyphony::{Voice, Polyphonic};
+use rsynth::polyphony::Voice;
 use rsynth::backend::Plugin;
 use rsynth::backend::Event;
 use rsynth::backend::RawMidiEvent;

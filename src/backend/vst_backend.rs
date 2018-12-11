@@ -1,6 +1,5 @@
 use vst::buffer::AudioBuffer;
 use vst::plugin::Category;
-use vst::plugin::Plugin as VstBackendPlugin;
 use backend::Plugin;
 use backend::Transparent;
 use core::cmp;
@@ -9,9 +8,6 @@ use backend::Event;
 use backend::utilities::{VecStorage, VecStorageMut};
 use vst::plugin::Info;
 use vst::channels::ChannelInfo;
-use vst::buffer::Inputs;
-use vst::buffer::Outputs;
-use vst::plugin::HostCallback;
 use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::api::Events;

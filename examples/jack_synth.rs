@@ -7,6 +7,7 @@ extern crate rand;
 extern crate rsynth;
 
 mod test_synth;
+#[cfg(feature="jack-backend")]
 use test_synth::*;
 
 

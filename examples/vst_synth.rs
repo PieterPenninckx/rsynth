@@ -13,7 +13,6 @@ mod test_synth;
 use test_synth::*;
 
 use rsynth::polyphony::{Polyphonic, SimpleVoiceStealer};
-use rsynth::backend::vst_backend::VstPluginWrapper;
 use rsynth::backend::vst_backend::VstPlugin;
 
 use vst::plugin::Category;
