@@ -55,8 +55,9 @@ pub enum Event<T, U> {
 }
 
 /// A utility trait for defining middleware that can work with different back-ends.
-/// Suppose `M` is middleware and a plugin `P` implement the `Plugin` trait and
-/// a other backend-specific trait, then a blanket impl defined for the backend
+///
+/// Suppose `M` is middleware and a plugin `P` implements the `Plugin` trait and
+/// another backend-specific trait. Then a blanket impl defined for the backend
 /// will ensure that `M<P>` will also implement the backend-specific trait if
 /// `M<P>' implements `Transparent<Inner=P>`
 pub trait Transparent {
@@ -66,6 +67,61 @@ pub trait Transparent {
 }
 
 /// Utilities to be used when developing backends.
+/// # `Hibernation` and `HibernationMut`
+/// Struct to be able to re-use the storage of a vector
+/// for borrowing values with different lifetimes.
+///
+/// ## Examples
+/// The following code does not compile:
+/// ```ignore
+/// let mut v = Vec::with_capacity(2);
+/// {
+///     let x = 1; let y = 2;
+///     v.push(&x);
+///     v.push(&y);
+///     v.clear(); // We stop borrowing here, but the compiler doesn't know that.
+/// }
+/// {
+///     let a = 1; let b = 2;
+///     v.push(&a);
+///     v.push(&b);
+///     v.clear(); // We stop borrowing here, but the compiler doesn't know that.
+/// }
+/// ```
+///
+/// You can use `VecStorage` to solve this problem:
+/// ```
+/// use rsynth::backend::utilities::VecStorage;
+/// let mut v = VecStorage::with_capacity(2);
+/// {
+///     let x = 1; let y = 2;
+///     let mut guard = v.vec_guard();
+///     // Now guard behaves like a vector.
+///     guard.push(&x); // No memory allocation here, we use the memory allocated in `v`.
+///     guard.push(&y);
+///     // If we were going to push more items on the guard, we would allocate memory.
+///     // When guard goes out of scope, it is cleared.
+/// }
+/// {
+///     let a = 1; let b = 2;
+///     let mut guard = v.vec_guard();
+///     // Now guard behaves like a vector.
+///     guard.push(&a);
+///     guard.push(&b);
+///     // When guard goes out of scope, it is cleared.
+/// }
+/// ```
+///
+/// `VecStorage<T>` allocates memory just like `Vec<&T>`,
+/// but it does not borrow anything.
+/// You can create a `VecGuard` with the `vec_guard` method.
+/// The `VecGuard` uses the memory from the `VecStorage` and can temporarily
+/// be used just like a `Vec<&T>`.
+/// When it goes out of scope, the memory "goes back to the `VecStorage`" and
+/// can be re-used later on to store references with a different lifetime.
+///
+/// `VecStorageMut<T>` is similar: it allows you to create a `VecGuardMut`, which
+/// can be used just like a `Vec<&mut T>`.
 pub mod utilities {
     use std::mem;
     use std::ops::Deref;
@@ -73,20 +129,20 @@ pub mod utilities {
     use std::marker::PhantomData;
 
     macro_rules! guards_borrow_field_not_initialised_with_some_value_error {
-        ($Guard:ident) => {
+        ($VecGuard:ident) => {
             concat!(
                 "`",
-                stringify!($Guard),
+                stringify!($VecGuard),
                 "`'s field `borrow` should be initialized with `Some<Vec>`"
             )
         }
     }
 
     macro_rules! hibernation {
-        ($Hibernation:ident, $T:ident, $Guard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
 
             #[derive(Debug)]
-            pub struct $Hibernation<$T>
+            pub struct $VecStorage<$T>
             where $T: ?Sized
             {
                 ptr: usize,
@@ -95,41 +151,41 @@ pub mod utilities {
                 phantom: PhantomData<$T>
             }
 
-            pub struct $Guard<'h, $b, $T>
+            pub struct $VecGuard<'h, $b, $T>
             where $T: ?Sized
             {
-                hibernation: &'h mut $Hibernation<$T>,
+                hibernation: &'h mut $VecStorage<$T>,
                 // We use an `Option` here because `drop` is always called recursively,
                 // see https://doc.rust-lang.org/nomicon/destructors.html
                 borrow: Option<Vec<$amp_b_T>>
             }
 
-            impl<'h, $b, $T> Deref for $Guard<'h, 'b, $T>
+            impl<'h, $b, $T> Deref for $VecGuard<'h, 'b, $T>
             where $T : ?Sized
             {
                 type Target = Vec<$amp_b_T>;
 
                 fn deref(&self) -> &Vec<$amp_b_T> {
                     self.borrow.as_ref()
-                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($Guard))
+                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($VecGuard))
                 }
             }
 
             impl<'h, $b, $T> DerefMut
-            for $Guard<'h, $b, $T>
+            for $VecGuard<'h, $b, $T>
             where $T : ?Sized
             {
                 fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
                     self.borrow.as_mut()
-                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($Guard))
+                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($VecGuard))
                 }
             }
 
-            impl<'h, $b, $T> Drop for $Guard<'h, $b, $T>
+            impl<'h, $b, $T> Drop for $VecGuard<'h, $b, $T>
             where $T : ?Sized {
                 fn drop(&mut self) {
                     let mut v = self.borrow.take()
-                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($Guard));
+                        .expect(guards_borrow_field_not_initialised_with_some_value_error!($VecGuard));
                     v.clear();
                     self.hibernation.ptr = v.as_mut_ptr() as usize;
                     debug_assert_eq!(v.len(), 0);
@@ -141,10 +197,10 @@ pub mod utilities {
                 }
             }
 
-            impl<$T> $Hibernation<$T>
+            impl<$T> $VecStorage<$T>
             where $T : ?Sized
             {
-                pub fn new(capacity: usize) -> Self {
+                pub fn with_capacity(capacity: usize) -> Self {
                     let mut vector: Vec<$amp_T> = Vec::with_capacity(capacity);
                     debug_assert_eq!(vector.len(), 0);
                     let result = Self {
@@ -157,10 +213,13 @@ pub mod utilities {
                     result
                 }
 
+                /// Creates a new $VecGuard using the memory allocated by `self`.
+                /// This $VecGuard will automatically clear the vector when it goes
+                /// out of scope.
                 /// # Panics
                 /// Panics if `mem::forget()` was called on a `BorrowGuard`.
-                pub fn borrow_mut<'h, $b>(&'h mut self)
-                    -> $Guard<'h, $b, $T>
+                pub fn vec_guard<'h, $b>(&'h mut self)
+                    -> $VecGuard<'h, $b, $T>
                 {
                     // If `mem::forget()` was called on the guard, then
                     // the `drop()` on the guard did not run and
@@ -172,9 +231,9 @@ pub mod utilities {
                         panic!(
                             concat!(
                                 "`",
-                                stringify!($Hibernation),
+                                stringify!($VecStorage),
                                 "` has been locked. Probably `mem::forget()` was called on a `",
-                                stringify!($guardname),
+                                stringify!($VecGuardname),
                                  "`"
                             )
                         )
@@ -187,14 +246,14 @@ pub mod utilities {
                     unsafe {
                         vector = Vec::from_raw_parts(self.ptr as *mut $amp_T, 0, self.capacity)
                     }
-                    $Guard {
+                    $VecGuard {
                         borrow: Some(vector),
                         hibernation: self
                     }
                 }
             }
 
-            impl<$T> Drop for $Hibernation<$T>
+            impl<$T> Drop for $VecStorage<$T>
             where $T : ?Sized
             {
                 fn drop(&mut self) {
@@ -215,6 +274,6 @@ pub mod utilities {
             }
         }
     }
-    hibernation!(Hibernation, T, BorrowGuard, 'b, &'b T, &T);
-    hibernation!(HibernationMut, T, BorrowGuardMut, 'b, &'b mut T, &mut T);
+    hibernation!(VecStorage, T, VecGuard, 'b, &'b T, &T);
+    hibernation!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
 }

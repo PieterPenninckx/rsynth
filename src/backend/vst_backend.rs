@@ -6,7 +6,7 @@ use backend::Transparent;
 use core::cmp;
 use backend::RawMidiEvent;
 use backend::Event;
-use backend::utilities::Hibernation;
+use backend::utilities::{VecStorage, VecStorageMut};
 use vst::plugin::Info;
 use vst::channels::ChannelInfo;
 use vst::buffer::Inputs;
@@ -15,7 +15,6 @@ use vst::plugin::HostCallback;
 use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::api::Events;
-use backend::utilities::HibernationMut;
 
 pub trait VstPlugin {
     const PLUGIN_ID: i32;
@@ -32,10 +31,10 @@ where T:Transparent,
 pub struct VstPluginWrapper<P>
 {
     plugin: P,
-    inputs_f32: Hibernation<[f32]>,
-    outputs_f32: HibernationMut<[f32]>,
-    inputs_f64: Hibernation<[f64]>,
-    outputs_f64: HibernationMut<[f64]>
+    inputs_f32: VecStorage<[f32]>,
+    outputs_f32: VecStorageMut<[f32]>,
+    inputs_f64: VecStorage<[f64]>,
+    outputs_f64: VecStorageMut<[f64]>
 }
 
 impl<P> VstPluginWrapper<P>
@@ -59,22 +58,22 @@ where
     {
         Self {
             plugin,
-            inputs_f32: Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f32: HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            inputs_f64: Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f64: HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS)
+            inputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
+            outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
+            inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
+            outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS)
         }
     }
 
     pub fn process<'b>(&mut self, buffer: &mut AudioBuffer<'b, f32>) {
         let (input_buffers, output_buffers) = buffer.split();
 
-        let mut inputs = self.inputs_f32.borrow_mut();
+        let mut inputs = self.inputs_f32.vec_guard();
         for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
             inputs.push(input_buffers.get(i));
         }
 
-        let mut outputs = self.outputs_f32.borrow_mut();
+        let mut outputs = self.outputs_f32.vec_guard();
         for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
             outputs.push(output_buffers.get_mut(i));
         }
@@ -85,12 +84,12 @@ where
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
         let (input_buffers, output_buffers) = buffer.split();
 
-        let mut inputs = self.inputs_f64.borrow_mut();
+        let mut inputs = self.inputs_f64.vec_guard();
         for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
             inputs.push(input_buffers.get(i));
         }
 
-        let mut outputs = self.outputs_f64.borrow_mut();
+        let mut outputs = self.outputs_f64.vec_guard();
         for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
             outputs.push(output_buffers.get_mut(i));
         }

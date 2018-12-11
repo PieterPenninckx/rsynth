@@ -4,8 +4,7 @@ use super::{Plugin, Event, RawMidiEvent};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
 use core::cmp;
 use std::io;
-use backend::utilities::Hibernation;
-use backend::utilities::HibernationMut;
+use backend::utilities::{VecStorage, VecStorageMut};
 
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
@@ -52,8 +51,8 @@ struct JackProcessHandler<P>
     audio_out_ports: Vec<Port<AudioOut>>,
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
-    inputs: Hibernation<[f32]>,
-    outputs: HibernationMut<[f32]>
+    inputs: VecStorage<[f32]>,
+    outputs: VecStorageMut<[f32]>
 }
 
 impl<P> JackProcessHandler<P>
@@ -72,9 +71,9 @@ where
         let audio_in_ports = audio_in_ports::<P, _>(&client);
         let audio_out_ports = audio_out_ports::<P, _>(&client);
 
-        let inputs = Hibernation::new(P::MAX_NUMBER_OF_AUDIO_INPUTS);
+        let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
 
-        let outputs = HibernationMut::new(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+        let outputs = VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
 
         JackProcessHandler {
             audio_in_ports,
@@ -114,12 +113,12 @@ where
         // we only need a vector to store them in.
         // We allocate this vector upon creation, "wake it up" for each call to `process`
         // and let it "hibernate" between two calls to `process`.
-        let mut inputs = self.inputs.borrow_mut();
+        let mut inputs = self.inputs.vec_guard();
         for i in 0 .. cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
             inputs.push(self.audio_in_ports[i].as_slice(process_scope));
         }
 
-        let mut outputs = self.outputs.borrow_mut();
+        let mut outputs = self.outputs.vec_guard();
         let number_of_frames = process_scope.n_frames();
         for i in 0 .. cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
             let buffer = unsafe {
