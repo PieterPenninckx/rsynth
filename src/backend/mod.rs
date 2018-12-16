@@ -8,13 +8,6 @@ pub mod jack_backend;
 /// The trait that all plugins need to implement.
 /// The type parameter `E` represents the type of events the plugin supports.
 pub trait Plugin<E> {
-    /// This indicates whether the plugin "adds" something to the output,
-    /// or substitutes the output value.
-    /// Use `output_mode::Addition` for a plugin that defines a single voice
-    /// to be used in a polyphonic context and `output_mode::Substitution`
-    /// for a monophonic plugin.
-    type Mode: output_mode::OutputMode;
-
     /// The name of the plugin.
     const NAME: &'static str;
 

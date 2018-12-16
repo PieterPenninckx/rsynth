@@ -34,7 +34,6 @@ impl<P> Transparent for ZeroInit<P> {
 
 impl<P, E> Plugin<E> for ZeroInit<P>
 where P:Plugin<E> {
-    type Mode = Substitution;
     const NAME: &'static str = P::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = P::MAX_NUMBER_OF_AUDIO_INPUTS;
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = P::MAX_NUMBER_OF_AUDIO_OUTPUTS;

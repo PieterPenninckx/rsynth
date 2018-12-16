@@ -83,9 +83,8 @@ impl<'e, Vc, VSM, U> Plugin<Event<RawMidiEvent<'e>, U>> for Polyphonic<Vc, VSM>
 where
     VSM: VoiceStealMode<V=Vc>,
     Vc: Voice,
-    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>, Mode=Additive>
+    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>>
 {
-    type Mode = Additive;
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_OUTPUTS;

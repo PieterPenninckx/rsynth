@@ -46,7 +46,6 @@ impl<M> Default for Sound<M> where M: OutputMode {
 impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
 where M: OutputMode
 {
-    type Mode = M;
     const NAME: &'static str = "RSynth Example";
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;

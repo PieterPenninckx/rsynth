@@ -5,8 +5,6 @@ use jack::{Client, ClientOptions, Control, ProcessHandler};
 use core::cmp;
 use std::io;
 use backend::utilities::{VecStorage, VecStorageMut};
-use backend::output_mode::Substitution;
-
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
 where P: Plugin<E>
@@ -105,7 +103,7 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, Mode=Substitution>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
 {
     fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope);
@@ -148,7 +146,7 @@ where
 pub fn run<P>(plugin: P)
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, Mode=Substitution>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
 {
     let (client, _status) =
         Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
