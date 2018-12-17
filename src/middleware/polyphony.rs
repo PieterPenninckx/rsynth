@@ -1,8 +1,7 @@
 use asprim::AsPrim;
 use note::*;
 use num_traits::Float;
-use backend::{Plugin, output_mode::Additive};
-use backend::{Event, RawMidiEvent, Transparent};
+use backend::{Plugin, Event, RawMidiEvent, Transparent};
 use std::marker::PhantomData;
 use std::default::Default;
 

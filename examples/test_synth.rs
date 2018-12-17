@@ -4,6 +4,9 @@ use rand::{thread_rng, Rng};
 use rsynth::middleware::polyphony::Voice;
 use rsynth::backend::{Plugin, Event, RawMidiEvent, output_mode::OutputMode};
 use std::fs::File;
+use std::env;
+
+use simplelog::*;
 
 // The total number of samples to pre-calculate
 // This is like recording a sample of white noise and then
@@ -13,7 +16,9 @@ static SAMPLE_SIZE: usize = 65536;
 static AMPLIFY_MULTIPLIER: f32 = 0.2;
 
 #[derive(Clone)]
-pub struct Sound<M> {
+pub struct Sound<M>
+where M: OutputMode
+{
     white_noise: Vec<f32>,
     sample_count: usize,
     position: usize,
@@ -22,10 +27,14 @@ pub struct Sound<M> {
     mode: M
 }
 
-impl<M> Default for Sound<M> where M: OutputMode {
+impl<M> Default for Sound<M>
+where M: OutputMode
+{
     fn default() -> Self {
         // You can use the `log` crate for debugging purposes.
-        trace!("");
+        trace!("default()");
+
+
         let mut rng = thread_rng();
         let samples: Vec<f32> = rng
             .gen_iter::<f32>()
@@ -46,30 +55,42 @@ impl<M> Default for Sound<M> where M: OutputMode {
 impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
 where M: OutputMode
 {
+    // This is the name of our plugin.
     const NAME: &'static str = "RSynth Example";
+
+    // We have no audio inputs:
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
+
+    // We expect stereo output:
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
 
     fn audio_input_name(index: usize) -> String {
-        // You can use the `log` crate for debugging purposes.
-        trace!("index: {}", index);
+        trace!("audio_input_name(index = {})", index);
+
+        // Because we have specified that our plugin has no audio input,
+        // the `audio_input_name` function should not be called by the host.
+        // So we can just return an empty string here.
         "".to_string()
-        // Calling this would be a bug in the host.
     }
 
     fn audio_output_name(index: usize) -> String {
-        trace!("index: {}", index);
+        trace!("audio_output_name(index = {})", index);
         match index {
             0 => "left".to_string(),
             1 => "right".to_string(),
             _ => {
                 "".to_string()
-                // If we get at this point, this would indicate a bug in the host.
+                // We have specified that we only support two output channels,
+                // so the host should not try to get the name of the third output
+                // channel.
+                // If we get at this point, this would indicate a bug in the host
+                // because we have only specified two audio outputs.
             }
         }
     }
 
-    fn set_sample_rate(&mut self, _sample_rate: f64) {
+    fn set_sample_rate(&mut self, sample_rate: f64) {
+        trace!("set_sample_rate(sample_rate={})", sample_rate);
         // We are not doing anything with this right now.
     }
 
@@ -100,9 +121,16 @@ where M: OutputMode
     }
 
     fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
-        trace!("event"); // TODO: Should events implement Debug?
+        trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
+        // We currently ignore the `samples` field.
+        // There are some vague plans to add middleware that makes it easier
+        // to make sample-accurate plugins, we are simply waiting for that.
         if let &Event::Timed {samples: _samples, event: ref e} = event {
             let state_and_chanel = e.data[0];
+
+            // We are digging into the details of midi-messages here.
+            // There are some vague plans to make this easier in the future
+            // as well. For now, let's do some bits masking:
             if state_and_chanel & 0xF0 == 0x90 {
                 self.is_playing = true;
                 self.velocity = e.data[2];
@@ -115,9 +143,63 @@ where M: OutputMode
     }
 }
 
-// This enables using it in a polyphonic context.
-impl<M> Voice for Sound<M> {
-    fn is_playing(&self) -> bool {
+// This enables using Sound in a polyphonic context.
+impl<M> Voice for Sound<M>
+where M: OutputMode
+{
+    fn is_playing(&self) -> bool
+    {
         self.is_playing
+    }
+}
+
+// Initialize the logging.
+pub fn initialize_logging() {
+    let mut unrecognized_log_level = None;
+    let log_level = match env::var("RSYNTH_LOG_LEVEL") {
+        Err(_) =>  LevelFilter::Error,
+        Ok(s) => match s.as_ref() {
+            "off" => LevelFilter::Off,
+            "error" => LevelFilter::Error,
+            "warning" => LevelFilter::Warn,
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            "trace" => LevelFilter::Trace,
+            &_ => {
+                unrecognized_log_level = Some(s.clone());
+                LevelFilter::Error
+            }
+        }
+    };
+    let log_file = match env::var("RSYNTH_LOG_FILE") {
+        Err(env::VarError::NotPresent) => {
+            return;
+        },
+        Err(env::VarError::NotUnicode(os_string)) => {
+            match File::create(os_string) {
+                Ok(f) => f,
+                Err(_) => {
+                    // There is not much that we can do here.
+                    // We even cannot log this :-(
+                    // TODO: Use better error handling.
+                    return
+                }
+            }
+        },
+        Ok(s) => {
+            match File::create(s) {
+                Ok(f) => f,
+                Err(_) => {
+                    // There is not much that we can do here.
+                    // We even cannot log this :-(
+                    // TODO: Use better error handling.
+                    return
+                }
+            }
+        }
+    };
+    WriteLogger::init(log_level, Config::default(), log_file);
+    if let Some(unrecognized) = unrecognized_log_level {
+        error!("`{}` is an unrecognized log level. Falling back to log level 'error'. Recognized log levels are: 'off', 'error', 'warning', 'info', 'debug' and 'trace'.", unrecognized);
     }
 }

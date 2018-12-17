@@ -1,11 +1,11 @@
 //! Middleware for initializing the output to zero before actually calling the plugin.
 //!
 //! You will need this when you use a back-end that does not zero-initialize the output buffer
-//! before caling the plugin and you are using the `Polyphony` middleware.
+//! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
 use num_traits::Float;
-use backend::{Plugin, Transparent, output_mode::Substitution};
+use backend::{Plugin, Transparent};
 
 
 pub struct ZeroInit<P> {

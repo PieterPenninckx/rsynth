@@ -6,7 +6,7 @@ use core::cmp;
 use backend::RawMidiEvent;
 use backend::Event;
 use backend::utilities::{VecStorage, VecStorageMut};
-use vst::plugin::Info;
+use vst::plugin::{Info, HostCallback};
 use vst::channels::ChannelInfo;
 use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
@@ -27,6 +27,7 @@ where T:Transparent,
 pub struct VstPluginWrapper<P>
 {
     plugin: P,
+    host: HostCallback,
     inputs_f32: VecStorage<[f32]>,
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
@@ -50,15 +51,20 @@ where
         }
     }
 
-    pub fn new(plugin: P) -> Self
+    pub fn new(plugin: P, host: HostCallback) -> Self
     {
         Self {
             plugin,
             inputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS)
+            outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
+            host
         }
+    }
+
+    pub fn host(&self) -> &HostCallback {
+        &self.host
     }
 
     pub fn process<'b>(&mut self, buffer: &mut AudioBuffer<'b, f32>) {
@@ -124,6 +130,11 @@ where
                 _ => ()
             }
         }
+    }
+
+    pub fn set_sample_rate(&mut self, sample_rate: f64) {
+        trace!("sample_rate: {}", sample_rate);
+        self.plugin.set_sample_rate(sample_rate);
     }
 }
 
@@ -197,6 +208,9 @@ macro_rules! vst_init {
         fn $function_name () -> $return_type
         $body
 
+        // This macro is expanded in the context of the plugin.
+        // For this reason, we do not use any "use" statements here,
+        // as this may mess up the plugin's namespaces.
         struct VstWrapperWrapper {
             wrapper: $crate::backend::vst_backend::VstPluginWrapper<$return_type>
         }
@@ -220,8 +234,26 @@ macro_rules! vst_init {
             where
                 Self: Sized + Default
             {
-                VstWrapperWrapper {
-                    wrapper: $crate::backend::vst_backend::VstPluginWrapper::new($function_name())
+                VstWrapperWrapper
+                {
+                    wrapper: $crate::backend::vst_backend::VstPluginWrapper::new($function_name(), host)
+                }
+            }
+
+            fn init(&mut self) {
+                let sample_rate =
+                    if let Some(vst::api::TimeInfo{sample_rate: sr, ..}) =
+                        vst::host::Host::get_time_info(
+                            self.wrapper.host(),
+                            vst::api::TimeInfoFlags::empty().bits()
+                        )
+                    {
+                        Some(sr)
+                    } else {
+                        None
+                    };
+                if let Some(sr) = sample_rate {
+                    self.wrapper.set_sample_rate(sr);
                 }
             }
 

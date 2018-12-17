@@ -143,13 +143,16 @@ where
 /// ```
 /// then this probably means that you should zero-initialize your polyphonic plugin,
 /// see the documentation of the `ZeroInit` struct.
-pub fn run<P>(plugin: P)
+pub fn run<P>(mut plugin: P)
 where
     P: Send,
     for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
 {
     let (client, _status) =
         Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
+
+    let sample_rate = client.sample_rate();
+    plugin.set_sample_rate(sample_rate as f64);
     //       For now, we keep the midi input ports (and name) hard-coded, but maybe we should
     //       probably define something like the following:
     //       ```
