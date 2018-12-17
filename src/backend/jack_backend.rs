@@ -12,13 +12,16 @@ where P: Plugin<E>
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0 .. P::MAX_NUMBER_OF_AUDIO_INPUTS {
         let name = P::audio_input_name(index);
+        info!("Registering audio input port with name {}", name);
         let port = client.register_port(&name, AudioIn::default());
         match port {
             Ok(p) => {
                 in_ports.push(p);
             },
             Err(e) => {
-                error!("Failed to open audio input port with index {} and name {}: {:?}", index, name, e);
+                // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio input
+                // TODO: port that always contains silence?
+                error!("Failed to open audio input port with index {} and name {}: {:?}. Skipping this port.", index, name, e);
             }
         }
     }
@@ -31,13 +34,16 @@ fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0 .. P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
         let name = P::audio_output_name(index);
+        info!("Registering audio output port with name {}", name);
         let port = client.register_port(&name, AudioOut::default());
         match port {
             Ok(p) => {
                 out_ports.push(p);
             },
             Err(e) => {
-                error!("Failed to open audio output port with index {} and name {}: {:?}", index, name, e);
+                // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio output
+                // TODO: port that is in fact unused?
+                error!("Failed to open audio output port with index {} and name {}: {:?}. Skipping this port.", index, name, e);
             }
         }
     }
@@ -60,10 +66,11 @@ where
     for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
 {
     fn new(client: &Client, plugin: P) -> Self {
+        trace!("JackProcessHandler::new()");
         let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
             Ok(mip) => Some(mip),
             Err(e) => {
-                error!("Failed to open mini in port: {:?}", e);
+                error!("Failed to open mini in port: {:?}. Continuing without midi input.", e);
                 None
             }
         };
@@ -85,8 +92,11 @@ where
     }
 
     fn handle_events(&mut self, process_scope: &ProcessScope) {
+        // No tracing here, because this is called in the `process` function,
+        // and we do not want to trace that.
         if let Some(ref mut midi_in_port) = self.midi_in_port {
             for input_event in midi_in_port.iter(process_scope) {
+                trace!("handle_events found event: {:?}", &input_event.bytes);
                 let raw_midi_event = RawMidiEvent {
                     data: input_event.bytes
                 };
@@ -107,11 +117,7 @@ where
 {
     fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope);
-        // We avoid memory allocation in this piece of the code.
-        // The slices themselves are allocated by Jack,
-        // we only need a vector to store them in.
-        // We allocate this vector upon creation, "wake it up" for each call to `process`
-        // and let it "hibernate" between two calls to `process`.
+
         let mut inputs = self.inputs.vec_guard();
         for i in 0 .. cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
             inputs.push(self.audio_in_ports[i].as_slice(process_scope));
@@ -120,6 +126,8 @@ where
         let mut outputs = self.outputs.vec_guard();
         let number_of_frames = process_scope.n_frames();
         for i in 0 .. cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
+            // We need to use some unsafe here because otherwise, the compiler believes
+            // we are borrowing `self.audio_out_ports` multiple times.
             let buffer = unsafe {
                 slice::from_raw_parts_mut(
                     self.audio_out_ports[i].buffer(number_of_frames) as *mut f32,
@@ -136,13 +144,6 @@ where
 }
 
 /// Run the plugin indefinitely. There is currently no way to stop it.
-/// # Note
-/// If you get the error following error:
-/// ```text
-/// expected struct `rsynth::backend::output_mode::Additive`, found struct `rsynth::backend::output_mode::Substitution`
-/// ```
-/// then this probably means that you should zero-initialize your polyphonic plugin,
-/// see the documentation of the `ZeroInit` struct.
 pub fn run<P>(mut plugin: P)
 where
     P: Send,
@@ -153,6 +154,7 @@ where
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
+
     //       For now, we keep the midi input ports (and name) hard-coded, but maybe we should
     //       probably define something like the following:
     //       ```
@@ -187,8 +189,12 @@ where
     println!("Press any key to quit");
     let mut user_input = String::new();
     io::stdin().read_line(&mut user_input).ok();
+
+    info!("Deactivating client...");
     match active_client.deactivate() {
-        Ok(_) => (),
+        Ok(_) => {
+            info!("Client deactivated.");
+        },
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
         }

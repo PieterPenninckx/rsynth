@@ -26,7 +26,8 @@ pub trait Plugin<E> {
     fn audio_output_name(index: usize) -> String;
 
     /// Called when the sample-rate changes.
-    /// TODO: Make sure that this is also called initially.
+    /// The backend should ensure that this function is called before
+    /// any other.
     fn set_sample_rate(&mut self, sample_rate: f64);
 
     /// This function is the core of the plugin.
@@ -47,6 +48,7 @@ pub trait Plugin<E> {
     fn handle_event(&mut self, event: &E);
 }
 
+/// Utilities to handle both polyphonic and monophonic plugins.
 pub mod output_mode {
     use num_traits::Float;
     pub trait OutputMode: Default {
@@ -73,7 +75,6 @@ pub mod output_mode {
         }
     }
 }
-
 
 
 pub struct RawMidiEvent<'a> {
@@ -170,15 +171,22 @@ pub mod utilities {
         }
     }
 
-    macro_rules! hibernation {
+    macro_rules! vec_storage {
         ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
 
             #[derive(Debug)]
             pub struct $VecStorage<$T>
             where $T: ?Sized
             {
+                // We use `usize` here, because `*mut &$T` requires a lifetime, which we
+                // cannot specify here.
+                // Note: because of this, $VecStorage implements `Send` and `Sync`.
                 ptr: usize,
                 capacity: usize,
+                // The borrow system already ensures that there cannot be two `VecGuard`'s of
+                // the same `VecStorage`, but when a `VecGuard` is "mem::forgotten", it cannot
+                // cleanup, so we use this field to ensure that no new `VecGuard` can be created
+                // if the previous one is "mem::forgotten".
                 is_locked: bool,
                 phantom: PhantomData<$T>
             }
@@ -186,7 +194,7 @@ pub mod utilities {
             pub struct $VecGuard<'h, $b, $T>
             where $T: ?Sized
             {
-                hibernation: &'h mut $VecStorage<$T>,
+                storage: &'h mut $VecStorage<$T>,
                 // We use an `Option` here because `drop` is always called recursively,
                 // see https://doc.rust-lang.org/nomicon/destructors.html
                 borrow: Option<Vec<$amp_b_T>>
@@ -223,13 +231,13 @@ pub mod utilities {
                             guards_borrow_field_not_initialised_with_some_value_error!($VecGuard)
                         );
                     v.clear();
-                    self.hibernation.ptr = v.as_mut_ptr() as usize;
+                    self.storage.ptr = v.as_mut_ptr() as usize;
                     debug_assert_eq!(v.len(), 0);
-                    self.hibernation.capacity = v.capacity();
+                    self.storage.capacity = v.capacity();
 
                     mem::forget(v);
 
-                    self.hibernation.is_locked = false;
+                    self.storage.is_locked = false;
                 }
             }
 
@@ -284,7 +292,7 @@ pub mod utilities {
                     }
                     $VecGuard {
                         borrow: Some(vector),
-                        hibernation: self
+                        storage: self
                     }
                 }
             }
@@ -310,6 +318,6 @@ pub mod utilities {
             }
         }
     }
-    hibernation!(VecStorage, T, VecGuard, 'b, &'b T, &T);
-    hibernation!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
+    vec_storage!(VecStorage, T, VecGuard, 'b, &'b T, &T);
+    vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
 }

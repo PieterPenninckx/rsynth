@@ -12,6 +12,7 @@ use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::api::Events;
 
+/// A VST plugin should implement this trait in addition to the `Plugin` trait.
 pub trait VstPlugin {
     const PLUGIN_ID: i32;
     const CATEGORY: Category;
@@ -199,6 +200,14 @@ where
 /// Make sure that `MyPlugin` (in this example) implements the `VstPlugin` trait
 /// and `Plugin<Event<RawMidiEvent<'a>, ()>>` for every lifetime `'a`.
 /// You also can use this function to do some setup (e.g. initialize logging).
+//
+// We define this macro so that plugins do not have to implement th `Default` trait.
+//
+// We will need the return type (as type parameter for `VstWrapperWrapper`)
+// and we need to call the function in the `vst::plugin::Plugin::new()` function
+// to which we cannot supply an extra parameter.
+// This is the reason why we use a macro instead of a normal function that gets
+// a `FnOnce` or something like that.
 #[macro_export]
 macro_rules! vst_init {
     (fn $function_name:ident() -> $return_type:ty
@@ -208,9 +217,6 @@ macro_rules! vst_init {
         fn $function_name () -> $return_type
         $body
 
-        // This macro is expanded in the context of the plugin.
-        // For this reason, we do not use any "use" statements here,
-        // as this may mess up the plugin's namespaces.
         struct VstWrapperWrapper {
             wrapper: $crate::backend::vst_backend::VstPluginWrapper<$return_type>
         }
@@ -224,6 +230,10 @@ macro_rules! vst_init {
             }
         }
 
+        // This macro is expanded in the context of the plugin.
+        // For this reason, we do not use any "use" statements here,
+        // as this may mess up the plugin's namespaces.
+        // This is why you see `vst::` namespace repeated all over in this macro.
         impl vst::plugin::Plugin for VstWrapperWrapper
         {
             fn get_info(&self) -> vst::plugin::Info {
@@ -241,6 +251,7 @@ macro_rules! vst_init {
             }
 
             fn init(&mut self) {
+                // Get the sample rate from the host and set it in the plugin.
                 let sample_rate =
                     if let Some(vst::api::TimeInfo{sample_rate: sr, ..}) =
                         vst::host::Host::get_time_info(

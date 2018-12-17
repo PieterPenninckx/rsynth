@@ -24,7 +24,7 @@ fn main() {
     initialize_logging();
 
     let mut voices = Vec::new();
-    for _ in 0 .. 6 {
+    for _ in 0..6 {
         voices.push(Sound::<Additive>::default());
     }
     let polyphony = Polyphonic::new(SimpleVoiceStealer::new(), voices);
