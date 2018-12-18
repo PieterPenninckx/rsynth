@@ -1,6 +1,6 @@
 use dsp::pan;
 
-pub struct SynthData{
+pub struct SynthData {
     /// The sample rate the Synthesizer and voices should use
     pub sample_rate: f64,
     /// The balance of the instrument represented as a float between -1 and 1,

@@ -8,19 +8,19 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use vst::buffer::AudioBuffer;
-use vst::plugin::Category;
+use backend::utilities::{VecStorage, VecStorageMut};
+use backend::Event;
 use backend::Plugin;
+use backend::RawMidiEvent;
 use backend::Transparent;
 use core::cmp;
-use backend::RawMidiEvent;
-use backend::Event;
-use backend::utilities::{VecStorage, VecStorageMut};
-use vst::plugin::{Info, HostCallback};
+use vst::api::Events;
+use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
 use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
-use vst::api::Events;
+use vst::plugin::Category;
+use vst::plugin::{HostCallback, Info};
 
 /// A VST plugin should implement this trait in addition to the `Plugin` trait.
 pub trait VstPlugin {
@@ -29,27 +29,28 @@ pub trait VstPlugin {
 }
 
 impl<T> VstPlugin for T
-where T:Transparent,
-    <T as Transparent>::Inner : VstPlugin {
+where
+    T: Transparent,
+    <T as Transparent>::Inner: VstPlugin,
+{
     const PLUGIN_ID: i32 = T::Inner::PLUGIN_ID;
     const CATEGORY: Category = T::Inner::CATEGORY;
 }
 
 /// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
-pub struct VstPluginWrapper<P>
-{
+pub struct VstPluginWrapper<P> {
     plugin: P,
     host: HostCallback,
     inputs_f32: VecStorage<[f32]>,
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
-    outputs_f64: VecStorageMut<[f64]>
+    outputs_f64: VecStorageMut<[f64]>,
 }
 
 impl<P> VstPluginWrapper<P>
 where
     P: VstPlugin,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -63,15 +64,14 @@ where
         }
     }
 
-    pub fn new(plugin: P, host: HostCallback) -> Self
-    {
+    pub fn new(plugin: P, host: HostCallback) -> Self {
         Self {
             plugin,
             inputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            host
+            host,
         }
     }
 
@@ -83,30 +83,31 @@ where
         let (input_buffers, output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f32.vec_guard();
-        for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
+        for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
             inputs.push(input_buffers.get(i));
         }
 
         let mut outputs = self.outputs_f32.vec_guard();
-        for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+        for i in 0..cmp::min(outputs.capacity(), output_buffers.len()) {
             // We will need another way to do this
             // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
             outputs.push(output_buffers.get_mut(i));
         }
 
-        self.plugin.render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice());
+        self.plugin
+            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice());
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
         let (input_buffers, output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f64.vec_guard();
-        for i in 0 .. cmp::min(inputs.capacity(), input_buffers.len()) {
+        for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
             inputs.push(input_buffers.get(i));
         }
 
         let mut outputs = self.outputs_f64.vec_guard();
-        for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+        for i in 0..cmp::min(outputs.capacity(), output_buffers.len()) {
             // We will need another way to do this
             // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
             outputs.push(output_buffers.get_mut(i));
@@ -117,12 +118,7 @@ where
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
         trace!("get_input_info({})", input_index);
-        ChannelInfo::new(
-            P::audio_input_name(input_index as usize),
-            None,
-            true,
-            None
-        )
+        ChannelInfo::new(P::audio_input_name(input_index as usize), None, true, None)
     }
 
     pub fn get_output_info(&self, output_index: i32) -> ChannelInfo {
@@ -131,19 +127,24 @@ where
             P::audio_output_name(output_index as usize),
             None,
             true,
-            None
+            None,
         )
     }
-    
+
     pub fn process_events(&mut self, events: &Events) {
         trace!("process_events");
         for e in events.events() {
             match e {
-                VstEvent::Midi(VstMidiEvent { data, delta_frames, .. }) => {
-                    let event = Event::Timed{samples: delta_frames as u32, event: RawMidiEvent {data: &data}};
+                VstEvent::Midi(VstMidiEvent {
+                    data, delta_frames, ..
+                }) => {
+                    let event = Event::Timed {
+                        samples: delta_frames as u32,
+                        event: RawMidiEvent { data: &data },
+                    };
                     self.plugin.handle_event(&event);
                 }
-                _ => ()
+                _ => (),
             }
         }
     }

@@ -38,26 +38,26 @@
 // 6. Press keys on the midi keyboard.
 #[macro_use]
 extern crate log;
-extern crate simplelog;
 extern crate asprim;
 extern crate num_traits;
 extern crate rand;
 extern crate rsynth;
+extern crate simplelog;
 
 mod test_synth;
-#[cfg(feature="jack-backend")]
+#[cfg(feature = "jack-backend")]
 use test_synth::*;
 
-#[cfg(feature="jack-backend")]
-use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
-#[cfg(feature="jack-backend")]
-use rsynth::middleware::zero_init::ZeroInit;
-#[cfg(feature="jack-backend")]
-use rsynth::backend::output_mode::Additive;
-#[cfg(feature="jack-backend")]
+#[cfg(feature = "jack-backend")]
 use rsynth::backend::jack_backend::run;
+#[cfg(feature = "jack-backend")]
+use rsynth::backend::output_mode::Additive;
+#[cfg(feature = "jack-backend")]
+use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
+#[cfg(feature = "jack-backend")]
+use rsynth::middleware::zero_init::ZeroInit;
 
-#[cfg(feature="jack-backend")]
+#[cfg(feature = "jack-backend")]
 fn main() {
     initialize_logging();
 
@@ -70,7 +70,7 @@ fn main() {
     run(zero_initialized);
 }
 
-#[cfg(not(feature="jack-backend"))]
+#[cfg(not(feature = "jack-backend"))]
 fn main() {
     println!("This example was compiled without support for jack.");
     println!("Compile with passing `--features jack-backend`");

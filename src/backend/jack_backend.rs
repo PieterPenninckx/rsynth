@@ -8,26 +8,27 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use std::slice;
-use jack::{Port, AudioIn, AudioOut, ProcessScope, MidiIn};
-use super::{Plugin, Event, RawMidiEvent};
-use jack::{Client, ClientOptions, Control, ProcessHandler};
-use core::cmp;
-use std::io;
+use super::{Event, Plugin, RawMidiEvent};
 use backend::utilities::{VecStorage, VecStorageMut};
+use core::cmp;
+use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
+use jack::{Client, ClientOptions, Control, ProcessHandler};
+use std::io;
+use std::slice;
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
-where P: Plugin<E>
+where
+    P: Plugin<E>,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
-    for index in 0 .. P::MAX_NUMBER_OF_AUDIO_INPUTS {
+    for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
         let name = P::audio_input_name(index);
         info!("Registering audio input port with name {}", name);
         let port = client.register_port(&name, AudioIn::default());
         match port {
             Ok(p) => {
                 in_ports.push(p);
-            },
+            }
             Err(e) => {
                 // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio input
                 // TODO: port that always contains silence?
@@ -39,17 +40,18 @@ where P: Plugin<E>
 }
 
 fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
-    where P: Plugin<E>
+where
+    P: Plugin<E>,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
-    for index in 0 .. P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
+    for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
         let name = P::audio_output_name(index);
         info!("Registering audio output port with name {}", name);
         let port = client.register_port(&name, AudioOut::default());
         match port {
             Ok(p) => {
                 out_ports.push(p);
-            },
+            }
             Err(e) => {
                 // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio output
                 // TODO: port that is in fact unused?
@@ -60,27 +62,29 @@ fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
     out_ports
 }
 
-struct JackProcessHandler<P>
-{
+struct JackProcessHandler<P> {
     audio_in_ports: Vec<Port<AudioIn>>,
     audio_out_ports: Vec<Port<AudioOut>>,
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
     inputs: VecStorage<[f32]>,
-    outputs: VecStorageMut<[f32]>
+    outputs: VecStorageMut<[f32]>,
 }
 
 impl<P> JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
         let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
             Ok(mip) => Some(mip),
             Err(e) => {
-                error!("Failed to open midi in port: {:?}. Continuing without midi input.", e);
+                error!(
+                    "Failed to open midi in port: {:?}. Continuing without midi input.",
+                    e
+                );
                 None
             }
         };
@@ -97,7 +101,7 @@ where
             midi_in_port,
             plugin,
             inputs,
-            outputs
+            outputs,
         }
     }
 
@@ -108,11 +112,11 @@ where
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
                 let raw_midi_event = RawMidiEvent {
-                    data: input_event.bytes
+                    data: input_event.bytes,
                 };
                 let event = Event::Timed {
                     event: raw_midi_event,
-                    samples: input_event.time
+                    samples: input_event.time,
                 };
                 self.plugin.handle_event(&event);
             }
@@ -123,19 +127,19 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
 {
     fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope);
 
         let mut inputs = self.inputs.vec_guard();
-        for i in 0 .. cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
+        for i in 0..cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
             inputs.push(self.audio_in_ports[i].as_slice(process_scope));
         }
 
         let mut outputs = self.outputs.vec_guard();
         let number_of_frames = process_scope.n_frames();
-        for i in 0 .. cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
+        for i in 0..cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
             // We need to use some unsafe here because otherwise, the compiler believes
             // we are borrowing `self.audio_out_ports` multiple times.
             let buffer = unsafe {
@@ -147,7 +151,8 @@ where
             outputs.push(buffer);
         }
 
-        self.plugin.render_buffer(inputs.as_slice(), outputs.as_mut_slice());
+        self.plugin
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice());
 
         Control::Continue
     }
@@ -157,10 +162,9 @@ where
 pub fn run<P>(mut plugin: P)
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
 {
-    let (client, _status) =
-        Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
+    let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
@@ -204,7 +208,7 @@ where
     match active_client.deactivate() {
         Ok(_) => {
             info!("Client deactivated.");
-        },
+        }
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
         }

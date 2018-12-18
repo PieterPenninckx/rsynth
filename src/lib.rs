@@ -7,10 +7,10 @@
 //!
 //! # Back-ends
 //! `rsynth` currently supports two back-ends:
-//! 
+//!
 //! * [`jack`]
 //! * [`vst`]
-//! 
+//!
 //! In order to support a specific back-end, plugins may additionally need
 //! to implement a backend-specific trait on top of the `Plugin` trait. See the
 //! documentation of each back-end for more information.
@@ -33,18 +33,17 @@
 #[macro_use]
 extern crate log;
 extern crate asprim;
+extern crate core;
+#[cfg(feature = "jack-backend")]
+extern crate jack;
 extern crate num;
 extern crate num_traits;
 extern crate vst;
-#[cfg(feature="jack-backend")]
-extern crate jack;
-extern crate core;
 
-
+pub mod backend;
 pub mod dsp;
 pub mod envelope;
+pub mod middleware;
 pub mod note;
 pub mod point;
 pub mod synth;
-pub mod middleware;
-pub mod backend;

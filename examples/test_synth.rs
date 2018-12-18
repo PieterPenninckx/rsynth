@@ -1,10 +1,10 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
+use rsynth::backend::{output_mode::OutputMode, Event, Plugin, RawMidiEvent};
 use rsynth::middleware::polyphony::Voice;
-use rsynth::backend::{Plugin, Event, RawMidiEvent, output_mode::OutputMode};
-use std::fs::File;
 use std::env;
+use std::fs::File;
 
 use simplelog::*;
 
@@ -17,23 +17,24 @@ static AMPLIFY_MULTIPLIER: f32 = 0.2;
 
 #[derive(Clone)]
 pub struct Sound<M>
-where M: OutputMode
+where
+    M: OutputMode,
 {
     white_noise: Vec<f32>,
     sample_count: usize,
     position: usize,
     velocity: u8,
     is_playing: bool,
-    mode: M
+    mode: M,
 }
 
 impl<M> Default for Sound<M>
-where M: OutputMode
+where
+    M: OutputMode,
 {
     fn default() -> Self {
         // You can use the `log` crate for debugging purposes.
         trace!("default()");
-
 
         let mut rng = thread_rng();
         let samples: Vec<f32> = rng
@@ -46,14 +47,15 @@ where M: OutputMode
             position: 0,
             velocity: 0,
             is_playing: false,
-            mode: M::default()
+            mode: M::default(),
         }
     }
 }
 
 /// The DSP stuff goes here
 impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
-where M: OutputMode
+where
+    M: OutputMode,
 {
     // This is the name of our plugin.
     const NAME: &'static str = "RSynth Example";
@@ -95,8 +97,9 @@ where M: OutputMode
     }
 
     #[allow(unused_variables)]
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]])
-        where F: Float + AsPrim
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    where
+        F: Float + AsPrim,
     {
         assert_eq!(2, outputs.len());
         // for every output
@@ -111,7 +114,7 @@ where M: OutputMode
                 // it distribute equally by multiplying by 2 and subtracting by 1.
                 let r = 2f32 * (self.white_noise[self.position]) - 1f32;
 
-                let value : F = ((r * AMPLIFY_MULTIPLIER) * (self.velocity as f32 / 127f32)).as_();
+                let value: F = ((r * AMPLIFY_MULTIPLIER) * (self.velocity as f32 / 127f32)).as_();
 
                 // Set our output buffer
                 // This works both in a monophonic context and a polyphonic context.
@@ -122,10 +125,15 @@ where M: OutputMode
 
     fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
+
         // We currently ignore the `samples` field.
         // There are some vague plans to add middleware that makes it easier
         // to make sample-accurate plugins, we are simply waiting for that.
-        if let &Event::Timed {samples: _samples, event: ref e} = event {
+        if let &Event::Timed {
+            samples: _samples,
+            event: ref e,
+        } = event
+        {
             let state_and_chanel = e.data[0];
 
             // We are digging into the details of midi-messages here.
@@ -145,10 +153,10 @@ where M: OutputMode
 
 // This enables using Sound in a polyphonic context.
 impl<M> Voice for Sound<M>
-where M: OutputMode
+where
+    M: OutputMode,
 {
-    fn is_playing(&self) -> bool
-    {
+    fn is_playing(&self) -> bool {
         self.is_playing
     }
 }
@@ -157,7 +165,7 @@ where M: OutputMode
 pub fn initialize_logging() {
     let mut unrecognized_log_level = None;
     let log_level = match env::var("RSYNTH_LOG_LEVEL") {
-        Err(_) =>  LevelFilter::Error,
+        Err(_) => LevelFilter::Error,
         Ok(s) => match s.as_ref() {
             "off" => LevelFilter::Off,
             "error" => LevelFilter::Error,
@@ -169,12 +177,12 @@ pub fn initialize_logging() {
                 unrecognized_log_level = Some(s.clone());
                 LevelFilter::Error
             }
-        }
+        },
     };
     let log_file = match env::var("RSYNTH_LOG_FILE") {
         Err(env::VarError::NotPresent) => {
             return;
-        },
+        }
         Err(env::VarError::NotUnicode(os_string)) => {
             match File::create(os_string) {
                 Ok(f) => f,
@@ -182,10 +190,10 @@ pub fn initialize_logging() {
                     // There is not much that we can do here.
                     // We even cannot log this :-(
                     // TODO: Use better error handling.
-                    return
+                    return;
                 }
             }
-        },
+        }
         Ok(s) => {
             match File::create(s) {
                 Ok(f) => f,
@@ -193,7 +201,7 @@ pub fn initialize_logging() {
                     // There is not much that we can do here.
                     // We even cannot log this :-(
                     // TODO: Use better error handling.
-                    return
+                    return;
                 }
             }
         }
