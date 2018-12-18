@@ -9,16 +9,21 @@
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use super::{Event, Plugin, RawMidiEvent};
-use backend::utilities::{VecStorage, VecStorageMut};
+use backend::{
+    utilities::{VecStorage, VecStorageMut},
+    HostInterface,
+};
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
 
+impl<'c> HostInterface for &'c Client {}
+
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    P: Plugin<E>,
+    for<'c> P: Plugin<E, &'c Client>,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -41,7 +46,7 @@ where
 
 fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
 where
-    P: Plugin<E>,
+    for<'c> P: Plugin<E, &'c Client>,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -74,7 +79,7 @@ struct JackProcessHandler<P> {
 impl<P> JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
@@ -105,7 +110,7 @@ where
         }
     }
 
-    fn handle_events(&mut self, process_scope: &ProcessScope) {
+    fn handle_events(&mut self, process_scope: &ProcessScope, client: &Client) {
         // No tracing here, because this is called in the `process` function,
         // and we do not want to trace that.
         if let Some(ref mut midi_in_port) = self.midi_in_port {
@@ -118,7 +123,7 @@ where
                     event: raw_midi_event,
                     samples: input_event.time,
                 };
-                self.plugin.handle_event(&event);
+                self.plugin.handle_event(&event, &mut &*client);
             }
         }
     }
@@ -127,10 +132,10 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
 {
-    fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
-        self.handle_events(process_scope);
+    fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
+        self.handle_events(process_scope, client);
 
         let mut inputs = self.inputs.vec_guard();
         for i in 0..cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
@@ -152,7 +157,7 @@ where
         }
 
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice());
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut &*client);
 
         Control::Continue
     }
@@ -162,7 +167,7 @@ where
 pub fn run<P>(mut plugin: P)
 where
     P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 

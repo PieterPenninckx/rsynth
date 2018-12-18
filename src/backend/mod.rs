@@ -8,7 +8,8 @@ pub mod vst_backend;
 
 /// The trait that all plugins need to implement.
 /// The type parameter `E` represents the type of events the plugin supports.
-pub trait Plugin<E> {
+/// The type parameter `C` represents a context.
+pub trait Plugin<E, C> {
     /// The name of the plugin.
     const NAME: &'static str;
 
@@ -42,13 +43,16 @@ pub trait Plugin<E> {
     /// This shared length can however be different for subsequent calls to `render_buffer`.
     //Right now, the `render_buffer` function is generic over floats. How do we specialize
     //  if we want to use SIMD?
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
     where
         F: Float + AsPrim;
 
     /// This function is called for each event.
-    fn handle_event(&mut self, event: &E);
+    fn handle_event(&mut self, event: &E, context: &mut C);
 }
+
+/// Defines an interface for communicating with the host or server.
+pub trait HostInterface {}
 
 /// Utilities to handle both polyphonic and monophonic plugins.
 pub mod output_mode {

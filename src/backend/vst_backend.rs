@@ -8,11 +8,14 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use backend::utilities::{VecStorage, VecStorageMut};
 use backend::Event;
 use backend::Plugin;
 use backend::RawMidiEvent;
 use backend::Transparent;
+use backend::{
+    utilities::{VecStorage, VecStorageMut},
+    HostInterface,
+};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -50,7 +53,7 @@ pub struct VstPluginWrapper<P> {
 impl<P> VstPluginWrapper<P>
 where
     P: VstPlugin,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, HostCallback>,
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -95,7 +98,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice());
+            .render_buffer::<f32>(&*inputs, &mut *outputs, &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -113,7 +116,8 @@ where
             outputs.push(output_buffers.get_mut(i));
         }
 
-        self.plugin.render_buffer::<f64>(&*inputs, &mut *outputs);
+        self.plugin
+            .render_buffer::<f64>(&*inputs, &mut *outputs, &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
@@ -142,7 +146,7 @@ where
                         samples: delta_frames as u32,
                         event: RawMidiEvent { data: &data },
                     };
-                    self.plugin.handle_event(&event);
+                    self.plugin.handle_event(&event, &mut self.host);
                 }
                 _ => (),
             }
@@ -154,6 +158,8 @@ where
         self.plugin.set_sample_rate(sample_rate);
     }
 }
+
+impl HostInterface for HostCallback {}
 
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
@@ -170,7 +176,7 @@ where
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::backend::vst_backend::VstPlugin;
+/// use rsynth::backend::{HostInterface, vst_backend::VstPlugin};
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -182,7 +188,10 @@ where
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for MyPlugin {
+/// impl<'e, U, H> Plugin<Event<RawMidiEvent<'e>, U>, H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
 /// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
@@ -199,13 +208,13 @@ where
 /// #    fn set_sample_rate(&mut self, _sample_rate: f64) {
 /// #    }
 /// #
-/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]])
+/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
 /// #        where F: Float + AsPrim
 /// #    {
 /// #        unimplemented!()
 /// #    }
 /// #
-/// #    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
+/// #    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>, context: &mut H) {
 /// #        unimplemented!()
 /// #    }
 /// }

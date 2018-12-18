@@ -31,9 +31,9 @@ impl<P> Transparent for ZeroInit<P> {
     }
 }
 
-impl<P, E> Plugin<E> for ZeroInit<P>
+impl<P, E, C> Plugin<E, C> for ZeroInit<P>
 where
-    P: Plugin<E>,
+    P: Plugin<E, C>,
 {
     const NAME: &'static str = P::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = P::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -51,7 +51,7 @@ where
         self.plugin.set_sample_rate(sample_rate);
     }
 
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
     where
         F: Float + AsPrim,
     {
@@ -60,10 +60,10 @@ where
                 *sample = F::zero();
             }
         }
-        self.plugin.render_buffer(inputs, outputs);
+        self.plugin.render_buffer(inputs, outputs, context);
     }
 
-    fn handle_event(&mut self, event: &E) {
-        self.plugin.handle_event(event);
+    fn handle_event(&mut self, event: &E, context: &mut C) {
+        self.plugin.handle_event(event, context);
     }
 }

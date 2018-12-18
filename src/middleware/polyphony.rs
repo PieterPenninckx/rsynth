@@ -95,11 +95,11 @@ where
     }
 }
 
-impl<'e, Vc, VSM, U> Plugin<Event<RawMidiEvent<'e>, U>> for Polyphonic<Vc, VSM>
+impl<'e, Vc, VSM, U, C> Plugin<Event<RawMidiEvent<'e>, U>, C> for Polyphonic<Vc, VSM>
 where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Voice,
-    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>>,
+    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>, C>,
 {
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -119,18 +119,18 @@ where
         }
     }
 
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
     where
         F: Float + AsPrim,
     {
         for mut voice in self.voices.iter_mut() {
             if voice.voice.is_playing() {
-                voice.voice.render_buffer::<F>(inputs, outputs);
+                voice.voice.render_buffer::<F>(inputs, outputs, context);
             }
         }
     }
 
-    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
+    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>, context: &mut C) {
         if let Event::Timed {
             samples: _,
             event: raw,
@@ -161,10 +161,10 @@ where
                     }
                 }
             }
-            voice.handle_event(&event);
+            voice.handle_event(&event, context);
         } else {
             for mut voice in self.voices.iter_mut() {
-                voice.voice.handle_event(&event);
+                voice.voice.handle_event(&event, context);
             }
         }
     }

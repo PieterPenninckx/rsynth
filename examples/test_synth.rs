@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::{output_mode::OutputMode, Event, Plugin, RawMidiEvent};
+use rsynth::backend::{output_mode::OutputMode, Event, HostInterface, Plugin, RawMidiEvent};
 use rsynth::middleware::polyphony::Voice;
 use std::env;
 use std::fs::File;
@@ -53,9 +53,10 @@ where
 }
 
 /// The DSP stuff goes here
-impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
+impl<'e, U, M, H> Plugin<Event<RawMidiEvent<'e>, U>, H> for Sound<M>
 where
     M: OutputMode,
+    H: HostInterface,
 {
     // This is the name of our plugin.
     const NAME: &'static str = "RSynth Example";
@@ -97,7 +98,7 @@ where
     }
 
     #[allow(unused_variables)]
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], _context: &mut H)
     where
         F: Float + AsPrim,
     {
@@ -123,7 +124,7 @@ where
         }
     }
 
-    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
+    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>, _context: &mut H) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
 
         // We currently ignore the `samples` field.
