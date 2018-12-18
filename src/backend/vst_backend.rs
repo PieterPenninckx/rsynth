@@ -158,7 +158,7 @@ where
 /// You call this with one parameter, which is the function declaration of a function
 /// that creates your plugin.
 /// This function may also do some setup (e.g. initialize logging).
-/// 
+///
 /// Example:
 /// ```
 /// # #[macro_use] extern crate rsynth;
@@ -270,7 +270,7 @@ macro_rules! vst_init {
                     if let Some(vst::api::TimeInfo{sample_rate: sr, ..}) =
                         vst::host::Host::get_time_info(
                             self.wrapper.host(),
-                            vst::api::TimeInfoFlags::empty().bits()
+                            0 // equivalent to `vst::api::TimeInfoFlags::empty().bits()`
                         )
                     {
                         Some(sr)
