@@ -5,15 +5,19 @@ use backend::{Plugin, Event, RawMidiEvent, Transparent};
 use std::marker::PhantomData;
 use std::default::Default;
 
+/// Implement this trait if for a struct if you want to use it inside a `Polyphonic`.
 pub trait Voice {
+    /// Return `false` when subsequent calls to `render_buffer` will only generate silence.
     fn is_playing(&self) -> bool;
 }
 
+/// A struct for communicating voices and states between `Polyphonic` and a voice stealing algorithm.
+/// You only need this when you write your own voice stealing algorithm.
 #[derive(Debug)]
 #[derive(PartialEq, Eq)]
 pub struct VoiceWithState<V, S> {
-    voice: V,
-    state: S
+    pub voice: V,
+    pub state: S
 }
 
 /// Implement this trait to define your own `VoiceStealMode`.
@@ -36,20 +40,23 @@ pub trait VoiceStealMode
     fn find_voice_playing_note<'v>(&mut self, voices: &'v mut [VoiceWithState<Self::V, Self::State>], note: u8) -> Option<&'v mut VoiceWithState<Self::V, Self::State>>;
 
     /// Mark this voice as "active".
-    fn mark_voice_as_active(&mut self, &mut VoiceWithState<Self::V, Self::State>, note: u8);
+    fn mark_voice_as_active(&mut self, voice: &mut VoiceWithState<Self::V, Self::State>, note: u8);
 
     /// Mark the given voice as "inactive".
-    fn mark_voice_as_inactive(&mut self, &mut VoiceWithState<Self::V, Self::State>);
+    fn mark_voice_as_inactive(&mut self, voice: &mut VoiceWithState<Self::V, Self::State>);
 }
 
 /// `Polyphonic` is middleware that adds polyphony.
 ///
 /// # Notes
 ///
-/// The voices are assumed to add values to the output buffer.
+/// The voices are assumed to add values to the output buffer (`sample += value` instead of
+/// `sample = value`).
 /// If you are using a back-end that does not initialize the output buffers to zero
-/// before calling the plugin, then you will probably need to use the `ZeroInit` middleware as well:
+/// before calling the plugin, then you will probably need to use the [`ZeroInit`] middleware as well:
 /// create a `ZeroInit::new(Polyphonic::new(...))`.
+///
+/// [`ZeroInit`]: ../zero_init/index.html
 pub struct Polyphonic<Vc, VSM: VoiceStealMode<V=Vc>>
 {
     voices: Vec<VoiceWithState<Vc, VSM::State>>,
@@ -59,7 +66,15 @@ pub struct Polyphonic<Vc, VSM: VoiceStealMode<V=Vc>>
 impl<Vc,VSM> Polyphonic<Vc, VSM>
     where VSM: VoiceStealMode<V=Vc>
 {
+    /// Create a new `Polyphonic` with the given voices and the given `voice_steal_mode`.
+    ///
+    /// # Panics
+    /// This method panics if `voices` is empty.
     pub fn new(voice_steal_mode: VSM, voices: Vec<Vc>) -> Self {
+        if voices.is_empty() {
+            error!("You need at least one voice for polyphony.");
+            panic!("You need at least one voice for polyphony.");
+        }
         let voices_with_states = voices
             .into_iter()
             .map(

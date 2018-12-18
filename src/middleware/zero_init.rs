@@ -8,11 +8,13 @@ use num_traits::Float;
 use backend::{Plugin, Transparent};
 
 
+/// Set all output values to 0 before calling `render_buffer` on the "child".
 pub struct ZeroInit<P> {
     plugin: P
 }
 
 impl<P> ZeroInit<P> {
+    /// Create a new `ZeroInit` with the given "child plugin".
     pub fn new(plugin: P) -> Self{
         Self {
             plugin

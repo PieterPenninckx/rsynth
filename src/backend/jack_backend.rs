@@ -1,3 +1,13 @@
+//! Wrapper for the [JACK] backend.
+//! Support is only enabled if you compile with the "jack-backend" feature, see
+//! [the cargo reference] for more information on setting cargo features.
+//!
+//! For an example, see `jack_synth.rs` in the `examples` folder.
+//! `examples/test_synth.rs` contains the code that is shared for all backends and
+//! `examples/jack_synth.rs` contains the jack-specific code.
+//!
+//! [JACK]: http://www.jackaudio.org/
+//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use std::slice;
 use jack::{Port, AudioIn, AudioOut, ProcessScope, MidiIn};
 use super::{Plugin, Event, RawMidiEvent};
@@ -70,7 +80,7 @@ where
         let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
             Ok(mip) => Some(mip),
             Err(e) => {
-                error!("Failed to open mini in port: {:?}. Continuing without midi input.", e);
+                error!("Failed to open midi in port: {:?}. Continuing without midi input.", e);
                 None
             }
         };
@@ -143,7 +153,7 @@ where
     }
 }
 
-/// Run the plugin indefinitely. There is currently no way to stop it.
+/// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
     P: Send,

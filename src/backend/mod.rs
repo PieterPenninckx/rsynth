@@ -1,3 +1,4 @@
+//! Defines the JACK backend and the VST backend.
 use num_traits::Float;
 use asprim::AsPrim;
 
@@ -18,11 +19,11 @@ pub trait Plugin<E> {
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize;
 
     /// The name of the audio input with the given index.
-    /// Note: you may not provide an empty string to the Jack backend
+    /// Note: you may not provide an empty string to the Jack backend.
     fn audio_input_name(index: usize) -> String;
 
     /// The name of the audio output with the given index.
-    /// Note: you may not provide an empty string to the Jack backend
+    /// Note: you may not provide an empty string to the Jack backend.
     fn audio_output_name(index: usize) -> String;
 
     /// Called when the sample-rate changes.
@@ -51,10 +52,15 @@ pub trait Plugin<E> {
 /// Utilities to handle both polyphonic and monophonic plugins.
 pub mod output_mode {
     use num_traits::Float;
+
+    /// Defines a method to set an output sample.
     pub trait OutputMode: Default {
         fn set<F>(f: &mut F, value: F) where F: Float;
     }
 
+
+    /// Output by adding the sample to what is already in the output.
+    /// Useful in a polyphonic context.
     #[derive(Default)]
     pub struct Additive {}
 
@@ -65,6 +71,8 @@ pub mod output_mode {
         }
     }
 
+    /// Output by replacing what is already in the output by the given value.
+    /// Useful in a monophonic context.
     #[derive(Default)]
     pub struct Substitution {}
 
@@ -99,7 +107,7 @@ pub trait Transparent {
 }
 
 /// Utilities to be used when developing backends.
-/// # `Hibernation` and `HibernationMut`
+/// # `VecStorage` and `VecStorageMut`
 /// Struct to be able to re-use the storage of a vector
 /// for borrowing values with different lifetimes.
 ///
@@ -191,16 +199,16 @@ pub mod utilities {
                 phantom: PhantomData<$T>
             }
 
-            pub struct $VecGuard<'h, $b, $T>
+            pub struct $VecGuard<'s, $b, $T>
             where $T: ?Sized
             {
-                storage: &'h mut $VecStorage<$T>,
+                storage: &'s mut $VecStorage<$T>,
                 // We use an `Option` here because `drop` is always called recursively,
                 // see https://doc.rust-lang.org/nomicon/destructors.html
                 borrow: Option<Vec<$amp_b_T>>
             }
 
-            impl<'h, $b, $T> Deref for $VecGuard<'h, 'b, $T>
+            impl<'s, $b, $T> Deref for $VecGuard<'s, 'b, $T>
             where $T : ?Sized
             {
                 type Target = Vec<$amp_b_T>;
@@ -211,8 +219,8 @@ pub mod utilities {
                 }
             }
 
-            impl<'h, $b, $T> DerefMut
-            for $VecGuard<'h, $b, $T>
+            impl<'s, $b, $T> DerefMut
+            for $VecGuard<'s, $b, $T>
             where $T : ?Sized
             {
                 fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
@@ -223,7 +231,7 @@ pub mod utilities {
                 }
             }
 
-            impl<'h, $b, $T> Drop for $VecGuard<'h, $b, $T>
+            impl<'s, $b, $T> Drop for $VecGuard<'s, $b, $T>
             where $T : ?Sized {
                 fn drop(&mut self) {
                     let mut v = self.borrow.take()
@@ -262,8 +270,8 @@ pub mod utilities {
                 /// out of scope.
                 /// # Panics
                 /// Panics if `mem::forget()` was called on a `BorrowGuard`.
-                pub fn vec_guard<'h, $b>(&'h mut self)
-                    -> $VecGuard<'h, $b, $T>
+                pub fn vec_guard<'s, $b>(&'s mut self)
+                    -> $VecGuard<'s, $b, $T>
                 {
                     // If `mem::forget()` was called on the guard, then
                     // the `drop()` on the guard did not run and

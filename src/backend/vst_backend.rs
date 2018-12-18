@@ -1,3 +1,13 @@
+//! Wrapper for the VST backend.
+//!
+//! For an example, see `vst_synth.rs` in the `examples` folder.
+//! `examples/test_synth.rs` contains the code that is shared for all backends and
+//! `examples/vst_synth.rs` contains the jack-specific code.
+//!
+//! # Usage
+//! See also the documentation of the [`vst_init`] macro.
+//!
+//! [`vst_init`]: ../../macro.vst_init.html
 use vst::buffer::AudioBuffer;
 use vst::plugin::Category;
 use backend::Plugin;
@@ -25,6 +35,7 @@ where T:Transparent,
     const CATEGORY: Category = T::Inner::CATEGORY;
 }
 
+/// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
 pub struct VstPluginWrapper<P>
 {
     plugin: P,
@@ -78,6 +89,8 @@ where
 
         let mut outputs = self.outputs_f32.vec_guard();
         for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+            // We will need another way to do this
+            // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
             outputs.push(output_buffers.get_mut(i));
         }
 
@@ -94,6 +107,8 @@ where
 
         let mut outputs = self.outputs_f64.vec_guard();
         for i in 0 .. cmp::min(outputs.capacity(), output_buffers.len()) {
+            // We will need another way to do this
+            // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
             outputs.push(output_buffers.get_mut(i));
         }
 
@@ -142,6 +157,8 @@ where
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
 /// that creates your plugin.
+/// This function may also do some setup (e.g. initialize logging).
+/// 
 /// Example:
 /// ```
 /// # #[macro_use] extern crate rsynth;
@@ -197,9 +214,6 @@ where
 ///    }
 /// );
 /// ```
-/// Make sure that `MyPlugin` (in this example) implements the `VstPlugin` trait
-/// and `Plugin<Event<RawMidiEvent<'a>, ()>>` for every lifetime `'a`.
-/// You also can use this function to do some setup (e.g. initialize logging).
 //
 // We define this macro so that plugins do not have to implement th `Default` trait.
 //
