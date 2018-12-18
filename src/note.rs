@@ -37,7 +37,7 @@ impl Default for NoteData {
 /// This contains all data that can be constructed from a MIDI note signal.
 impl NoteData {
     /// Convert note data obtained from the host into a `NoteData` structure.
-    pub fn data(data: [u8; 3]) -> NoteData {
+    pub fn data(data: &[u8]) -> NoteData {
         let (state, channel) = NoteState::state_and_channel(data[0]);
         NoteData {
             state: state,

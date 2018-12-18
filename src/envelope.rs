@@ -65,3 +65,17 @@ impl EnvelopeBuilder {
 }
 
 //TODO: Specialized envelope with a vector for each ADSR stage
+
+/// A struct that contains a variety of envelopes that our voice may need
+#[derive(Clone)]
+pub struct EnvelopeContainer {
+    amplitude: Envelope,
+}
+
+impl Default for EnvelopeContainer {
+    fn default() -> Self {
+        EnvelopeContainer {
+            amplitude: Envelope::default(),
+        }
+    }
+}
