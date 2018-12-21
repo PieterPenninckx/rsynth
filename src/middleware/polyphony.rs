@@ -95,11 +95,49 @@ where
     }
 }
 
-impl<'e, Vc, VSM, U> Plugin<Event<RawMidiEvent<'e>, U>> for Polyphonic<Vc, VSM>
+/// This struct defines what should happen with an event in a polyphonic instrument
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EventType {
+    /// The event should be broadcasted to all voices
+    Broadcast,
+    /// The event is specific for the voice with the given tone
+    VoiceSpecific{tone: u8},
+    /// The event indicates that a new voice should be created with the given tone
+    NewVoice{tone: u8},
+    /// The event indicates that the voice with the given tone should start releasing
+    ReleaseVoice{tone: u8},
+}
+
+/// Implement this trait for an event so that `Polyphonic` knows how to dispatch it.
+pub trait PolyphonicEvent {
+    fn event_type(&self) -> EventType;
+}
+
+impl<'e, U> PolyphonicEvent for Event<RawMidiEvent<'e>, U> {
+    fn event_type(&self) -> EventType {
+        if let Event::Timed {samples: _, event: raw, } = self
+        {
+            let note_data = NoteData::data(raw.data);
+            if note_data.state == NoteState::On {
+                return EventType::NewVoice { tone: note_data.note };
+            } else {
+                if note_data.state == NoteState::Off {
+                    return EventType::ReleaseVoice { tone: note_data.note };
+                } else {
+                    return EventType::VoiceSpecific { tone: note_data.note };
+                }
+            }
+        } else {
+            return EventType::Broadcast;
+        }
+    }
+}
+
+impl<'e, Vc, E, VSM> Plugin<E> for Polyphonic<Vc, VSM>
 where
     VSM: VoiceStealMode<V = Vc>,
-    Vc: Voice,
-    for<'a> VSM::V: Plugin<Event<RawMidiEvent<'a>, U>>,
+    Vc: Plugin<E> + Voice,
+    E: PolyphonicEvent
 {
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -130,41 +168,39 @@ where
         }
     }
 
-    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
-        if let Event::Timed {
-            samples: _,
-            event: raw,
-        } = event
-        {
-            let note_data = NoteData::data(raw.data);
-            let mut voice;
-            if note_data.state == NoteState::On {
+    fn handle_event(&mut self, event: &E) {
+        match event.event_type() {
+            EventType::Broadcast => {
+                for mut voice in self.voices.iter_mut() {
+                    voice.voice.handle_event(&event);
+                }
+            },
+            EventType::VoiceSpecific {tone} => {
+                if let Some(v) = self
+                    .voice_steal_mode
+                    .find_voice_playing_note(&mut self.voices, tone) {
+                    v.voice.handle_event(event);
+                } else {
+                    info!("Voice with tone {} cannot be found, dropping event.", tone);
+                }
+            },
+            EventType::NewVoice {tone} => {
                 let v = self
                     .voice_steal_mode
-                    .find_idle_voice(&mut self.voices, note_data.note);
+                    .find_idle_voice(&mut self.voices, tone);
                 self.voice_steal_mode
-                    .mark_voice_as_active(v, note_data.note);
-                voice = &mut v.voice;
-            } else {
-                match self
+                    .mark_voice_as_active(v, tone);
+                v.voice.handle_event(event);
+            },
+            EventType::ReleaseVoice {tone} => {
+                if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, note_data.note)
-                {
-                    Some(v) => {
-                        if note_data.state == NoteState::Off {
-                            self.voice_steal_mode.mark_voice_as_inactive(v);
-                        }
-                        voice = &mut v.voice;
-                    }
-                    None => {
-                        return;
-                    }
+                    .find_voice_playing_note(&mut self.voices, tone) {
+                    self.voice_steal_mode.mark_voice_as_inactive(v);
+                    v.voice.handle_event(event);
+                } else {
+                    info!("Voice with tone {} cannot be found, dropping 'release voice' event.", tone);
                 }
-            }
-            voice.handle_event(&event);
-        } else {
-            for mut voice in self.voices.iter_mut() {
-                voice.voice.handle_event(&event);
             }
         }
     }
