@@ -171,6 +171,7 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
     fn handle_event(&mut self, event: &E, context: &mut C) {
         match event.event_type() {
             EventType::Broadcast => {
+                trace!("Broadcasting event to all voices (active or inactive).");
                 for mut voice in self.voices.iter_mut() {
                     voice.voice.handle_event(&event, context);
                 }
@@ -178,7 +179,9 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
             EventType::VoiceSpecific {tone} => {
                 if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, tone) {
+                    .find_voice_playing_note(&mut self.voices, tone) 
+                {
+                    trace!("Handling event for tone {}.", tone);
                     v.voice.handle_event(event, context);
                 } else {
                     info!("Voice with tone {} cannot be found, dropping event.", tone);
@@ -188,6 +191,7 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
                 let v = self
                     .voice_steal_mode
                     .find_idle_voice(&mut self.voices, tone);
+                info!("Allocating voice for tone {}.", tone);
                 self.voice_steal_mode
                     .mark_voice_as_active(v, tone);
                 v.voice.handle_event(event, context);
@@ -195,7 +199,9 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
             EventType::ReleaseVoice {tone} => {
                 if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, tone) {
+                    .find_voice_playing_note(&mut self.voices, tone) 
+                {
+                    info!("Allocating voice for tone {}.", tone);
                     self.voice_steal_mode.mark_voice_as_inactive(v);
                     v.voice.handle_event(event, context);
                 } else {
