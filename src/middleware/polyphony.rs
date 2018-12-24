@@ -119,7 +119,13 @@ impl<'e, U> PolyphonicEvent for Event<RawMidiEvent<'e>, U> {
         {
             let note_data = NoteData::data(raw.data);
             if note_data.state == NoteState::On {
-                return EventType::NewVoice { tone: note_data.note };
+                if note_data.velocity == 0 {
+                    // Note off is sometimes also sent as a "note on" with
+                    // velocity 0.
+                    return EventType::ReleaseVoice { tone: note_data.note };
+                } else {
+                    return EventType::NewVoice { tone: note_data.note };
+                }
             } else {
                 if note_data.state == NoteState::Off {
                     return EventType::ReleaseVoice { tone: note_data.note };
