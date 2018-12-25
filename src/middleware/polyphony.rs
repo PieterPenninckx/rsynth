@@ -185,7 +185,7 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
             EventType::VoiceSpecific {tone} => {
                 if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, tone) 
+                    .find_voice_playing_note(&mut self.voices, tone)
                 {
                     trace!("Handling event for tone {}.", tone);
                     v.voice.handle_event(event, context);
@@ -194,6 +194,20 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
                 }
             },
             EventType::NewVoice {tone} => {
+                // When releasing a voice, we always release at most one voice
+                // (instead of all voices playing a single note), so we assume
+                // that at any given time, there is only one voice playing a
+                // specific note.
+                if let Some(v) = self
+                    .voice_steal_mode
+                    .find_voice_playing_note(&mut self.voices, tone)
+                {
+                    info!("Re-using voice for tone {} because it is already playing this tone", tone);
+                    self.voice_steal_mode
+                        .mark_voice_as_active(v, tone);
+                    v.voice.handle_event(event, context);
+                    return;
+                }
                 let v = self
                     .voice_steal_mode
                     .find_idle_voice(&mut self.voices, tone);
@@ -205,7 +219,7 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
             EventType::ReleaseVoice {tone} => {
                 if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, tone) 
+                    .find_voice_playing_note(&mut self.voices, tone)
                 {
                     info!("Releasing voice for tone {}.", tone);
                     self.voice_steal_mode.mark_voice_as_inactive(v);
