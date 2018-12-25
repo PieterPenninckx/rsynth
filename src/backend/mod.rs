@@ -176,16 +176,6 @@ pub mod utilities {
     use std::ops::Deref;
     use std::ops::DerefMut;
 
-    macro_rules! guards_borrow_field_not_initialised_with_some_value_error {
-        ($VecGuard:ident) => {
-            concat!(
-                "`",
-                stringify!($VecGuard),
-                "`'s field `borrow` should be initialized with `Some<Vec>`"
-            )
-        };
-    }
-
     macro_rules! vec_storage {
         ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
             #[derive(Debug)]
@@ -211,9 +201,7 @@ pub mod utilities {
                 $T: ?Sized,
             {
                 storage: &'s mut $VecStorage<$T>,
-                // We use an `Option` here because `drop` is always called recursively,
-                // see https://doc.rust-lang.org/nomicon/destructors.html
-                borrow: Option<Vec<$amp_b_T>>,
+                borrow: Vec<$amp_b_T>,
             }
 
             impl<'s, $b, $T> Deref for $VecGuard<'s, 'b, $T>
@@ -223,9 +211,7 @@ pub mod utilities {
                 type Target = Vec<$amp_b_T>;
 
                 fn deref(&self) -> &Vec<$amp_b_T> {
-                    self.borrow.as_ref().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    )
+                    &self.borrow
                 }
             }
 
@@ -234,9 +220,7 @@ pub mod utilities {
                 $T: ?Sized,
             {
                 fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
-                    self.borrow.as_mut().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    )
+                    &mut self.borrow
                 }
             }
 
@@ -245,14 +229,19 @@ pub mod utilities {
                 $T: ?Sized,
             {
                 fn drop(&mut self) {
-                    let mut v = self.borrow.take().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    );
-                    v.clear();
-                    self.storage.ptr = v.as_mut_ptr() as usize;
-                    debug_assert_eq!(v.len(), 0);
-                    self.storage.capacity = v.capacity();
+                    self.borrow.clear();
+                    self.storage.ptr = self.borrow.as_mut_ptr() as usize;
+                    debug_assert_eq!(self.borrow.len(), 0);
+                    self.storage.capacity = self.borrow.capacity();
 
+                    // `drop` is always called recursively,
+                    // see https://doc.rust-lang.org/nomicon/destructors.html
+                    // So we have to manually drop `self.borrow`.
+                    // We cannot simply "move out of borrowed content",
+                    // so we swap it with another vector.
+                    // Note: `Vec::new()` does not allocate.
+                    let mut v = Vec::new();
+                    mem::swap(&mut v, &mut self.borrow);
                     mem::forget(v);
 
                     self.storage.is_locked = false;
@@ -305,7 +294,7 @@ pub mod utilities {
                         vector = Vec::from_raw_parts(self.ptr as *mut $amp_T, 0, self.capacity)
                     }
                     $VecGuard {
-                        borrow: Some(vector),
+                        borrow: vector,
                         storage: self,
                     }
                 }
