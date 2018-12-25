@@ -207,7 +207,7 @@ impl<'e, Vc, E, VSM, C> Plugin<E, C> for Polyphonic<Vc, VSM>
                     .voice_steal_mode
                     .find_voice_playing_note(&mut self.voices, tone) 
                 {
-                    info!("Allocating voice for tone {}.", tone);
+                    info!("Releasing voice for tone {}.", tone);
                     self.voice_steal_mode.mark_voice_as_inactive(v);
                     v.voice.handle_event(event, context);
                 } else {
