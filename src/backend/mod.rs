@@ -153,9 +153,34 @@ pub trait Transparent {
 ///     let a = 1; let b = 2;
 ///     let mut guard = v.vec_guard();
 ///     // Now guard behaves like a vector.
+///     // The memory from the previous run has been cleared ...
+///     assert_eq!(guard.len(), 0);
 ///     guard.push(&a);
 ///     guard.push(&b);
-///     // When guard goes out of scope, it is cleared.
+/// }
+/// ```
+///
+/// The `VecStorage` re-uses the same memory each time:
+/// ```
+/// use rsynth::backend::utilities::VecStorage;
+/// let mut v = VecStorage::with_capacity(2);
+/// let capacity;
+/// {
+///     let x = 1; let y = 2; let z = 3;
+///     let mut guard = v.vec_guard();
+///     guard.push(&x); // No memory allocation here, we use the memory allocated in `v`.
+///     guard.push(&y);
+///     // Let's push some more items on the guard and allocate memory:
+///     guard.push(&z);
+///     capacity = guard.capacity();
+///     assert!(capacity > 2);
+/// }
+/// {
+///     let mut guard = v.vec_guard();
+///     // The memory from the previous run has been cleared ...
+///     assert_eq!(guard.len(), 0);
+///     // ... but the capacity is kept:
+///     assert_eq!(capacity, guard.capacity());
 /// }
 /// ```
 ///
@@ -177,7 +202,13 @@ pub mod utilities {
     use std::ops::DerefMut;
 
     macro_rules! vec_storage {
-        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty, $VecStorageName:expr, $VecGuardName:expr) => {
+        
+            /// Re-usable memory for creating a vector of references.
+            ///
+            /// See the [module-level documentation] for more information.
+            ///
+            /// [module-level documentation]: ./index.html
             #[derive(Debug)]
             pub struct $VecStorage<$T>
             where
@@ -196,6 +227,11 @@ pub mod utilities {
                 phantom: PhantomData<$T>,
             }
 
+            /// This can be used as a vector of references.
+            ///
+            /// See the [module-level documentation] for more information.
+            ///
+            /// [module-level documentation]: ./index.html
             pub struct $VecGuard<'s, $b, $T>
             where
                 $T: ?Sized,
@@ -265,11 +301,17 @@ pub mod utilities {
                     result
                 }
 
-                /// Creates a new $VecGuard using the memory allocated by `self`.
-                /// This $VecGuard will automatically clear the vector when it goes
-                /// out of scope.
-                /// # Panics
-                /// Panics if `mem::forget()` was called on a `BorrowGuard`.
+                #[doc="Creates a new "]
+                #[doc=$VecGuardName]
+                #[doc="using the memory allocated by `self`. This `"]
+                #[doc=$VecGuardName]
+                #[doc="` will automatically clear the vector when it goes out of scope."]
+                #[doc="# Panics\n"]
+                #[doc="Panics if `mem::forget()` was called on a `"]
+                #[doc=$VecGuardName]
+                #[doc="` that was created previously on the same `"]
+                #[doc=$VecStorageName]
+                #[doc="`."]
                 pub fn vec_guard<'s, $b>(&'s mut self) -> $VecGuard<'s, $b, $T> {
                     // If `mem::forget()` was called on the guard, then
                     // the `drop()` on the guard did not run and
@@ -280,9 +322,9 @@ pub mod utilities {
                     if self.is_locked {
                         panic!(concat!(
                             "`",
-                            stringify!($VecStorage),
+                            $VecStorageName,
                             "` has been locked. Probably `mem::forget()` was called on a `",
-                            stringify!($VecGuardname),
+                            $VecGuardName,
                             "`"
                         ))
                     }
@@ -325,7 +367,42 @@ pub mod utilities {
                 }
             }
         };
+        
+        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+            vec_storage!($VecStorage, $T, $VecGuard, $b, $amp_b_T, $amp_T, stringify!($VecStorage), stringify!($VecGuard));
+        };
     }
     vec_storage!(VecStorage, T, VecGuard, 'b, &'b T, &T);
     vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
+    
+    #[test]
+    #[should_panic(expected="`VecStorage` has been locked. Probably `mem::forget()` was called on a `VecGuard`")]
+    fn mem_forgetting_guard_leads_to_panic_with_new_guard() {
+        use ::backend::utilities::VecStorage;
+        let mut v = VecStorage::with_capacity(2);
+        {
+            let x = 1;
+            let mut guard = v.vec_guard();
+            guard.push(&x);
+            // You should not do the following:
+            mem::forget(guard);
+        }
+        {
+            let guard = v.vec_guard();
+        }
+    }
+
+    #[test]
+    fn mem_forgetting_guard_does_not_lead_to_panic() {
+        use ::backend::utilities::VecStorage;
+        let mut v = VecStorage::with_capacity(2);
+        {
+            let x = 1;
+            let mut guard = v.vec_guard();
+            guard.push(&x);
+            // You should not do the following:
+            mem::forget(guard);
+        }
+        // The `VecStorage` is dropped and this should not lead to any problem.
+    }
 }
