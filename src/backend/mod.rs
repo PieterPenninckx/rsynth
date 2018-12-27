@@ -405,4 +405,32 @@ pub mod utilities {
         }
         // The `VecStorage` is dropped and this should not lead to any problem.
     }
+
+    #[test]
+    fn vec_storage_mut_common_use_cases() {
+        use ::backend::utilities::VecStorageMut;
+        let capacity;
+        let mut v = VecStorageMut::with_capacity(2);
+        {
+            let mut x = 1;
+            let mut y = 2;
+            let mut z = 3;
+            let mut guard = v.vec_guard();
+            assert_eq!(guard.capacity(), 2);
+            assert_eq!(guard.len(), 0);
+            guard.push(&mut x);
+            guard.push(&mut y);
+            guard.push(&mut z);
+            capacity = guard.capacity();
+        }
+        {
+            let mut a = 1;
+            let mut b = 2;
+            let mut guard = v.vec_guard();
+            assert_eq!(guard.len(), 0);
+            assert_eq!(capacity, guard.capacity());
+            guard.push(&mut a);
+            guard.push(&mut b);
+        }
+    }
 }
