@@ -153,9 +153,34 @@ pub trait Transparent {
 ///     let a = 1; let b = 2;
 ///     let mut guard = v.vec_guard();
 ///     // Now guard behaves like a vector.
+///     // The memory from the previous run has been cleared ...
+///     assert_eq!(guard.len(), 0);
 ///     guard.push(&a);
 ///     guard.push(&b);
-///     // When guard goes out of scope, it is cleared.
+/// }
+/// ```
+///
+/// The `VecStorage` re-uses the same memory each time:
+/// ```
+/// use rsynth::backend::utilities::VecStorage;
+/// let mut v = VecStorage::with_capacity(2);
+/// let capacity;
+/// {
+///     let x = 1; let y = 2; let z = 3;
+///     let mut guard = v.vec_guard();
+///     guard.push(&x); // No memory allocation here, we use the memory allocated in `v`.
+///     guard.push(&y);
+///     // Let's push some more items on the guard and allocate memory:
+///     guard.push(&z);
+///     capacity = guard.capacity();
+///     assert!(capacity > 2);
+/// }
+/// {
+///     let mut guard = v.vec_guard();
+///     // The memory from the previous run has been cleared ...
+///     assert_eq!(guard.len(), 0);
+///     // ... but the capacity is kept:
+///     assert_eq!(capacity, guard.capacity());
 /// }
 /// ```
 ///
@@ -176,18 +201,14 @@ pub mod utilities {
     use std::ops::Deref;
     use std::ops::DerefMut;
 
-    macro_rules! guards_borrow_field_not_initialised_with_some_value_error {
-        ($VecGuard:ident) => {
-            concat!(
-                "`",
-                stringify!($VecGuard),
-                "`'s field `borrow` should be initialized with `Some<Vec>`"
-            )
-        };
-    }
-
     macro_rules! vec_storage {
-        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty, $VecStorageName:expr, $VecGuardName:expr) => {
+        
+            /// Re-usable memory for creating a vector of references.
+            ///
+            /// See the [module-level documentation] for more information.
+            ///
+            /// [module-level documentation]: ./index.html
             #[derive(Debug)]
             pub struct $VecStorage<$T>
             where
@@ -206,14 +227,17 @@ pub mod utilities {
                 phantom: PhantomData<$T>,
             }
 
+            /// This can be used as a vector of references.
+            ///
+            /// See the [module-level documentation] for more information.
+            ///
+            /// [module-level documentation]: ./index.html
             pub struct $VecGuard<'s, $b, $T>
             where
                 $T: ?Sized,
             {
                 storage: &'s mut $VecStorage<$T>,
-                // We use an `Option` here because `drop` is always called recursively,
-                // see https://doc.rust-lang.org/nomicon/destructors.html
-                borrow: Option<Vec<$amp_b_T>>,
+                borrow: Vec<$amp_b_T>,
             }
 
             impl<'s, $b, $T> Deref for $VecGuard<'s, 'b, $T>
@@ -223,9 +247,7 @@ pub mod utilities {
                 type Target = Vec<$amp_b_T>;
 
                 fn deref(&self) -> &Vec<$amp_b_T> {
-                    self.borrow.as_ref().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    )
+                    &self.borrow
                 }
             }
 
@@ -234,9 +256,7 @@ pub mod utilities {
                 $T: ?Sized,
             {
                 fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
-                    self.borrow.as_mut().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    )
+                    &mut self.borrow
                 }
             }
 
@@ -245,14 +265,19 @@ pub mod utilities {
                 $T: ?Sized,
             {
                 fn drop(&mut self) {
-                    let mut v = self.borrow.take().expect(
-                        guards_borrow_field_not_initialised_with_some_value_error!($VecGuard),
-                    );
-                    v.clear();
-                    self.storage.ptr = v.as_mut_ptr() as usize;
-                    debug_assert_eq!(v.len(), 0);
-                    self.storage.capacity = v.capacity();
+                    self.borrow.clear();
+                    self.storage.ptr = self.borrow.as_mut_ptr() as usize;
+                    debug_assert_eq!(self.borrow.len(), 0);
+                    self.storage.capacity = self.borrow.capacity();
 
+                    // `drop` is always called recursively,
+                    // see https://doc.rust-lang.org/nomicon/destructors.html
+                    // So we have to manually drop `self.borrow`.
+                    // We cannot simply "move out of borrowed content",
+                    // so we swap it with another vector.
+                    // Note: `Vec::new()` does not allocate.
+                    let mut v = Vec::new();
+                    mem::swap(&mut v, &mut self.borrow);
                     mem::forget(v);
 
                     self.storage.is_locked = false;
@@ -276,11 +301,17 @@ pub mod utilities {
                     result
                 }
 
-                /// Creates a new $VecGuard using the memory allocated by `self`.
-                /// This $VecGuard will automatically clear the vector when it goes
-                /// out of scope.
-                /// # Panics
-                /// Panics if `mem::forget()` was called on a `BorrowGuard`.
+                #[doc="Creates a new "]
+                #[doc=$VecGuardName]
+                #[doc="using the memory allocated by `self`. This `"]
+                #[doc=$VecGuardName]
+                #[doc="` will automatically clear the vector when it goes out of scope."]
+                #[doc="# Panics\n"]
+                #[doc="Panics if `mem::forget()` was called on a `"]
+                #[doc=$VecGuardName]
+                #[doc="` that was created previously on the same `"]
+                #[doc=$VecStorageName]
+                #[doc="`."]
                 pub fn vec_guard<'s, $b>(&'s mut self) -> $VecGuard<'s, $b, $T> {
                     // If `mem::forget()` was called on the guard, then
                     // the `drop()` on the guard did not run and
@@ -291,9 +322,9 @@ pub mod utilities {
                     if self.is_locked {
                         panic!(concat!(
                             "`",
-                            stringify!($VecStorage),
+                            $VecStorageName,
                             "` has been locked. Probably `mem::forget()` was called on a `",
-                            stringify!($VecGuardname),
+                            $VecGuardName,
                             "`"
                         ))
                     }
@@ -305,7 +336,7 @@ pub mod utilities {
                         vector = Vec::from_raw_parts(self.ptr as *mut $amp_T, 0, self.capacity)
                     }
                     $VecGuard {
-                        borrow: Some(vector),
+                        borrow: vector,
                         storage: self,
                     }
                 }
@@ -336,7 +367,70 @@ pub mod utilities {
                 }
             }
         };
+        
+        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+            vec_storage!($VecStorage, $T, $VecGuard, $b, $amp_b_T, $amp_T, stringify!($VecStorage), stringify!($VecGuard));
+        };
     }
     vec_storage!(VecStorage, T, VecGuard, 'b, &'b T, &T);
     vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
+    
+    #[test]
+    #[should_panic(expected="`VecStorage` has been locked. Probably `mem::forget()` was called on a `VecGuard`")]
+    fn mem_forgetting_guard_leads_to_panic_with_new_guard() {
+        use ::backend::utilities::VecStorage;
+        let mut v = VecStorage::with_capacity(2);
+        {
+            let x = 1;
+            let mut guard = v.vec_guard();
+            guard.push(&x);
+            // You should not do the following:
+            mem::forget(guard);
+        }
+        {
+            let guard = v.vec_guard();
+        }
+    }
+
+    #[test]
+    fn mem_forgetting_guard_does_not_lead_to_panic() {
+        use ::backend::utilities::VecStorage;
+        let mut v = VecStorage::with_capacity(2);
+        {
+            let x = 1;
+            let mut guard = v.vec_guard();
+            guard.push(&x);
+            // You should not do the following:
+            mem::forget(guard);
+        }
+        // The `VecStorage` is dropped and this should not lead to any problem.
+    }
+
+    #[test]
+    fn vec_storage_mut_common_use_cases() {
+        use ::backend::utilities::VecStorageMut;
+        let capacity;
+        let mut v = VecStorageMut::with_capacity(2);
+        {
+            let mut x = 1;
+            let mut y = 2;
+            let mut z = 3;
+            let mut guard = v.vec_guard();
+            assert_eq!(guard.capacity(), 2);
+            assert_eq!(guard.len(), 0);
+            guard.push(&mut x);
+            guard.push(&mut y);
+            guard.push(&mut z);
+            capacity = guard.capacity();
+        }
+        {
+            let mut a = 1;
+            let mut b = 2;
+            let mut guard = v.vec_guard();
+            assert_eq!(guard.len(), 0);
+            assert_eq!(capacity, guard.capacity());
+            guard.push(&mut a);
+            guard.push(&mut b);
+        }
+    }
 }
