@@ -2,7 +2,7 @@ language: rust
 rust:
   - nightly
 after_success: |
-    cargo rustdoc \
+    cargo rustdoc --features jack-backend \
     && echo '<meta http-equiv=refresh content=0;url=rsynth/index.html>' > target/doc/index.html && \
     sudo pip install ghp-import && \
     ghp-import -n target/doc && \
