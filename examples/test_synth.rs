@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::{output_mode::OutputMode, Event, Plugin, RawMidiEvent};
+use rsynth::backend::{output_mode::OutputMode, Event, Plugin, RawMidiEvent, Timed};
 use rsynth::middleware::polyphony::Voice;
 use std::env;
 use std::fs::File;
@@ -53,7 +53,7 @@ where
 }
 
 /// The DSP stuff goes here
-impl<'e, U, M> Plugin<Event<RawMidiEvent<'e>, U>> for Sound<M>
+impl<M> Plugin for Sound<M>
 where
     M: OutputMode,
 {
@@ -123,17 +123,16 @@ where
         }
     }
 
-    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
+    fn handle_event(&mut self, event: &dyn Event) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
-
-        // We currently ignore the `samples` field.
-        // There are some vague plans to add middleware that makes it easier
-        // to make sample-accurate plugins, we are simply waiting for that.
-        if let &Event::Timed {
-            samples: _samples,
-            event: ref e,
-        } = event
-        {
+        if let Some(e) = event.as_any().downcast_ref::<Timed<RawMidiEvent>>() {
+            // We currently ignore the `samples` field.
+            // There are some vague plans to add middleware that makes it easier
+            // to make sample-accurate plugins, we are simply waiting for that.
+            let Timed {
+                time_in_samples: _samples,
+                event: ref e,
+            } = e;
             let state_and_chanel = e.data[0];
 
             // We are digging into the details of midi-messages here.

@@ -13,6 +13,8 @@ mod test_synth;
 use test_synth::*;
 
 use rsynth::backend::{
+    Timed,
+    RawMidiEvent,
     output_mode::{Additive, OutputMode},
     vst_backend::VstPlugin,
 };
@@ -29,7 +31,7 @@ where
 }
 
 vst_init!(
-    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>> {
+    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
         initialize_logging();
 
         let mut voices = Vec::new();

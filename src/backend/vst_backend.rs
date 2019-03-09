@@ -21,6 +21,8 @@ use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
+use backend::Timed;
+use std::mem;
 
 /// A VST plugin should implement this trait in addition to the `Plugin` trait.
 pub trait VstPlugin {
@@ -45,12 +47,12 @@ pub struct VstPluginWrapper<P> {
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
     outputs_f64: VecStorageMut<[f64]>,
+    event_buffer: Vec<u8>
 }
 
 impl<P> VstPluginWrapper<P>
 where
-    P: VstPlugin,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    P: Plugin + VstPlugin
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -72,6 +74,7 @@ where
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             host,
+            event_buffer: Vec::with_capacity(3)
         }
     }
 
@@ -138,11 +141,29 @@ where
                 VstEvent::Midi(VstMidiEvent {
                     data, delta_frames, ..
                 }) => {
-                    let event = Event::Timed {
-                        samples: delta_frames as u32,
-                        event: RawMidiEvent { data: &data },
+                    // `Vec::new()` does not allocate.
+                    let mut buffer = mem::replace(&mut self.event_buffer, Vec::new());
+                    if buffer.capacity() == 0 {
+                        error!("Vst wrapper event buffer is empty. This is a bug in `rsynth`.");
+                        continue;
+                    }
+                    if data.len() > buffer.capacity() {
+                        error!("Got event with {} bytes, but buffer only foresees {} bytes.", data.len(), buffer.capacity());
+                        continue;
+                    }
+
+                    buffer.clear();
+                    buffer.extend_from_slice(&data);
+
+                    let event = Timed {
+                        time_in_samples: delta_frames as u32,
+                        event: RawMidiEvent { data: buffer },
                     };
                     self.plugin.handle_event(&event);
+
+                    let retrieved_buffer = event.event.data;
+
+                    mem::replace(&mut self.event_buffer, retrieved_buffer);
                 }
                 _ => (),
             }

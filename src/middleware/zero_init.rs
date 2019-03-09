@@ -4,7 +4,7 @@
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent};
+use backend::{Plugin, Transparent, Event};
 use num_traits::Float;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".
@@ -31,9 +31,9 @@ impl<P> Transparent for ZeroInit<P> {
     }
 }
 
-impl<P, E> Plugin<E> for ZeroInit<P>
+impl<P> Plugin for ZeroInit<P>
 where
-    P: Plugin<E>,
+    P: Plugin,
 {
     const NAME: &'static str = P::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = P::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -63,7 +63,7 @@ where
         self.plugin.render_buffer(inputs, outputs);
     }
 
-    fn handle_event(&mut self, event: &E) {
+    fn handle_event(&mut self, event: &dyn Event) {
         self.plugin.handle_event(event);
     }
 }
