@@ -7,11 +7,14 @@
 // ```
 // cargo build --release --examples --features jack-backend
 // ```
-// This generates a standalone application that you can
-// find under `target/release/examples/jack_synth`
+// This generates a standalone application that you can find
+//
+// * in `target/release/examples/jack_synth` when you're using Linux
+// * under the `target/release/examples/` folder when you're using Windows or MacOs
 //
 // Running
 // =======
+//
 // In order to run, you need three steps. Below, we discuss for each platform
 // (only Linux for now) how you can do this.
 //
@@ -36,6 +39,17 @@
 // 5. In Qjackctl, in the "Connections" window, under the "Midi" tab, connect the
 //    midi keyboard to the synthesizer.
 // 6. Press keys on the midi keyboard.
+//
+// ## Logging
+// In order to enable logging, set the environment variable `RSYNTH_LOG_LEVEL` to
+// one of the supported log levels.
+// Recognized log levels are: 'off', 'error', 'warning', 'info', 'debug' and 'trace'.
+//
+// You can set the environment variable `RSYNTH_LOG_FILE` to the file name of the file in which
+// you want to log.
+//
+// Note that these environment variables need to be visible to the host.
+// Note that the example is also logging to a file in the realtime thread, which may cause clipping.
 #[macro_use]
 extern crate log;
 extern crate asprim;
