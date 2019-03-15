@@ -54,6 +54,36 @@ pub trait Plugin<E, C> {
 /// Defines an interface for communicating with the host or server.
 pub trait HostInterface {}
 
+/// A trait used to express inequality between types, used for technical reasons.
+/// It is useful for avoiding the compiler to complain about conflicting implementations.
+pub trait IsNot<T> {}
+
+pub trait WithHost<H: HostInterface> {
+    fn host(&self) -> &H;
+}
+
+/*
+pub trait WithHostMut {
+    type Host: HostInterface;
+    fn host_mut(&mut self) -> &mut Self::Host;
+}
+*/
+
+impl<T, H: HostInterface> WithHost<H> for T where T: AsRef<H> {
+    fn host(&self) -> &H {
+        self.as_ref()
+    }
+}
+
+/*
+impl<T, U: WithHostMut> WithHostMut for T where T: AsMut<U>{
+    type Host = U::Host;
+    fn host_mut(&mut self) -> &mut Self::Host {
+        self.as_mut().host_mut()
+    }
+}
+*/
+
 /// Utilities to handle both polyphonic and monophonic plugins.
 pub mod output_mode {
     use num_traits::Float;
