@@ -4,7 +4,7 @@
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent, Event};
+use backend::{Plugin, Transparent, event::Event};
 use num_traits::Float;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".

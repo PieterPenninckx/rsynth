@@ -13,9 +13,8 @@ mod test_synth;
 use test_synth::*;
 
 use rsynth::backend::{
-    Timed,
-    RawMidiEvent,
     output_mode::{Additive, OutputMode},
+    event::{Timed, RawMidiEvent},
     vst_backend::VstPlugin,
 };
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};

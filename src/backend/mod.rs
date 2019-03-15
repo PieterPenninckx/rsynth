@@ -1,19 +1,13 @@
 //! Defines the JACK backend and the VST backend.
 use asprim::AsPrim;
 use num_traits::Float;
-use std::any::Any;
 
 #[cfg(feature = "jack-backend")]
 pub mod jack_backend;
 pub mod vst_backend;
 
-pub trait AsAny {
-    fn as_any(&self) -> &dyn Any;
-}
-
-pub trait Event: AsAny {
-
-}
+pub mod event;
+use self::event::Event;
 
 /// The trait that all plugins need to implement.
 pub trait Plugin {
@@ -99,29 +93,6 @@ pub mod output_mode {
         }
     }
 }
-
-pub struct RawMidiEvent {
-    pub data: Vec<u8>,
-}
-
-impl AsAny for RawMidiEvent {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-impl Event for RawMidiEvent {}
-
-pub struct Timed<E> {
-    pub time_in_samples: u32,
-    pub event: E
-}
-
-impl<E: AsAny + 'static> AsAny for Timed<E> {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-impl<E: Event + 'static> Event for Timed<E> {}
 
 /// A trait for defining middleware that can work with different back-ends.
 ///

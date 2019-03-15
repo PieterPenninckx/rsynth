@@ -1,10 +1,9 @@
 use asprim::AsPrim;
-use backend::{Event, Plugin, RawMidiEvent, Transparent, Timed};
+use backend::{Plugin, Transparent, event::{Event, RawMidiEvent, Timed}};
 use note::*;
 use num_traits::Float;
 use std::default::Default;
 use std::marker::PhantomData;
-use std::any::Any;
 
 /// Implement this trait if for a struct if you want to use it inside a `Polyphonic`.
 pub trait Voice {

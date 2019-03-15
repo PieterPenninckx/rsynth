@@ -9,9 +9,8 @@
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
 use backend::utilities::{VecStorage, VecStorageMut};
-use backend::Event;
 use backend::Plugin;
-use backend::RawMidiEvent;
+use backend::event::RawMidiEvent;
 use backend::Transparent;
 use core::cmp;
 use vst::api::Events;
@@ -21,7 +20,7 @@ use vst::event::Event as VstEvent;
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
-use backend::Timed;
+use backend::event::Timed;
 use std::mem;
 
 /// A VST plugin should implement this trait in addition to the `Plugin` trait.
@@ -199,11 +198,11 @@ where
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::backend::{Plugin, Event, RawMidiEvent};
+/// use rsynth::backend::{Plugin, event::Event};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for MyPlugin {
+/// impl Plugin for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
 /// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
@@ -226,7 +225,7 @@ where
 /// #        unimplemented!()
 /// #    }
 /// #
-/// #    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
+/// #    fn handle_event(&mut self, event: &dyn Event) {
 /// #        unimplemented!()
 /// #    }
 /// }
