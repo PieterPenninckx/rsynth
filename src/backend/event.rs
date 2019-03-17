@@ -5,10 +5,21 @@ pub trait AsAny {
 }
 
 pub trait Event: AsAny {
+    /// The name of the type.
+    /// This method probably allocates memory, so it should only be used for logging purposes.
+    fn type_name(&self) -> String {
+        "(unnamed Event)".to_string()
+    }
+}
+
+impl<'a> dyn Event + 'a {
+    pub fn downcast_ref<E: Event + 'static>(&self) -> Option<&E> {
+        self.as_any().downcast_ref::<E>()
+    }
 }
 
 pub struct RawMidiEvent {
-    pub data: Vec<u8>,
+    pub data: Vec<u8>
 }
 
 impl AsAny for RawMidiEvent {
@@ -16,7 +27,11 @@ impl AsAny for RawMidiEvent {
         self
     }
 }
-impl Event for RawMidiEvent {}
+impl Event for RawMidiEvent {
+    fn type_name(&self) -> String {
+        stringify!(RawMidiEvent).to_string()
+    }
+}
 
 pub struct Timed<E> {
     pub time_in_samples: u32,
@@ -28,12 +43,17 @@ impl<E: AsAny + 'static> AsAny for Timed<E> {
         self
     }
 }
-impl<E: Event + 'static> Event for Timed<E> {}
+impl<E: Event + 'static> Event for Timed<E> {
+    fn type_name(&self) -> String {
+        format!("{}<{}>",stringify!(Timed), self.event.type_name())
+    }
+}
 
 /// Syntactic sugar for dealing with &dyn Event
 ///
 /// ```
 /// # #[macro_use] extern crate rsynth;
+/// # #[macro_use] extern crate log;
 /// # use rsynth::backend::event::{AsAny, Event};
 /// # use std::any::Any;
 /// struct EventTypeOne {}
@@ -66,6 +86,9 @@ impl<E: Event + 'static> Event for Timed<E> {}
 ///             },
 ///             (event_of_type_2: EventTypeTwo) => {
 ///                 event_of_type_2.say_two()
+///             },
+///             _ => {
+///                 warn!("Ignoring event of unhandled type {}", event.type_name());
 ///             }
 ///         }
 ///     )
@@ -73,12 +96,44 @@ impl<E: Event + 'static> Event for Timed<E> {}
 /// ```
 #[macro_export]
 macro_rules! match_event{
-    (($event:expr) {($sub:ident : $subtype:ty) => $b:block }) => {
-        if let Some($sub) = $event.as_any().downcast_ref::<$subtype>() $b
+    (
+        ($event:expr)
+        {
+            ($sub:ident : $subtype:ty) => $b:block,
+            _ => $elseblock:block
+        }
+    ) => {
+        if let Some($sub) = $event.downcast_ref::<$subtype>()
+            $b
+        else
+            $elseblock
     };
-    (($event:expr) {($headsub:ident : $headsubtype:ty) => $headblock:block
-        $(, ($tailsub:ident : $tailsubtype:ty) => $tailblock:block )*  }) => {
-        if let Some($headsub) = $event.as_any().downcast_ref::<$headsubtype>() $headblock
+    (
+        ($event:expr)
+        {
+            ($sub:ident : $subtype:ty) => $b:block
+        }
+    ) => {
+        if let Some($sub) = $event.downcast_ref::<$subtype>() $b
+    };
+    (($event:expr)
+        {
+            ($headsub:ident : $headsubtype:ty) => $headblock:block
+            $(, ($tailsub:ident : $tailsubtype:ty) => $tailblock:block )*
+            , _ => $elseblock:block
+        }
+    ) => {
+        if let Some($headsub) = $event.downcast_ref::<$headsubtype>() $headblock
         $(else if let Some($tailsub) = $event.as_any().downcast_ref::<$tailsubtype>() $tailblock)*
-    }
+        else $elseblock
+    };
+    (($event:expr)
+        {
+            ($headsub:ident : $headsubtype:ty) => $headblock:block
+            $(, ($tailsub:ident : $tailsubtype:ty) => $tailblock:block )*
+        }
+    ) => {
+        if let Some($headsub) = $event.downcast_ref::<$headsubtype>() $headblock
+        $(else if let Some($tailsub) = $event.as_any().downcast_ref::<$tailsubtype>() $tailblock)*
+    };
 }
