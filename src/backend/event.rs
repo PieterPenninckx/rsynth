@@ -4,6 +4,7 @@ pub trait AsAny {
     fn as_any(&self) -> &dyn Any;
 }
 
+/// Trait used to represent events.
 pub trait Event: AsAny {
     /// The name of the type.
     /// This method probably allocates memory, so it should only be used for logging purposes.
@@ -13,12 +14,14 @@ pub trait Event: AsAny {
 }
 
 impl<'a> dyn Event + 'a {
+    /// Convenience function to try to downcast to a given specific type.
     pub fn downcast_ref<E: Event + 'static>(&self) -> Option<&E> {
         self.as_any().downcast_ref::<E>()
     }
 }
 
 pub struct RawMidiEvent {
+    // TODO: make sure that this can implement Copy.
     pub data: Vec<u8>
 }
 
@@ -27,6 +30,7 @@ impl AsAny for RawMidiEvent {
         self
     }
 }
+
 impl Event for RawMidiEvent {
     fn type_name(&self) -> String {
         stringify!(RawMidiEvent).to_string()
@@ -43,6 +47,7 @@ impl<E: AsAny + 'static> AsAny for Timed<E> {
         self
     }
 }
+
 impl<E: Event + 'static> Event for Timed<E> {
     fn type_name(&self) -> String {
         format!("{}<{}>",stringify!(Timed), self.event.type_name())
@@ -51,6 +56,7 @@ impl<E: Event + 'static> Event for Timed<E> {
 
 /// Syntactic sugar for dealing with &dyn Event
 ///
+/// Example:
 /// ```
 /// # #[macro_use] extern crate rsynth;
 /// # #[macro_use] extern crate log;
@@ -94,8 +100,10 @@ impl<E: Event + 'static> Event for Timed<E> {
 ///     )
 /// }
 /// ```
+/// The `_ => {}` arm is optional, but should occur last.
+
 #[macro_export]
-macro_rules! match_event{
+macro_rules! match_event {
     (
         ($event:expr)
         {
@@ -136,4 +144,177 @@ macro_rules! match_event{
         if let Some($headsub) = $event.downcast_ref::<$headsubtype>() $headblock
         $(else if let Some($tailsub) = $event.as_any().downcast_ref::<$tailsubtype>() $tailblock)*
     };
+}
+
+#[cfg(test)]
+mod test_event {
+    use super::{AsAny, Event};
+    use std::any::Any;
+    
+    struct E1 {}
+    impl E1 {
+        fn f1(&self) {
+        }
+    }
+    
+    impl AsAny for E1 {
+       fn as_any(&self) -> &dyn Any { self }
+    }
+    
+    impl Event for E1 {}
+    
+    struct E2 {}
+    
+    impl E2 {
+        fn f2(&self) {
+        }
+    }
+    impl AsAny for E2 {
+       fn as_any(&self) -> &dyn Any { self }
+    }
+    
+    impl Event for E2 {}
+    
+    #[allow(dead_code)]
+    fn handle_event_one_block_without_wildcard(event: &dyn Event) {
+        match_event!(
+            (event) {
+                (e1: E1) => {
+                    e1.f1()
+                }
+            }
+        )
+    }
+    
+    #[allow(dead_code)]
+    fn handle_event_one_block_with_wildcard(event: &dyn Event) {
+        match_event!(
+            (event) {
+                (e1: E1) => {
+                    e1.f1()
+                },
+                _ => {
+                }
+            }
+        )
+    }
+    
+    #[allow(dead_code)]
+    fn handle_event_two_blocks_without_wildcard(event: &dyn Event) {
+        match_event!(
+            (event) {
+                (e1: E1) => {
+                    e1.f1()
+                },
+                (e2: E2) => {
+                    e2.f2()
+                },
+                _ => {
+                }
+            }
+        )
+    }
+    
+    // two blocks with wildcard is in the doc-test
+}
+
+pub trait EventHandler<E: Event> {
+    fn handle_event(&mut self, event: &E);
+}
+
+
+#[macro_export]
+macro_rules! dispatch_event{
+    ($self_:expr; $event:expr; $t:ty) => {
+        if let Some(e) = $event.downcast_ref::<$t>() {
+            EventHandler::<$t>::handle_event($self_, e);
+        }
+    };
+    ($self_:expr; $event:expr; $thead:ty $(, $ttail:ty)*) => {
+        if let Some(e) = $event.downcast_ref::<$thead>() {
+            EventHandler::<$thead>::handle_event($self_, e);
+        }
+        $(
+        else if let Some(e) = $event.downcast_ref::<$ttail>() {
+            EventHandler::<$ttail>::handle_event($self_, e);
+        }
+        )*
+    }
+}
+
+#[cfg(test)]
+mod test_event_dispatch {
+    use super::{AsAny, Event, EventHandler};
+    use std::any::Any;
+    use asprim::AsPrim;
+    use num_traits::Float;
+    use super::super::{Plugin};
+
+    #[allow(dead_code)]
+    struct E1 {}
+    impl E1 {
+        #[allow(dead_code)]
+        fn f1(&self) {
+        }
+    }
+    
+    impl AsAny for E1 {
+       fn as_any(&self) -> &dyn Any { self }
+    }
+    
+    impl Event for E1 {}
+    
+    #[allow(dead_code)]
+    struct E2 {}
+    
+    impl E2 {
+        #[allow(dead_code)]
+        fn f2(&self) {
+        }
+    }
+    impl AsAny for E2 {
+       fn as_any(&self) -> &dyn Any { self }
+    }
+    
+    impl Event for E2 {}
+    
+    #[allow(dead_code)]
+    struct MyPlugin {}
+    
+    impl EventHandler<E1> for MyPlugin {
+        fn handle_event(&mut self, event: &E1) {
+            unimplemented!();
+        }
+    }
+    
+    impl EventHandler<E2> for MyPlugin {
+        fn handle_event(&mut self, event: &E2) {
+            unimplemented!();
+        }
+    }
+    
+    impl Plugin for MyPlugin {
+        const NAME: &'static str = "";
+        const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
+        const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 0;
+        fn audio_input_name(index: usize) -> String {
+            unimplemented!();
+        }
+        fn audio_output_name(index: usize) -> String {
+            unimplemented!();
+        }
+        fn set_sample_rate(&mut self, sample_rate: f64) {
+            unimplemented!();
+        }
+        fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+        where
+            F: Float + AsPrim
+        {
+            unimplemented!();
+        }
+        fn handle_event(&mut self, event: &dyn Event) {
+            dispatch_event!(self; event; E1);
+            dispatch_event!(self; event; E1, E2);
+        }
+    }
 }
