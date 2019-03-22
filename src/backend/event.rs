@@ -1,11 +1,70 @@
 use std::any::Any;
+// I see two options to allow handling a large amount of event types:
+// * Work with an `EventHandler<E: EventType>` trait.
+//   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
+//   `impl<OtherType>` `EventHandler<OtherType>` (by delegating to a child) without getting
+//   overlapping impl, we either need specialization, but this has not landed yet,
+//   or we need to use the `IsNot` trick, which I am not too keen on.
+// * Have one `handle_event` method that takes an `&dyn Any` parameter. This works for all event
+//   types that are `'static` because of the `'static` lifetime requirement on `downcast_ref`.
+//   But SysEx events are not `'static`. There are some possible work arounds for this:
+//    * Store a pre-allocated `Vec<u8>` instead. This is what this struct does, but it has the
+//      downside of not being "zero-copy".
+//    * Use some unsafe blocks to get around the `'static` lifetime requirement on `downcast_ref`.
+//      This would probably be tricky and also not completely memory safe.
+//    * Replace the `&dyn Any` parameter by an `&DynamicEvent` parameter, where 
+//      `enum DynamicEvent<'a> {AnyEvent(&'a dyn Any), SysexEvent(&'a[u8])}`. I tried this, but
+//      I got lifetime errors while trying to `fn downcast(&'a self) -> Option<&SysExEvent<'a>>`.
+//      I guess it's not really possible to create a lifetime "out of thin air" because
+//      the `trait DownCastableTo<T> {fn downcast(&self) -> Option<&T>; }` does not really allow
+//      for a lifetime in `T` that depends on the lifetime of the `&self` parameter.
+
+
+
+enum DynamicEventInner<'a> {
+    AnyEvent(&'a dyn Any),
+    SysExEvent(&'a [u8]),
+    TimedSysexEvent{time_in_frames: u32, sysex_data: &'a [u8]}
+}
+
+pub struct DynamicEvent<'a> {
+    inner: DynamicEventInner<'a>
+}
+
+pub trait AsDynamicEvent {
+    fn as_dynamic<'a>(&'a self) -> DynamicEvent<'a>;
+}
 
 pub trait AsAny {
     fn as_any(&self) -> &dyn Any;
 }
 
+impl<T> AsDynamicEvent for T where T: AsAny {
+    fn as_dynamic<'a>(&'a self) -> DynamicEvent<'a> {
+        DynamicEvent{
+            inner: DynamicEventInner::AnyEvent(self.as_any())
+        }
+    }
+}
+
+pub struct SysExEvent<'a> {
+    data: &'a[u8]
+}
+
+impl<'a> SysExEvent<'a> {
+    pub fn new(data: &'a[u8]) -> Self {
+        Self{data}
+    }
+}
+
+impl<'b> AsDynamicEvent for SysExEvent<'b> {
+    fn as_dynamic<'a>(&'a self) -> DynamicEvent<'a> {
+        DynamicEvent{inner: DynamicEventInner::SysExEvent(self.data)}
+    }
+}
+
 /// Trait used to represent events.
-pub trait Event: AsAny {
+pub trait Event: AsDynamicEvent {
     /// The name of the type.
     /// This method probably allocates memory, so it should only be used for logging purposes.
     fn type_name(&self) -> String {
@@ -13,16 +72,50 @@ pub trait Event: AsAny {
     }
 }
 
-impl<'a> dyn Event + 'a {
-    /// Convenience function to try to downcast to a given specific type.
-    pub fn downcast_ref<E: Event + 'static>(&self) -> Option<&E> {
-        self.as_any().downcast_ref::<E>()
+pub trait DownCastableTo<T> {
+    fn downcast(&self) -> Option<&T>;
+}
+
+impl<'a, E: Event + AsAny + 'static> DownCastableTo<E> for dyn Event + 'a {
+    fn downcast(&self) -> Option<&E> {
+        match self.as_dynamic().inner {
+            DynamicEventInner::AnyEvent(e) => {
+                e.downcast_ref::<E>()
+            },
+            _ => {
+                return None;
+            }
+        }
     }
 }
 
+impl<'a> DownCastableTo<SysExEvent<'a>> for dyn Event + 'a {
+    fn downcast(&'a self) -> Option<&SysExEvent<'a>> {
+        match self.as_dynamic().inner {
+            DynamicEventInner::SysExEvent(data) => {
+                Some(&SysExEvent {data})
+            },
+            _ => {
+                return None;
+            }
+        }
+    }
+}
+
+/// A raw midi event.
+/// Use this when you need to be able to clone the event.
+#[derive(Clone, Copy)]
 pub struct RawMidiEvent {
-    // TODO: make sure that this can implement Copy.
-    pub data: Vec<u8>
+    data: [u8; 3]
+}
+
+impl RawMidiEvent {
+    pub fn new(data: [u8; 3]) -> Self {
+        Self {data}
+    }
+    pub fn data(&self) -> &[u8; 3] {
+        &self.data
+    }
 }
 
 impl AsAny for RawMidiEvent {
@@ -37,8 +130,40 @@ impl Event for RawMidiEvent {
     }
 }
 
+/*
+/// A system exclusive event.
+/// Use `RawMidiEvent` when you want to be able to clone the event.
+pub struct SysexEvent {
+    data: Vec<u8>
+}
+
+impl SysexEvent {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self {data}
+    }
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
+    pub fn into_inner(self) -> Vec<u8> {
+        self.data
+    }
+}
+
+impl AsAny for SysexEvent {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Event for SysexEvent {
+    fn type_name(&self) -> String {
+        stringify!(SysexEvent).to_string()
+    }
+}
+*/
+
 pub struct Timed<E> {
-    pub time_in_samples: u32,
+    pub time_in_frames: u32,
     pub event: E
 }
 
@@ -48,11 +173,39 @@ impl<E: AsAny + 'static> AsAny for Timed<E> {
     }
 }
 
-impl<E: Event + 'static> Event for Timed<E> {
+impl<E: Event + AsAny + 'static> Event for Timed<E> {
     fn type_name(&self) -> String {
         format!("{}<{}>",stringify!(Timed), self.event.type_name())
     }
 }
+
+impl<'a> AsDynamicEvent for Timed<SysExEvent<'a>> {
+    fn as_dynamic<'b>(&'b self) -> DynamicEvent<'b> {
+        DynamicEvent{
+            inner: DynamicEventInner::TimedSysexEvent {time_in_frames: self.time_in_frames, sysex_data: self.event.data}
+        }
+    }
+}
+
+impl<'a> Event for Timed<SysExEvent<'a>> {
+    fn type_name(&self) -> String {
+        format!("{}<{}>",stringify!(Timed), self.event.type_name())
+    }
+}
+
+impl<'a> DownCastableTo<Timed<SysExEvent<'a>>> for dyn Event + 'a {
+    fn downcast(&self) -> Option<&Timed<SysExEvent<'a>>> {
+        match self.as_dynamic().inner {
+            DynamicEventInner::TimedSysexEvent {time_in_frames, sysex_data} => {
+                Some(Timed{time_in_frames, event: SysExEvent{data: sysex_data}})
+            },
+            _ => {
+                return None;
+            }
+        }
+    }
+}
+
 
 /// Syntactic sugar for dealing with &dyn Event
 ///
@@ -216,105 +369,4 @@ mod test_event {
     }
     
     // two blocks with wildcard is in the doc-test
-}
-
-pub trait EventHandler<E: Event> {
-    fn handle_event(&mut self, event: &E);
-}
-
-
-#[macro_export]
-macro_rules! dispatch_event{
-    ($self_:expr; $event:expr; $t:ty) => {
-        if let Some(e) = $event.downcast_ref::<$t>() {
-            EventHandler::<$t>::handle_event($self_, e);
-        }
-    };
-    ($self_:expr; $event:expr; $thead:ty $(, $ttail:ty)*) => {
-        if let Some(e) = $event.downcast_ref::<$thead>() {
-            EventHandler::<$thead>::handle_event($self_, e);
-        }
-        $(
-        else if let Some(e) = $event.downcast_ref::<$ttail>() {
-            EventHandler::<$ttail>::handle_event($self_, e);
-        }
-        )*
-    }
-}
-
-#[cfg(test)]
-mod test_event_dispatch {
-    use super::{AsAny, Event, EventHandler};
-    use std::any::Any;
-    use asprim::AsPrim;
-    use num_traits::Float;
-    use super::super::{Plugin};
-
-    #[allow(dead_code)]
-    struct E1 {}
-    impl E1 {
-        #[allow(dead_code)]
-        fn f1(&self) {
-        }
-    }
-    
-    impl AsAny for E1 {
-       fn as_any(&self) -> &dyn Any { self }
-    }
-    
-    impl Event for E1 {}
-    
-    #[allow(dead_code)]
-    struct E2 {}
-    
-    impl E2 {
-        #[allow(dead_code)]
-        fn f2(&self) {
-        }
-    }
-    impl AsAny for E2 {
-       fn as_any(&self) -> &dyn Any { self }
-    }
-    
-    impl Event for E2 {}
-    
-    #[allow(dead_code)]
-    struct MyPlugin {}
-    
-    impl EventHandler<E1> for MyPlugin {
-        fn handle_event(&mut self, event: &E1) {
-            unimplemented!();
-        }
-    }
-    
-    impl EventHandler<E2> for MyPlugin {
-        fn handle_event(&mut self, event: &E2) {
-            unimplemented!();
-        }
-    }
-    
-    impl Plugin for MyPlugin {
-        const NAME: &'static str = "";
-        const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
-        const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 0;
-        fn audio_input_name(index: usize) -> String {
-            unimplemented!();
-        }
-        fn audio_output_name(index: usize) -> String {
-            unimplemented!();
-        }
-        fn set_sample_rate(&mut self, sample_rate: f64) {
-            unimplemented!();
-        }
-        fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
-        where
-            F: Float + AsPrim
-        {
-            unimplemented!();
-        }
-        fn handle_event(&mut self, event: &dyn Event) {
-            dispatch_event!(self; event; E1);
-            dispatch_event!(self; event; E1, E2);
-        }
-    }
 }

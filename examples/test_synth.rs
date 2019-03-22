@@ -130,17 +130,17 @@ where
             // There are some vague plans to add middleware that makes it easier
             // to make sample-accurate plugins, we are simply waiting for that.
             let Timed {
-                time_in_samples: _samples,
+                time_in_frames: _samples,
                 event: ref e,
             } = e;
-            let state_and_chanel = e.data[0];
+            let state_and_chanel = e.data()[0];
 
             // We are digging into the details of midi-messages here.
             // There are some vague plans to make this easier in the future
             // as well. For now, let's do some bits masking:
             if state_and_chanel & 0xF0 == 0x90 {
                 self.is_playing = true;
-                self.velocity = e.data[2];
+                self.velocity = e.data()[2];
             }
             if state_and_chanel & 0xF0 == 0x80 {
                 self.velocity = 0;

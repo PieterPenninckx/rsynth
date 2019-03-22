@@ -8,7 +8,7 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use super::{Event, Plugin, RawMidiEvent};
+use super::{Plugin, event::{Event, RawMidiEvent, Timed}};
 use backend::utilities::{VecStorage, VecStorageMut};
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
@@ -16,9 +16,9 @@ use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
 
-fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
+fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    P: Plugin<E>,
+    P: Plugin,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -39,9 +39,9 @@ where
     in_ports
 }
 
-fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
+fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
 where
-    P: Plugin<E>,
+    P: Plugin,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -69,12 +69,12 @@ struct JackProcessHandler<P> {
     plugin: P,
     inputs: VecStorage<[f32]>,
     outputs: VecStorageMut<[f32]>,
+    event_buffer: Vec<u8>
 }
 
 impl<P> JackProcessHandler<P>
 where
-    P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    P: Plugin + Send
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
@@ -88,8 +88,8 @@ where
                 None
             }
         };
-        let audio_in_ports = audio_in_ports::<P, _>(&client);
-        let audio_out_ports = audio_out_ports::<P, _>(&client);
+        let audio_in_ports = audio_in_ports::<P>(&client);
+        let audio_out_ports = audio_out_ports::<P>(&client);
 
         let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
 
@@ -102,6 +102,7 @@ where
             plugin,
             inputs,
             outputs,
+            event_buffer: Vec::with_capacity(1024)
         }
     }
 
@@ -111,14 +112,21 @@ where
         if let Some(ref mut midi_in_port) = self.midi_in_port {
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
-                let raw_midi_event = RawMidiEvent {
-                    data: input_event.bytes,
-                };
-                let event = Event::Timed {
-                    event: raw_midi_event,
-                    samples: input_event.time,
-                };
-                self.plugin.handle_event(&event);
+                if input_event.bytes.len() <= 3 {
+                    let mut data = [0, 0, 0];
+                    for i in 0 .. input_event.bytes.len() {
+                        data[i] = input[i];
+                    }
+                    let event = Timed{
+                        time_in_frames: input_event.time,
+                        event: RawMidiEvent::new(data)
+                    };
+                    self.plugin.handle_event(&event);
+                }
+                else {
+                    
+                    self.plugin.handle_event(&event);
+                }
             }
         }
     }
@@ -126,8 +134,7 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    P: Send + Plugin
 {
     fn process(&mut self, _client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope);
@@ -161,8 +168,7 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
-    P: Send,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    P: Plugin + Send
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 

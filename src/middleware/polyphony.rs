@@ -113,13 +113,13 @@ pub enum EventType {
 }
 
 /// Implement this trait for an event so that `Polyphonic` knows how to dispatch it.
-pub trait PolyphonicEvent : Event + 'static{
+pub trait PolyphonicEvent {
     fn event_type(&self) -> EventType;
 }
 
 impl PolyphonicEvent for RawMidiEvent {
     fn event_type(&self) -> EventType {
-        let note_data = NoteData::data(&self.data);
+        let note_data = NoteData::data(self.data());
         if note_data.state == NoteState::On {
             return EventType::NewVoice { tone: note_data.note };
         } else {
@@ -138,7 +138,7 @@ impl<E> PolyphonicEvent for Timed<E> where E: PolyphonicEvent {
     }
 }
 
-impl<'e, Vc, E, VSM> Plugin for Polyphonic<Vc, VSM, E>
+impl<'e, Vc, E: Event, VSM> Plugin for Polyphonic<Vc, VSM, E>
 where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Plugin + Voice,

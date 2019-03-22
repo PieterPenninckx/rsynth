@@ -10,18 +10,18 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 use backend::utilities::{VecStorage, VecStorageMut};
 use backend::Plugin;
-use backend::event::RawMidiEvent;
+use backend::event::{RawMidiEvent, SysExEvent};
 use backend::Transparent;
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
-use vst::event::Event as VstEvent;
+use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
 use backend::event::Timed;
-use std::mem;
+// use std::mem;
 
 /// A VST plugin should implement this trait in addition to the `Plugin` trait.
 pub trait VstPlugin {
@@ -73,7 +73,7 @@ where
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             host,
-            event_buffer: Vec::with_capacity(3)
+            event_buffer: Vec::with_capacity(1024)
         }
     }
 
@@ -137,33 +137,46 @@ where
         trace!("process_events");
         for e in events.events() {
             match e {
-                VstEvent::Midi(VstMidiEvent {
-                    data, delta_frames, ..
+                VstEvent::SysEx(VstSysExEvent {
+                    payload, delta_frames, ..
                 }) => {
+                    /*
+                    if self.event_buffer.capacity() == 0 {
+                        error!("Vst wrapper event buffer is empty. This is a bug in the `rsynth` crate.");
+                        continue;
+                    }
+                    if payload.len() > self.event_buffer.capacity() {
+                        warn!("Got sysex event with {} bytes, but buffer only foresees {} bytes. Ignoring this event.", payload.len(), self.event_buffer.capacity());
+                        continue;
+                    }
+
                     // `Vec::new()` does not allocate.
                     let mut buffer = mem::replace(&mut self.event_buffer, Vec::new());
-                    if buffer.capacity() == 0 {
-                        error!("Vst wrapper event buffer is empty. This is a bug in `rsynth`.");
-                        continue;
-                    }
-                    if data.len() > buffer.capacity() {
-                        error!("Got event with {} bytes, but buffer only foresees {} bytes.", data.len(), buffer.capacity());
-                        continue;
-                    }
 
                     buffer.clear();
-                    buffer.extend_from_slice(&data);
-
+                    buffer.extend_from_slice(&payload);
+                    */
                     let event = Timed {
-                        time_in_samples: delta_frames as u32,
-                        event: RawMidiEvent { data: buffer },
+                        time_in_frames: delta_frames as u32,
+                        event: SysExEvent::new(payload),
                     };
                     self.plugin.handle_event(&event);
 
-                    let retrieved_buffer = event.event.data;
+                    /*
+                    let retrieved_buffer = event.event.into_inner();
 
                     mem::replace(&mut self.event_buffer, retrieved_buffer);
-                }
+                    */
+                },
+                VstEvent::Midi(VstMidiEvent {
+                                    data, delta_frames, ..
+                                }) => {
+                    let event = Timed {
+                        time_in_frames: delta_frames as u32,
+                        event: RawMidiEvent::new(data),
+                    };
+                    self.plugin.handle_event(&event);
+                },
                 _ => (),
             }
         }
