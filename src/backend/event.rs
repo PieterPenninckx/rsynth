@@ -1,4 +1,4 @@
-use is_not::IsNot;
+use is_not::{IsNot, NotInRSynth};
 use downcast::{Downcast, DowncastRef, DowncastMut, DowncastCheck};
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
@@ -115,9 +115,26 @@ pub struct Timed<E> {
     pub event: E
 }
 
+pub trait WithTime {
+    fn time_in_frames(&self) -> Option<u32> {
+        None
+    }
+}
+
 impl<E> IsNot<RawMidiEvent> for Timed<E> {}
+impl WithTime for RawMidiEvent {}
+
 impl<'a, E> IsNot<SysExEvent<'a>> for Timed<E> {}
+impl<'a> WithTime for SysExEvent<'a> {}
+
 impl<E, EE> IsNot<Timed<EE>> for Timed<E> where E: IsNot<EE> {}
+impl<E> WithTime for Timed<E> {
+    fn time_in_frames(&self) -> Option<u32> {
+        Some(self.time_in_frames)
+    }
+}
+impl<E, EE> IsNot<Timed<E>> for EE where EE: NotInRSynth {}
+
 impl<E> Clone for Timed<E> where E: Clone {
     fn clone(&self) -> Self {
         Timed{
@@ -126,17 +143,41 @@ impl<E> Clone for Timed<E> where E: Clone {
         }
     }
 }
+
 impl<E> Copy for Timed<E> where E: Copy {}
 
-//impl_downcast!(E, Timed<E>);
-impl<E> DowncastCheck<Timed<E>> for Timed<E> {
+impl<E, EE> DowncastCheck<EE> for Timed<E> 
+where 
+    E: DowncastCheck<EE> 
+{
     fn can_downcast(&self) -> bool {
-        true;
+        self.event.can_downcast()
     }
 }
 
-impl<E, T> DowncastCheck<T> for Timed<E> where T: IsNot<Timed<E>> {
-    fn can_downcast(&self) -> bool {
-        false;
+impl<E, EE> Downcast<EE> for Timed<E>
+where
+    E: Downcast<EE> 
+{
+    fn downcast(self) -> Option<EE> {
+        self.event.downcast()
+    }
+}
+
+impl<E, EE> DowncastRef<EE> for Timed<E>
+where 
+    E: DowncastRef<EE> 
+{
+    fn downcast_ref(&self) -> Option<&EE> {
+        self.event.downcast_ref()
+    }
+}
+
+impl<E, EE> DowncastMut<EE> for Timed<E>
+where
+    E: DowncastMut<EE>
+{
+    fn downcast_mut(&mut self) -> Option<&mut EE> {
+        self.event.downcast_mut()
     }
 }
