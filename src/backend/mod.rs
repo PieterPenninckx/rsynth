@@ -7,7 +7,6 @@ pub mod jack_backend;
 pub mod vst_backend;
 
 pub mod event;
-use self::event::Event;
 
 /// The trait that all plugins need to implement.
 pub trait Plugin {
@@ -47,9 +46,6 @@ pub trait Plugin {
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
     where
         F: Float + AsPrim;
-
-    /// This function is called for each event.
-    fn handle_event(&mut self, event: &dyn Event);
 }
 
 /// Utilities to handle both polyphonic and monophonic plugins.
@@ -332,55 +328,4 @@ pub mod utilities {
     }
     vec_storage!(VecStorage, T, VecGuard, 'b, &'b T, &T);
     vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
-
-    /// A buffer that can be used to store data associated to a SysEx event.
-    // The problem that we're trying to solve is the following:
-    // Because of the `'static` lifetime that is required for the `downcast_ref` method
-    // on `&dyn Any`, it's not possible to implement the `Event` trait for anything that
-    // is not `'static`, in particular for anything that stores `&'a [u8]`.
-    //
-    // I see four ways to get around this:
-    //
-    // * Store a pre-allocated `Vec<u8>` instead. This is what this struct does, but it has the
-    //   downside of not being "zero-copy".
-    // * Replace the `as_any(&self) -> &dyn Any;` method in the `AsAny` trait by
-    //   something like `as_any(&'a self) -> DownCastable<'a>` where
-    //   `enum DownCastable<'a> {AnyDownCastable(&'a dyn Any), Data(&'a[u8])}`
-    //   but this feels very ad-hoc.
-    // * Use some unsafe blocks to get around the `'static` lifetime requirement on `downcast_ref`.
-    //   This will probably be tricky to avoid unsoundness.
-    // * Avoid dynamic dispatch alltogether and work with an `EventHandler<E: EventType>` trait.
-    //   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
-    //   `impl<OtherType>` `EventHandler<OtherType>` (by delegating to a child) without getting
-    //   overlapping impl, we either need specialization, but this has not landed yet,
-    //   or we need to use the `IsNot` trick, which I am not too keen on.
-    pub struct SysexEventBuffer {
-        data: Vec<u8>
-    }
-
-    impl SysexEventBuffer {
-        fn new(capacity: usize) -> Self {
-            Self {
-                data: Vec::with_capacity(capacity)
-            }
-        }
-
-        fn get_buffer(&mut self, data: &[u8]) -> Option<Vec<u8>> {
-            if self.data.capacity() == 0 {
-                error!("Sysex event buffer is empty. This is a bug in the `rsynth` crate.");
-                return None;
-            }
-            if data.len() > self.data.capacity() {
-                warn!("Got sysex event with {} bytes, but buffer only foresees {} bytes. Ignoring this event.", data.len(), self.data.capacity());
-                return None;
-            }
-
-            // `Vec::new()` does not allocate.
-            let mut buffer = mem::replace(&mut self.data, Vec::new());
-
-            buffer.clear();
-            buffer.extend_from_slice(&data);
-            return Some(buffer);
-        }
-    }
 }

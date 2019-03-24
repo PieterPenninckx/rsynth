@@ -1,7 +1,7 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::{output_mode::OutputMode, Plugin, event::{Event, RawMidiEvent, Timed}};
+use rsynth::backend::{output_mode::OutputMode, Plugin, event::{EventHandler, Timed, RawMidiEvent, SysExEvent}};
 use rsynth::middleware::polyphony::Voice;
 use std::env;
 use std::fs::File;
@@ -98,8 +98,8 @@ where
 
     #[allow(unused_variables)]
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
-    where
-        F: Float + AsPrim,
+        where
+            F: Float + AsPrim,
     {
         assert_eq!(2, outputs.len());
         // for every output
@@ -122,32 +122,38 @@ where
             }
         }
     }
+}
 
-    fn handle_event(&mut self, event: &dyn Event) {
+impl<M> EventHandler<Timed<RawMidiEvent>> for Sound<M>
+where
+    M: OutputMode
+{
+    fn handle_event(&mut self, timed: Timed<RawMidiEvent>) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
-        if let Some(e) = event.as_any().downcast_ref::<Timed<RawMidiEvent>>() {
-            // We currently ignore the `samples` field.
-            // There are some vague plans to add middleware that makes it easier
-            // to make sample-accurate plugins, we are simply waiting for that.
-            let Timed {
-                time_in_frames: _samples,
-                event: ref e,
-            } = e;
-            let state_and_chanel = e.data()[0];
+        // We currently ignore the `time_in_frames` field.
+        // There are some vague plans to add middleware that makes it easier
+        // to make sample-accurate plugins.
+        // As a developer, we are simply waiting for that.
+        let state_and_chanel = timed.event.data()[0];
 
-            // We are digging into the details of midi-messages here.
-            // There are some vague plans to make this easier in the future
-            // as well. For now, let's do some bits masking:
-            if state_and_chanel & 0xF0 == 0x90 {
-                self.is_playing = true;
-                self.velocity = e.data()[2];
-            }
-            if state_and_chanel & 0xF0 == 0x80 {
-                self.velocity = 0;
-                self.is_playing = false;
-            }
+        // We are digging into the details of midi-messages here.
+        // There are some vague plans to make this easier in the future
+        // as well. For now, let's do some bits masking:
+        if state_and_chanel & 0xF0 == 0x90 {
+            self.is_playing = true;
+            self.velocity = timed.event.data()[2];
+        }
+        if state_and_chanel & 0xF0 == 0x80 {
+            self.velocity = 0;
+            self.is_playing = false;
         }
     }
+}
+
+impl<'a, M> EventHandler<Timed<SysExEvent<'a>>> for Sound<M>
+where M: OutputMode
+{
+    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>) {}
 }
 
 // This enables using Sound in a polyphonic context.

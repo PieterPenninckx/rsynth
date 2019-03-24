@@ -10,7 +10,7 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 use backend::utilities::{VecStorage, VecStorageMut};
 use backend::Plugin;
-use backend::event::{RawMidiEvent, SysExEvent};
+use backend::event::{EventHandler, Timed, RawMidiEvent, SysExEvent};
 use backend::Transparent;
 use core::cmp;
 use vst::api::Events;
@@ -20,8 +20,6 @@ use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
-use backend::event::Timed;
-// use std::mem;
 
 /// A VST plugin should implement this trait in addition to the `Plugin` trait.
 pub trait VstPlugin {
@@ -51,7 +49,8 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: Plugin + VstPlugin
+    P: Plugin + VstPlugin + EventHandler<Timed<RawMidiEvent>>,
+    for<'a> P: EventHandler<Timed<SysExEvent<'a>>>
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -160,7 +159,7 @@ where
                         time_in_frames: delta_frames as u32,
                         event: SysExEvent::new(payload),
                     };
-                    self.plugin.handle_event(&event);
+                    self.plugin.handle_event(event);
 
                     /*
                     let retrieved_buffer = event.event.into_inner();
@@ -175,7 +174,7 @@ where
                         time_in_frames: delta_frames as u32,
                         event: RawMidiEvent::new(data),
                     };
-                    self.plugin.handle_event(&event);
+                    self.plugin.handle_event(event);
                 },
                 _ => (),
             }

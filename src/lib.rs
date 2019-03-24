@@ -40,6 +40,9 @@ extern crate num;
 extern crate num_traits;
 extern crate vst;
 
+#[macro_use]
+pub mod downcast;
+
 pub mod backend;
 pub mod dsp;
 pub mod envelope;
@@ -47,3 +50,4 @@ pub mod middleware;
 pub mod note;
 pub mod point;
 pub mod synth;
+pub mod is_not;

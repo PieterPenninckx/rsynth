@@ -1,5 +1,6 @@
 use asprim::AsPrim;
-use backend::{Plugin, Transparent, event::{Event, RawMidiEvent, Timed}};
+use backend::{Plugin, Transparent, event::{RawMidiEvent, Timed, EventHandler}};
+use downcast::Downcast;
 use note::*;
 use num_traits::Float;
 use std::default::Default;
@@ -64,7 +65,7 @@ pub trait VoiceStealMode {
 /// create a `ZeroInit::new(Polyphonic::new(...))`.
 ///
 /// [`ZeroInit`]: ../zero_init/index.html
-pub struct Polyphonic<Vc, VSM: VoiceStealMode<V = Vc>, E: Event> {
+pub struct Polyphonic<Vc, VSM: VoiceStealMode<V = Vc>, E> {
     voices: Vec<VoiceWithState<Vc, VSM::State>>,
     voice_steal_mode: VSM,
     _phantom_event: PhantomData<E>
@@ -72,8 +73,7 @@ pub struct Polyphonic<Vc, VSM: VoiceStealMode<V = Vc>, E: Event> {
 
 impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
 where
-    VSM: VoiceStealMode<V = Vc>,
-    E: Event
+    VSM: VoiceStealMode<V = Vc>
 {
     /// Create a new `Polyphonic` with the given voices and the given `voice_steal_mode`.
     ///
@@ -138,7 +138,7 @@ impl<E> PolyphonicEvent for Timed<E> where E: PolyphonicEvent {
     }
 }
 
-impl<'e, Vc, E: Event, VSM> Plugin for Polyphonic<Vc, VSM, E>
+impl<Vc, VSM, E> Plugin for Polyphonic<Vc, VSM, E>
 where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Plugin + Voice,
@@ -173,8 +173,17 @@ where
         }
     }
 
-    fn handle_event(&mut self, event: &dyn Event) {
-        if let Some(ref e) = event.as_any().downcast_ref::<E>() {
+}
+
+impl<Vc, VSM, E, EE> EventHandler<EE> for Polyphonic<Vc, VSM, E>
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Plugin + Voice + EventHandler<EE> + EventHandler<E>,
+    E: PolyphonicEvent,
+    EE: Downcast<E> + Copy
+{
+    fn handle_event(&mut self, event: EE) {
+        if let Some(e) = <EE as Downcast<E>>::downcast(event) {
             match e.event_type() {
                 EventType::Broadcast => {
                     for mut voice in self.voices.iter_mut() {
@@ -210,13 +219,17 @@ where
                 }
             }
         }
+        else {
+            for mut voice in self.voices.iter_mut() {
+                voice.voice.handle_event(event);
+            }
+        }
     }
 }
 
 impl<Vc, VSM, E> Transparent for Polyphonic<Vc, VSM, E>
 where
-    VSM: VoiceStealMode<V = Vc>,
-    E: Event,
+    VSM: VoiceStealMode<V = Vc>
 {
     type Inner = Vc;
 

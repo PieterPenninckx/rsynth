@@ -4,8 +4,9 @@
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent, event::Event};
+use backend::{Plugin, Transparent};
 use num_traits::Float;
+use backend::event::EventHandler;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".
 pub struct ZeroInit<P> {
@@ -52,8 +53,8 @@ where
     }
 
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
-    where
-        F: Float + AsPrim,
+        where
+            F: Float + AsPrim,
     {
         for output in outputs.iter_mut() {
             for sample in output.iter_mut() {
@@ -62,8 +63,12 @@ where
         }
         self.plugin.render_buffer(inputs, outputs);
     }
+}
 
-    fn handle_event(&mut self, event: &dyn Event) {
+impl<E, P> EventHandler<E> for ZeroInit<P>
+where P: EventHandler<E>
+{
+    fn handle_event(&mut self, event: E) {
         self.plugin.handle_event(event);
     }
 }
