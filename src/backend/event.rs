@@ -1,5 +1,6 @@
-use is_not::{IsNot, NotInRSynth};
+use dev_utilities::is_not::{IsNot, NotInRSynth};
 use downcast::{Downcast, DowncastRef, DowncastMut, DowncastCheck};
+use dev_utilities::specialize::Specialize;
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
 //   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
@@ -57,56 +58,6 @@ impl RawMidiEvent {
 }
 
 impl_downcast!(RawMidiEvent);
-/*
-impl DowncastCheck<RawMidiEvent> for RawMidiEvent {
-    fn can_downcast(&self) -> bool {
-        true
-    }
-}
-
-impl<T> DowncastCheck<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {
-    fn can_downcast(&self) -> bool {
-        false
-    }
-}
-
-impl Downcast<RawMidiEvent> for RawMidiEvent {
-    fn downcast(self) -> Option<RawMidiEvent> {
-        Some(self)
-    }
-}
-
-impl<T> Downcast<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {
-    fn downcast(self) -> Option<T> {
-        None
-    }
-}
-
-impl DowncastRef<RawMidiEvent> for RawMidiEvent {
-    fn downcast_ref(&self) -> Option<&RawMidiEvent> {
-        Some(self)
-    }
-}
-
-impl<T> DowncastRef<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {
-    fn downcast_ref(&self) -> Option<&T> {
-        None
-    }
-}
-
-impl DowncastMut<RawMidiEvent> for RawMidiEvent {
-    fn downcast_mut(&mut self) -> Option<&mut RawMidiEvent> {
-        Some(self)
-    }
-}
-
-impl<T> DowncastMut<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {
-    fn downcast_mut(&mut self) -> Option<&mut T> {
-        None
-    }
-}
-
-*/
 
 impl<'a> IsNot<SysExEvent<'a>> for RawMidiEvent {}
 
@@ -179,5 +130,30 @@ where
 {
     fn downcast_mut(&mut self) -> Option<&mut EE> {
         self.event.downcast_mut()
+    }
+}
+
+impl<E> Specialize<RawMidiEvent> for Timed<E> {}
+impl<'a, E> Specialize<SysExEvent<'a>> for Timed<E> {}
+impl<E, T> Specialize<T> for Timed<E> where T: NotInRSynth {}
+impl<E, T> Specialize<Timed<T>> for Timed<E>
+where E:Specialize<T>
+{
+    fn can_specialize(&self) -> bool {
+        self.event.can_specialize()
+    }
+
+    fn specialize(self) -> Option<Timed<T>> {
+        if self.event.can_specialize() {
+            let Timed{time_in_frames, event} = self;
+            Some(
+                Timed {
+                    time_in_frames,
+                    event: event.specialize().unwrap() // TODO: more graceful error handling.
+                }
+            )
+        } else {
+            return None
+        }
     }
 }

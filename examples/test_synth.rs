@@ -153,7 +153,9 @@ where
 impl<'a, M> EventHandler<Timed<SysExEvent<'a>>> for Sound<M>
 where M: OutputMode
 {
-    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>) {}
+    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>) {
+        // We don't do anything with SysEx events.
+    }
 }
 
 // This enables using Sound in a polyphonic context.

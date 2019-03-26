@@ -8,7 +8,7 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use backend::utilities::{VecStorage, VecStorageMut};
+use dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use backend::Plugin;
 use backend::event::{EventHandler, Timed, RawMidiEvent, SysExEvent};
 use backend::Transparent;

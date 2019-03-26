@@ -6,7 +6,6 @@ use backend::{Plugin, Transparent};
 use backend::event::{Timed, WithTime};
 use num_traits::Float;
 use backend::event::EventHandler;
-use is_not::IsNot;
 use downcast::{DowncastCheck, Downcast, DowncastRef};
 
 pub struct TimeSplit<P, E> {

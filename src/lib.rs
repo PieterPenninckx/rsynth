@@ -43,6 +43,8 @@ extern crate vst;
 #[macro_use]
 pub mod downcast;
 
+pub mod dev_utilities;
+
 pub mod backend;
 pub mod dsp;
 pub mod envelope;
@@ -50,4 +52,3 @@ pub mod middleware;
 pub mod note;
 pub mod point;
 pub mod synth;
-pub mod is_not;
