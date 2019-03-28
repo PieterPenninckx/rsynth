@@ -1,7 +1,9 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::{output_mode::OutputMode, Event, Plugin, RawMidiEvent};
+use rsynth::output_mode::OutputMode;
+use rsynth::event::{Event, RawMidiEvent};
+use rsynth::Plugin;
 use rsynth::middleware::polyphony::Voice;
 use std::env;
 use std::fs::File;
