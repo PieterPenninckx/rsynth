@@ -176,7 +176,7 @@ where
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::backend::{Plugin, Event, RawMidiEvent};
+/// use rsynth::{Plugin, event::{Event, RawMidiEvent}};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///

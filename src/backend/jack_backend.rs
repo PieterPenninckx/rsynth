@@ -8,8 +8,8 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use super::{Event, Plugin, RawMidiEvent};
-use backend::utilities::{VecStorage, VecStorageMut};
+use crate::{Plugin, event::{Event, RawMidiEvent}};
+use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
 use jack::{Client, ClientOptions, Control, ProcessHandler};

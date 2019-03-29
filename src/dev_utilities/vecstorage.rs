@@ -22,7 +22,7 @@
 //!
 //! You can use `VecStorage` to solve this problem:
 //! ```
-//! use rsynth::backend::utilities::VecStorage;
+//! use rsynth::dev_utilities::vecstorage::VecStorage;
 //! let mut v = VecStorage::with_capacity(2);
 //! {
 //!     let x = 1; let y = 2;
@@ -46,7 +46,7 @@
 //!
 //! The `VecStorage` re-uses the same memory each time:
 //! ```
-//! use rsynth::backend::utilities::VecStorage;
+//! use rsynth::dev_utilities::vecstorage::VecStorage;
 //! let mut v = VecStorage::with_capacity(2);
 //! let capacity;
 //! {
@@ -271,7 +271,7 @@ fn mem_forgetting_guard_leads_to_panic_with_new_guard() {
         mem::forget(guard);
     }
     {
-        let guard = v.vec_guard();
+        let _guard = v.vec_guard();
     }
 }
 
