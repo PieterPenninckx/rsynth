@@ -1,7 +1,6 @@
 use asprim::AsPrim;
 use event::{RawMidiEvent, Timed, EventHandler};
-use crate::{Plugin, Transparent};
-use downcast::Downcast;
+use crate::{Plugin, Transparent, dev_utilities::specialize::Specialize};
 use note::*;
 use num_traits::Float;
 use std::default::Default;
@@ -181,10 +180,10 @@ where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Plugin + Voice + EventHandler<EE> + EventHandler<E>,
     E: PolyphonicEvent,
-    EE: Downcast<E> + Copy
+    EE: Specialize<E> + Copy
 {
     fn handle_event(&mut self, event: EE) {
-        if let Some(e) = <EE as Downcast<E>>::downcast(event) {
+        if let Some(e) = <EE as Specialize<E>>::specialize(event) {
             match e.event_type() {
                 EventType::Broadcast => {
                     for mut voice in self.voices.iter_mut() {

@@ -40,8 +40,6 @@ extern crate num;
 extern crate num_traits;
 extern crate vst;
 
-#[macro_use]
-pub mod downcast;
 pub mod dev_utilities;
 pub mod event;
 pub mod backend;
