@@ -12,10 +12,15 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-use rsynth::backend::{
-    output_mode::{Additive, OutputMode},
-    event::{Timed, RawMidiEvent},
-    vst_backend::VstPlugin,
+use rsynth::{
+    output_mode::{
+        OutputMode, Additive
+    }, 
+    event::{
+        Timed,
+        RawMidiEvent
+    },
+    backend::vst_backend::VstPlugin
 };
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 

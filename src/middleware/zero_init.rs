@@ -4,9 +4,9 @@
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent};
+use crate::{Plugin, Transparent};
 use num_traits::Float;
-use backend::event::EventHandler;
+use crate::event::EventHandler;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".
 pub struct ZeroInit<P> {

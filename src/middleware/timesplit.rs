@@ -2,11 +2,10 @@
 // eventing system can be used in practice.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent};
-use backend::event::{Timed, WithTime};
+use crate::{Plugin, Transparent};
+use event::{EventHandler, Timed, WithTime};
 use num_traits::Float;
-use backend::event::EventHandler;
-use downcast::{DowncastCheck, Downcast, DowncastRef};
+use downcast::{DowncastCheck, Downcast};
 
 pub struct TimeSplit<P, E> {
     plugin: P,

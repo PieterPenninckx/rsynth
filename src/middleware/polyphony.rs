@@ -1,5 +1,6 @@
 use asprim::AsPrim;
-use backend::{Plugin, Transparent, event::{RawMidiEvent, Timed, EventHandler}};
+use event::{RawMidiEvent, Timed, EventHandler};
+use crate::{Plugin, Transparent};
 use downcast::Downcast;
 use note::*;
 use num_traits::Float;
@@ -269,8 +270,11 @@ impl Default for SimpleVoiceStealerState {
     }
 }
 
-/// A simple voice stealer algorithm that just returns an idle voice if it can find one
-/// and otherwise returns an arbitrary voice.
+/// A simple voice stealer algorithm that just returns
+///
+/// * an idle voice if it can find one,
+/// * a voice that is releasing if it can find one but there is no idle voice,
+/// * an arbitrary voice if no voice is idle and no voice is releasing.
 pub struct SimpleVoiceStealer<V> {
     _voices: PhantomData<V>,
 }
@@ -306,16 +310,29 @@ where
         voices: &'v mut [VoiceWithState<Self::V, Self::State>],
         note: u8,
     ) -> &'v mut VoiceWithState<Self::V, Self::State> {
-        let mut index = 0;
+        let mut idle_voice_index = None;
+        let mut releasing_voice_index = None;
         for (i, voice) in voices.iter_mut().enumerate() {
             Self::mark_finished_if_needed(voice);
             if !voice.voice.is_playing() {
-                index = i;
+                idle_voice_index = Some(i);
                 break;
             }
+            if voice.state.is_releasing {
+                releasing_voice_index = Some(i);
+            }
         }
+
         // TODO: The "stolen" voice should get a "stop playing" event before it is re-used.
-        return &mut voices[index];
+        if let Some(index) = idle_voice_index {
+            // We found a voice that is actually idle. Yay!
+            return &mut voices[index];
+        }
+        if let Some(index) = releasing_voice_index {
+            // We didn't find an idle voice. So let's just take
+            return &mut voices[index];
+        }
+        return &mut voices[0];
     }
 
     fn find_voice_playing_note<'v>(
@@ -358,6 +375,7 @@ mod simple_voice_stealer_tests {
     struct TestVoice {
         index: usize,
         is_playing: bool,
+        is_releasing: bool,
     }
 
     impl Voice for TestVoice {
@@ -371,6 +389,7 @@ mod simple_voice_stealer_tests {
             TestVoice {
                 index: i,
                 is_playing: false,
+                is_releasing: false,
             }
         }
     }
@@ -405,6 +424,31 @@ mod simple_voice_stealer_tests {
         }
         voices_with_state[2].voice.is_playing = true;
         simple_voice_stealer.mark_voice_as_active(&mut voices_with_state[2], 2);
+        {
+            let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
+            assert_eq!(idle_voice.voice.index, 0);
+        }
+        simple_voice_stealer.mark_voice_as_inactive(&mut voices_with_state[2]);
+        {
+            let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
+            assert_eq!(idle_voice.voice.index, 2);
+        }
+        simple_voice_stealer.mark_voice_as_inactive(&mut voices_with_state[1]);
+        {
+            let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
+            assert!(idle_voice.voice.index == 1 || idle_voice.voice.index == 2);
+        }
+        simple_voice_stealer.mark_voice_as_active(&mut voices_with_state[2], 2);
+        {
+            let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
+            assert_eq!(idle_voice.voice.index, 1);
+        }
+        simple_voice_stealer.mark_voice_as_inactive(&mut voices_with_state[0]);
+        {
+            let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
+            assert!(idle_voice.voice.index == 0 || idle_voice.voice.index == 1);
+        }
+        simple_voice_stealer.mark_voice_as_active(&mut voices_with_state[1], 1);
         {
             let idle_voice = simple_voice_stealer.find_idle_voice(&mut voices_with_state, 0);
             assert_eq!(idle_voice.voice.index, 0);

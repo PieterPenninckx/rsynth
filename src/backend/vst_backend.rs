@@ -9,9 +9,8 @@
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
 use dev_utilities::vecstorage::{VecStorage, VecStorageMut};
-use backend::Plugin;
-use backend::event::{EventHandler, Timed, RawMidiEvent, SysExEvent};
-use backend::Transparent;
+use event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
+use crate::{Plugin, Transparent};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -43,8 +42,7 @@ pub struct VstPluginWrapper<P> {
     inputs_f32: VecStorage<[f32]>,
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
-    outputs_f64: VecStorageMut<[f64]>,
-    event_buffer: Vec<u8>
+    outputs_f64: VecStorageMut<[f64]>
 }
 
 impl<P> VstPluginWrapper<P>
@@ -71,8 +69,7 @@ where
             outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            host,
-            event_buffer: Vec::with_capacity(1024)
+            host
         }
     }
 
@@ -202,7 +199,16 @@ where
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::backend::vst_backend::VstPlugin;
+/// use rsynth::{
+///     Plugin, 
+///     event::{
+///         EventHandler,
+///         Timed,
+///         RawMidiEvent,
+///         SysExEvent
+///     },
+///     backend::vst_backend::VstPlugin
+/// };
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -210,7 +216,6 @@ where
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::backend::{Plugin, event::Event};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
@@ -236,10 +241,15 @@ where
 /// #    {
 /// #        unimplemented!()
 /// #    }
-/// #
-/// #    fn handle_event(&mut self, event: &dyn Event) {
-/// #        unimplemented!()
-/// #    }
+/// }
+/// 
+/// impl EventHandler<Timed<RawMidiEvent>> for MyPlugin {
+/// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {}
+///     // Implementation omitted for brevity.
+/// }
+/// impl<'a> EventHandler<Timed<SysExEvent<'a>>> for MyPlugin {
+/// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>) {}
+///     // Implementation omitted for brevity.
 /// }
 /// vst_init!(
 ///    fn init() -> MyPlugin {
