@@ -4,7 +4,8 @@
 /// The following code does not compile (TODO: give a reference to the compiler
 /// documentation):
 ///
-/// ```
+/// ```ignore
+/// # // Gives error "conflicting implementations".
 /// trait SomeTrait<T> { /* ... */ }
 /// struct SpecialType { /* ... */ }
 /// 
@@ -22,6 +23,7 @@
 /// Using the `IsNot` trait, we can circumvent this restriction of the language:
 ///
 /// ```
+/// use rsynth::dev_utilities::is_not::IsNot;
 /// trait SomeTrait<T> { /* ... */ }
 /// struct SpecialType1 { /* ... */ }
 /// impl IsNot<SpecialType2> for SpecialType1 {}
@@ -35,7 +37,7 @@
 /// }
 ///
 /// impl<T> SomeTrait<T> for MyStruct 
-/// where Specialtype1: IsNot<T>
+/// where SpecialType1: IsNot<T>
 /// {
 ///     // default treatment
 /// }
@@ -56,40 +58,38 @@
 /// to use for that purpose.
 ///
 /// When the library crate can be extended by defining other data types used
-/// for this purpose in other crates, each crate typically defines two
-/// "marker traits":
+/// for this purpose in other crates, each crate typically defines a
+/// "marker trait":
 /// ```
-/// trait IsInLibraryCrate {}
+/// use rsynth::dev_utilities::is_not::IsNot;
 /// trait IsNotInLibraryCrate {}
 /// ```
-/// These "marker traits" are then used as follows:
+/// This "marker traits" are then used as follows:
 ///
 /// ```
-/// # trait IsInLibraryCrate {}
+/// use rsynth::dev_utilities::is_not::IsNot;
 /// # trait IsNotInLibraryCrate {}
 /// struct SpecialType1 { /* ... */ }
-/// struct SpecialType2 { /* ... */ }
-/// // etc.
-///
-/// impl IsNot<SpecialType1> for SpecialType2 {}
 /// impl IsNot<SpecialType2> for SpecialType1 {}
-/// // etc.
+/// impl<U> IsNot<U> for SpecialType1 where U: IsNotInLibraryCrate {}
 ///
-/// impl IsInLibraryCrate for SpecialType1 {}
-/// impl IsInLibraryCrate for SpecialType2 {}
-///
-/// impl<T: IsInLibraryCrate, U: IsNotInLibraryCrate> IsNot<T> for U {}
+/// struct SpecialType2 { /* ... */ }
+/// impl IsNot<SpecialType1> for SpecialType2 {}
+/// impl<U> IsNot<U> for SpecialType2 where U: IsNotInLibraryCrate {}
 /// ```
 /// 
 /// ## Restriction on generics (1)
 /// 
 /// TODO: write this section
-/// ```
+/// ```ignore
+/// # // Does not compile because of conflicting implementations.
+/// use rsynth::dev_utilities::is_not::IsNot;
+/// trait SomeTrait<T> { /* ... */ }
 /// struct MyStruct<T> { /* ... */ }
-/// impl SomeTrait<U> for MyStruct<U> {
+/// impl<U> SomeTrait<U> for MyStruct<U> {
 ///   // ...
 /// }
-/// impl SomeTrait<T> for MyStruct<U> where T: IsNot<U> {
+/// impl<T, U> SomeTrait<T> for MyStruct<U> where T: IsNot<U> {
 ///   // ...
 /// }
 /// ```
@@ -98,18 +98,23 @@
 /// ## Restriction on generics (2)
 /// Unfortunately, it is not typically not possible to do something similar 
 /// to the following:
-/// ```
-/// struct MyStruct { /* ... */ }
+/// ```ignore
+/// # // Ignoring because it has conflicting implementations.
+/// use rsynth::dev_utilities::is_not::IsNot;
+/// struct MyStruct<U> { 
+/// # dummy: U
+///     /* ... */ 
+/// }
 ///
 /// trait SomeTrait<T> { /* ... */ }
 /// struct SpecialType<U> { /* ... */ }
-/// impl<T, U> IsNot<Specialtype<U>> for SpecialType<T> {}
+/// impl<T, U> IsNot<SpecialType<U>> for SpecialType<T> {}
 ///
-/// impl<U> SomeTrait<SpecialType<U>> for MyStruct {
+/// impl<U> SomeTrait<SpecialType<U>> for MyStruct<U> {
 ///     // special treatment
 /// }
 ///
-/// impl<T, U> SomeTrait<T> for MyStruct 
+/// impl<T, U> SomeTrait<T> for MyStruct<U>
 /// where T: IsNot<SpecialType<U>>
 /// {
 ///     // default treatment
@@ -132,6 +137,7 @@
 /// "all other" types.
 /// 
 /// ```
+/// use rsynth::dev_utilities::is_not::IsNot;
 /// trait SomeTrait<T> { 
 ///     fn trait_function(&self, parameter: T);
 /// }
@@ -139,7 +145,10 @@
 /// struct SomeType1 {}
 /// impl<U> IsNot<SpecialType<U>> for SomeType1 {}
 ///
-/// struct SpecialType<U> { /* ... */ }
+/// struct SpecialType<U> { 
+/// #   dummy: U
+///     /* ... */ 
+/// }
 /// # struct SomeInfoType {}
 /// trait SpecialTrait {
 ///     // Return `None` when the type is not SpecialType<U>
@@ -152,7 +161,7 @@
 ///     fn get_special_info(&self) -> Option<SomeInfoType> {
 ///         Some(
 ///             // ...
-/// #           unimplemented!();
+/// #           unimplemented!()
 ///         )
 ///     }
 /// }

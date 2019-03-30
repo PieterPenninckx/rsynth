@@ -1,5 +1,4 @@
 use dev_utilities::is_not::{IsNot, NotInRSynth};
-use downcast::{Downcast, DowncastRef, DowncastMut, DowncastCheck};
 use dev_utilities::specialize::Specialize;
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
@@ -39,7 +38,18 @@ impl<'a> SysExEvent<'a> {
 
 impl<'a> IsNot<RawMidiEvent> for SysExEvent<'a>{}
 
-impl_downcast!('a, SysExEvent<'a>);
+impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
+    fn can_specialize(&self) -> bool {
+        true
+    }
+    fn specialize(self) -> Option<Self> {
+        Some(self)
+    }
+}
+
+impl<'a, T> Specialize<T> for SysExEvent<'a> 
+where T: IsNot<SysExEvent<'a>>
+{}
 
 /// A raw midi event.
 /// Use this when you need to be able to clone the event.
@@ -57,9 +67,18 @@ impl RawMidiEvent {
     }
 }
 
-impl_downcast!(RawMidiEvent);
-
 impl<'a> IsNot<SysExEvent<'a>> for RawMidiEvent {}
+
+impl Specialize<RawMidiEvent> for RawMidiEvent {
+    fn can_specialize(&self) -> bool {
+        true
+    }
+    fn specialize(self) -> Option<Self> {
+        Some(self)
+    }
+}
+
+impl<T> Specialize<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {}
 
 pub struct Timed<E> {
     pub time_in_frames: u32,
@@ -97,42 +116,6 @@ impl<E> Clone for Timed<E> where E: Clone {
 
 impl<E> Copy for Timed<E> where E: Copy {}
 
-impl<E, EE> DowncastCheck<EE> for Timed<E> 
-where 
-    E: DowncastCheck<EE> 
-{
-    fn can_downcast(&self) -> bool {
-        self.event.can_downcast()
-    }
-}
-
-impl<E, EE> Downcast<EE> for Timed<E>
-where
-    E: Downcast<EE> 
-{
-    fn downcast(self) -> Option<EE> {
-        self.event.downcast()
-    }
-}
-
-impl<E, EE> DowncastRef<EE> for Timed<E>
-where 
-    E: DowncastRef<EE> 
-{
-    fn downcast_ref(&self) -> Option<&EE> {
-        self.event.downcast_ref()
-    }
-}
-
-impl<E, EE> DowncastMut<EE> for Timed<E>
-where
-    E: DowncastMut<EE>
-{
-    fn downcast_mut(&mut self) -> Option<&mut EE> {
-        self.event.downcast_mut()
-    }
-}
-
 impl<E> Specialize<RawMidiEvent> for Timed<E> {}
 impl<'a, E> Specialize<SysExEvent<'a>> for Timed<E> {}
 impl<E, T> Specialize<T> for Timed<E> where T: NotInRSynth {}
@@ -144,16 +127,11 @@ where E:Specialize<T>
     }
 
     fn specialize(self) -> Option<Timed<T>> {
-        if self.event.can_specialize() {
-            let Timed{time_in_frames, event} = self;
-            Some(
-                Timed {
-                    time_in_frames,
-                    event: event.specialize().unwrap() // TODO: more graceful error handling.
-                }
-            )
+        let Timed{time_in_frames, event} = self;
+        if let Some(specialized) = event.specialize() {
+            Some(Timed{time_in_frames, event: specialized})
         } else {
-            return None
+            None
         }
     }
 }

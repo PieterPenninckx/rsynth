@@ -2,11 +2,9 @@
 // eventing system can be used in practice.
 
 use asprim::AsPrim;
-use backend::{Plugin, Transparent};
-use backend::event::{Timed, WithTime};
+use crate::{Plugin, Transparent, dev_utilities::specialize::Specialize};
+use event::{EventHandler, Timed, WithTime};
 use num_traits::Float;
-use backend::event::EventHandler;
-use downcast::{DowncastCheck, Downcast, DowncastRef};
 
 pub struct TimeSplit<P, E> {
     plugin: P,
@@ -65,16 +63,16 @@ where
 impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
 where 
     P: EventHandler<EE>,
-    EE: DowncastCheck<E> + Downcast<E>,
+    EE: Specialize<Timed<E>>,
     EE: WithTime
 {
     fn handle_event(&mut self, event: EE) {
-        if <EE as DowncastCheck<E>>::can_downcast(&event) {
+        if <EE as Specialize<Timed<E>>>::can_specialize(&event) {
             if let Some(time) = event.time_in_frames() {
                 if time != 0 {
                     if self.buffer.len() < self.buffer.capacity() {
-                        if let Some(e) = event.downcast() {
-                            self.buffer.push(Timed{time_in_frames: time, event: e});
+                        if let Some(e) = event.specialize() {
+                            self.buffer.push(e);
                             return;
                         } else {
                             unimplemented!()
