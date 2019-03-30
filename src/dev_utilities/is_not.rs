@@ -183,7 +183,3 @@
 /// ```
 
 pub trait IsNot<T> {}
-
-/// A trait that is not implemented for anything in the rsynth crate.
-/// You should implement this for all events that you define in another crate.
-pub trait NotInRSynth {}

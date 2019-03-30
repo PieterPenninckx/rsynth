@@ -2,5 +2,6 @@
 pub mod vecstorage;
 pub mod is_not;
 pub mod specialize;
+#[macro_use]
 pub mod compatibility;
 

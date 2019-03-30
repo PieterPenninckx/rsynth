@@ -1,4 +1,5 @@
-use dev_utilities::is_not::{IsNot, NotInRSynth};
+use dev_utilities::is_not::IsNot;
+use dev_utilities::compatibility::NotInCrateRsynth;
 use dev_utilities::specialize::Specialize;
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
@@ -46,6 +47,23 @@ impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
         Some(self)
     }
 }
+
+// The following aparently does not compile.
+// A better solution is to do something like the following:
+// impl_traits!(impl<'a> traits_for_rsynth for SysExEvent<'a>);
+// This can be done:
+// macro_rules! my_macro {
+//     ($macro_name:ident($x:expr)) => {$macro_name!($x)}
+// }
+//
+// macro_rules! other_macro {
+//     ($x:expr) => {$x}
+// }
+//
+// println!("{}", my_macro!(other_macro(5)));
+
+impl_traits!((traits_for_rsynth!()), impl<'a> trait for SysExEvent<'a>);
+
 
 impl<'a, T> Specialize<T> for SysExEvent<'a> 
 where T: IsNot<SysExEvent<'a>>
@@ -103,7 +121,7 @@ impl<E> WithTime for Timed<E> {
         Some(self.time_in_frames)
     }
 }
-impl<E, EE> IsNot<Timed<E>> for EE where EE: NotInRSynth {}
+impl<E, EE> IsNot<Timed<E>> for EE where EE: NotInCrateRsynth {}
 
 impl<E> Clone for Timed<E> where E: Clone {
     fn clone(&self) -> Self {
@@ -118,7 +136,7 @@ impl<E> Copy for Timed<E> where E: Copy {}
 
 impl<E> Specialize<RawMidiEvent> for Timed<E> {}
 impl<'a, E> Specialize<SysExEvent<'a>> for Timed<E> {}
-impl<E, T> Specialize<T> for Timed<E> where T: NotInRSynth {}
+impl<E, T> Specialize<T> for Timed<E> where T: NotInCrateRsynth {}
 impl<E, T> Specialize<Timed<T>> for Timed<E>
 where E:Specialize<T>
 {
