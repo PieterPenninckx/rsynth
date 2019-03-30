@@ -58,3 +58,4 @@
 pub mod vecstorage;
 pub mod is_not;
 pub mod specialize;
+pub mod compatibility;
