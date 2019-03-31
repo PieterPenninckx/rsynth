@@ -47,13 +47,11 @@ impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
     }
 }
 
-// Aparently, it's not possible to use a macro to create a list
-// and then pass this list to another macro:
-// https://stackoverflow.com/questions/42107104/how-to-pass-a-macro-containing-multiple-items-into-a-macro
-// The solution to this is probably to define a macro per trait set.
-// This macro then calls the generic macro with a pre-defined list.
-// It is, however, possible to expand a single macro in a macro definition.
-impl_traits!(impl<'a> traits_for_rsynth for SysExEvent<'a>);
+
+impl_traits_for_rsynth!(impl<'a> trait for SysExEvent<'a>);
+// In theory, the following should also work. In practice, it does not (yet?).
+//impl_traits_for_rsynth_macro!(impl<'a> trait for SysExEvent<'a>);
+
 
 
 impl<'a, T> Specialize<T> for SysExEvent<'a> 

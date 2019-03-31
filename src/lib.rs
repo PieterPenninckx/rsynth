@@ -1,3 +1,5 @@
+#![feature(trace_macros)]
+
 //! # Rsynth
 //! The `rsynth` crate makes it easier to write software synthesizers.
 //!

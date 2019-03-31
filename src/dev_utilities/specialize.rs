@@ -176,7 +176,7 @@
 ///             // special treatment
 ///         } else {
 ///             // default treatment
-///         }
+///        impl < 'a > not_in_crate_rsynth ! (  ) for SysExEvent<'a> {  } }
 ///     }
 /// }
 /// ```
@@ -191,19 +191,37 @@ pub trait IsNot<T> {}
 /// struct S<'a, T> {data: &'a T}
 /// impl_traits!((T1, T2,), impl<'a, T> trait for S<'a, T>);
 /// ```
+
 #[macro_export]
 macro_rules! impl_traits {
-    (($($traits:tt,)*), impl<$head:tt $(,$tail:tt)*> trait for $t:ty) => {
+    (($($traits:path,)*), impl<$head:tt $(,$tail:tt)*> trait for $t:ty) => {
          impl_traits!(@impl_traits ($($traits,)*) @ $t , $head @ ($($tail,)*));
+    };
+    (($($traits:path,)*), impl trait for $t:ty) => {
+         $(impl $traits for $t {})*
+    };
+    (@impl_traits ($($traits:path,)*) @ $t:ty , $head:tt @ $tuple:tt) => {
+        $(impl_traits!(@impl_one_trait $traits , $t , $head @ $tuple);)*
+    };
+    (@impl_one_trait $one_trait:path , $t:ty , $head:tt @ ($($tail:tt)*)) => {
+        impl<$head $(,$tail)*> $one_trait for $t {}
+    }
+}
+
+// The following does not work (yet?)
+#[macro_export]
+macro_rules! impl_macro_traits {
+    (($($traits:tt,)*), impl<$head:tt $(,$tail:tt)*> trait for $t:ty) => {
+         impl_macro_traits!(@impl_traits ($($traits,)*) @ $t , $head @ ($($tail,)*));
     };
     (($($traits:tt,)*), impl trait for $t:ty) => {
          $(impl $traits for $t {})*
     };
     (@impl_traits ($($traits:tt,)*) @ $t:ty , $head:tt @ $tuple:tt) => {
-        $(impl_traits!(@impl_one_trait $traits @ $t , $head @ $tuple);)*
+        $(impl_macro_traits!(@impl_one_trait $traits , $t , $head @ $tuple);)*
     };
-    (@impl_one_trait $one_trait:tt @ $t:ty , $head:tt @ ($($tail:tt)*)) => {
-        impl<$head $(,$tail)*> $one_trait for $t {}
+    (@impl_one_trait $one_trait:ident , $t:ty , $head:tt @ ($($tail:tt)*)) => {
+        impl<$head $(,$tail)*> $one_trait!() for $t {}
     }
 }
 
