@@ -1,6 +1,5 @@
-use dev_utilities::is_not::IsNot;
 use dev_utilities::compatibility::NotInCrateRsynth;
-use dev_utilities::specialize::Specialize;
+use dev_utilities::specialize::{IsNot, Specialize};
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
 //   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
@@ -48,21 +47,13 @@ impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
     }
 }
 
-// The following aparently does not compile.
-// A better solution is to do something like the following:
-// impl_traits!(impl<'a> traits_for_rsynth for SysExEvent<'a>);
-// This can be done:
-// macro_rules! my_macro {
-//     ($macro_name:ident($x:expr)) => {$macro_name!($x)}
-// }
-//
-// macro_rules! other_macro {
-//     ($x:expr) => {$x}
-// }
-//
-// println!("{}", my_macro!(other_macro(5)));
-
-impl_traits!((traits_for_rsynth!()), impl<'a> trait for SysExEvent<'a>);
+// Aparently, it's not possible to use a macro to create a list
+// and then pass this list to another macro:
+// https://stackoverflow.com/questions/42107104/how-to-pass-a-macro-containing-multiple-items-into-a-macro
+// The solution to this is probably to define a macro per trait set.
+// This macro then calls the generic macro with a pre-defined list.
+// It is, however, possible to expand a single macro in a macro definition.
+impl_traits!(impl<'a> traits_for_rsynth for SysExEvent<'a>);
 
 
 impl<'a, T> Specialize<T> for SysExEvent<'a> 
