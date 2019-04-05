@@ -8,11 +8,9 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use backend::utilities::{VecStorage, VecStorageMut};
-use backend::Event;
-use backend::Plugin;
-use backend::RawMidiEvent;
-use backend::Transparent;
+use dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use event::{Event, RawMidiEvent};
+use crate::{Plugin, dev_utilities::transparent::Transparent};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -178,7 +176,7 @@ where
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::backend::{Plugin, Event, RawMidiEvent};
+/// use rsynth::{Plugin, event::{Event, RawMidiEvent}};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
