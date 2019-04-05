@@ -10,7 +10,7 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 use dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use event::{Event, RawMidiEvent};
-use crate::{Plugin, Transparent};
+use crate::{Plugin, dev_utilities::transparent::Transparent};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
