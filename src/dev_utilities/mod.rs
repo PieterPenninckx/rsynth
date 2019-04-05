@@ -27,7 +27,12 @@
 //! does this by implementing the `Transparent` trait. The backend needs
 //! to be able to "look trough" the middleware. This can be achieved by using
 //! a blanket impl as follows:
-//! ```ignore
+//! ```
+//! use rsynth::dev_utilities::transparent::Transparent;
+//! trait MyCustomTrait {
+//!     // ...
+//! }
+//!
 //! impl<T> MyCustomTrait for T
 //! where
 //!    T: Transparent,
@@ -45,12 +50,139 @@
 //! Publishing a backend crate
 //! --------------------------
 //!
-//! When you publish a backend crate, let us know, so that we can link to it in
-//! our documentation.
+//! When you publish a backend crate, let us know by opening an issue or pull request
+//! so that we can link to it in the documentation of rsynth.
 //!
 //! Writing middleware
 //! ==================
 //!
+//! Implementing backend-specific traits
+//! ------------------------------------
+//!
+//! Some backends might require plugins to implement a trait specific for that
+//! backend. In order to implement this trait for the middleware as well,
+//! you can simply implement the `Transparent` trait. A blanket impl defined
+//! by the backend will then ensure that the middleware also implements the
+//! backend specific trait.
+//!
+//! Handling events
+//! ---------------
+//!
+//! Middleware needs to implement `EventHandler` for "all" events.
+//! If the middleware does not do anything with events at all, it is
+//! easy to simply pass it to the child:
+//! ```
+//! use rsynth::event::EventHandler;
+//! struct MyMiddleware<P> {
+//!     child: P
+//! }
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where P: EventHandler<E> {
+//!     fn handle_event(&mut self, event: E) {
+//!         self.child.handle_event(event);
+//!     }
+//! }
+//! ```
+//!
+//! When trying to handle one event type in a special way, this no longer
+//! works because Rust does not support specialization (at the time of writing):
+//! the following will not compile.
+//! ```ignore
+//! use rsynth::event::EventHandler;
+//! struct MyMiddleware<P> {
+//!     child: P
+//! }
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where P: EventHandler<E> {
+//!     fn handle_event(&mut self, event: E) {
+//!         self.child.handle_event(event);
+//!     }
+//! }
+//! # struct SpecialEventType {}
+//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
+//! {
+//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!         // Do something specific with the middleware.
+//!     }
+//! }
+//! ```
+//!
+//! You can solve this problem in two ways, depending on the type that
+//! you want to handle in a special way.
+//!
+//! ### Specializing for events with a concrete type
+//!
+//! If the event type for which you want to specialize is a concrete type,
+//! you can use the `IsNot` trait to distinguish the generic types from the special
+//! type. Because no event type should implement `IsNot<Self>`, the compiler
+//! knows there is no overlap. All event types should implement `IsNot<T>` for all
+//! other types `T`. How this is achieved, is explained below.
+//!
+//! ```
+//! use rsynth::event::EventHandler;
+//! use rsynth::dev_utilities::specialize::IsNot;
+//! struct MyMiddleware<P> {
+//!     child: P
+//! }
+//! # struct SpecialEventType {}
+//!
+//! // The generic event types
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where P: EventHandler<E> , E: IsNot<SpecialEventType> {
+//!     fn handle_event(&mut self, event: E) {
+//!         self.child.handle_event(event);
+//!     }
+//! }
+//!
+//! // The special event type
+//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
+//! {
+//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!         // Do something specific with the middleware.
+//!     }
+//! }
+//! ```
+//!
+//!
+//! ### Specializing for events of a type parameter
+//!
+//! If the event type for which you want to specialize is a type parameter,
+//! you cannot use the `IsNot` trait because the compiler cannot know that
+//! no type (even not in a dependent crate) will event `IsNot<Self>`. This is
+//! just a convention, it is not compiler-enforced and the compiler cannot see
+//! this. To work around this, you can use the `Specialize` trait:
+//!
+//! ```
+//! use rsynth::event::EventHandler;
+//! use rsynth::dev_utilities::specialize::{Specialize, Distinction};
+//! struct MyMiddleware<P> {
+//!     child: P
+//! }
+//! # struct SpecialEventType {}
+//! # impl Specialize<SpecialEventType> for SpecialEventType {
+//! #   fn specialize(self) -> Distinction<SpecialEventType, Self> { Distinction::Special(self) }
+//! # }
+//!
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where P: EventHandler<E> , E: Specialize<SpecialEventType> {
+//!     fn handle_event(&mut self, event: E) {
+//!         match event.specialize() {
+//!             Distinction::Special(special) => {
+//!                 // Do something special
+//!             },
+//!             Distinction::Generic(generic) => {
+//!                 // self.child.handle_event(generic);
+//!             }
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! Publishing a middleware crate
+//! -----------------------------
+//!
+//! When you publish a middleware crate, let us know by opening an issue or pull request
+//! so that we can link to it in the documentation of rsynth.
 pub mod vecstorage;
 pub mod transparent;
 #[macro_use]

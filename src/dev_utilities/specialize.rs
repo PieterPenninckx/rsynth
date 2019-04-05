@@ -225,12 +225,13 @@ macro_rules! impl_macro_traits {
     }
 }
 
+pub enum Distinction<S, G> {
+    Generic(G),
+    Special(S)
+}
+
 pub trait Specialize<T> : Sized {
-    fn can_specialize(&self) -> bool {
-        false
-    }
-    /// Must return `Some` if and only if `can_specialize` returns `true`.
-    fn specialize(self) -> Option<T> {
-        None
+    fn specialize(self) -> Distinction<T, Self> {
+        Distinction::Generic(self)
     }
 }

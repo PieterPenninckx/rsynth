@@ -1,10 +1,11 @@
 use asprim::AsPrim;
 use event::{RawMidiEvent, Timed, EventHandler};
-use crate::{Plugin, dev_utilities::{transparent::Transparent, specialize::Specialize}};
 use note::*;
 use num_traits::Float;
 use std::default::Default;
 use std::marker::PhantomData;
+use dev_utilities::{transparent::Transparent, specialize::{Specialize, Distinction}};
+use Plugin;
 
 /// Implement this trait if for a struct if you want to use it inside a `Polyphonic`.
 pub trait Voice {
@@ -183,45 +184,47 @@ where
     EE: Specialize<E> + Copy
 {
     fn handle_event(&mut self, event: EE) {
-        if let Some(e) = <EE as Specialize<E>>::specialize(event) {
-            match e.event_type() {
-                EventType::Broadcast => {
-                    for mut voice in self.voices.iter_mut() {
-                        voice.voice.handle_event(event);
-                    }
-                },
-                EventType::VoiceSpecific { tone } => {
-                    if let Some(v) = self
-                        .voice_steal_mode
-                        .find_voice_playing_note(&mut self.voices, tone) {
+        match <EE as Specialize<E>>::specialize(event) {
+            Distinction::Special(e) => {
+                match e.event_type() {
+                    EventType::Broadcast => {
+                        for mut voice in self.voices.iter_mut() {
+                            voice.voice.handle_event(event);
+                        }
+                    },
+                    EventType::VoiceSpecific { tone } => {
+                        if let Some(v) = self
+                            .voice_steal_mode
+                            .find_voice_playing_note(&mut self.voices, tone) {
+                            v.voice.handle_event(event);
+                        } else {
+                            info!("Voice with tone {} cannot be found, dropping event.", tone);
+                        }
+                    },
+                    EventType::NewVoice { tone } => {
+                        let v = self
+                            .voice_steal_mode
+                            .find_idle_voice(&mut self.voices, tone);
+                        self.voice_steal_mode
+                            .mark_voice_as_active(v, tone);
                         v.voice.handle_event(event);
-                    } else {
-                        info!("Voice with tone {} cannot be found, dropping event.", tone);
-                    }
-                },
-                EventType::NewVoice { tone } => {
-                    let v = self
-                        .voice_steal_mode
-                        .find_idle_voice(&mut self.voices, tone);
-                    self.voice_steal_mode
-                        .mark_voice_as_active(v, tone);
-                    v.voice.handle_event(event);
-                },
-                EventType::ReleaseVoice { tone } => {
-                    if let Some(v) = self
-                        .voice_steal_mode
-                        .find_voice_playing_note(&mut self.voices, tone) {
-                        self.voice_steal_mode.mark_voice_as_inactive(v);
-                        v.voice.handle_event(event);
-                    } else {
-                        info!("Voice with tone {} cannot be found, dropping 'release voice' event.", tone);
+                    },
+                    EventType::ReleaseVoice { tone } => {
+                        if let Some(v) = self
+                            .voice_steal_mode
+                            .find_voice_playing_note(&mut self.voices, tone) {
+                            self.voice_steal_mode.mark_voice_as_inactive(v);
+                            v.voice.handle_event(event);
+                        } else {
+                            info!("Voice with tone {} cannot be found, dropping 'release voice' event.", tone);
+                        }
                     }
                 }
-            }
-        }
-        else {
-            for mut voice in self.voices.iter_mut() {
-                voice.voice.handle_event(event);
+            },
+            Distinction::Generic(g) => {
+                for mut voice in self.voices.iter_mut() {
+                    voice.voice.handle_event(event);
+                }
             }
         }
     }

@@ -2,9 +2,10 @@
 // eventing system can be used in practice.
 
 use asprim::AsPrim;
-use crate::{Plugin, dev_utilities::{specialize::Specialize, transparent::Transparent}};
+use crate::Plugin;
 use event::{EventHandler, Timed, WithTime};
 use num_traits::Float;
+use dev_utilities::{transparent::Transparent, specialize::{Specialize, Distinction}};
 
 pub struct TimeSplit<P, E> {
     plugin: P,
@@ -67,22 +68,20 @@ where
     EE: WithTime
 {
     fn handle_event(&mut self, event: EE) {
-        if <EE as Specialize<Timed<E>>>::can_specialize(&event) {
-            if let Some(time) = event.time_in_frames() {
-                if time != 0 {
+        match <EE as Specialize<Timed<E>>>::specialize(event) {
+            Distinction::Special(event) => {
+                if event.time_in_frames != 0 {
                     if self.buffer.len() < self.buffer.capacity() {
-                        if let Some(e) = event.specialize() {
-                            self.buffer.push(e);
-                            return;
-                        } else {
-                            unimplemented!()
-                        }
+                        self.buffer.push(event);
+                        return;
                     } else {
                         unimplemented!()
                     }
                 }
+            },
+            Distinction::Generic(g) => {
+                self.plugin.handle_event(g);
             }
         }
-        self.plugin.handle_event(event);
     }
 }

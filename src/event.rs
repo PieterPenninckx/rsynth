@@ -1,5 +1,5 @@
 use dev_utilities::compatibility::NotInCrateRsynth;
-use dev_utilities::specialize::{IsNot, Specialize};
+use dev_utilities::specialize::{IsNot, Specialize, Distinction};
 // I see two options to allow handling a large amount of event types:
 // * Work with an `EventHandler<E: EventType>` trait.
 //   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
@@ -39,24 +39,19 @@ impl<'a> SysExEvent<'a> {
 impl<'a> IsNot<RawMidiEvent> for SysExEvent<'a>{}
 
 impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
-    fn can_specialize(&self) -> bool {
-        true
-    }
-    fn specialize(self) -> Option<Self> {
-        Some(self)
+    fn specialize(self) -> Distinction<Self, SysExEvent<'a>> {
+        Distinction::Special(self)
     }
 }
 
+impl<'a, T> Specialize<T> for SysExEvent<'a>
+    where T: IsNot<SysExEvent<'a>>
+{}
 
 impl_traits_for_rsynth!(impl<'a> trait for SysExEvent<'a>);
 // In theory, the following should also work. In practice, it does not (yet?).
 //impl_traits_for_rsynth_macro!(impl<'a> trait for SysExEvent<'a>);
 
-
-
-impl<'a, T> Specialize<T> for SysExEvent<'a> 
-where T: IsNot<SysExEvent<'a>>
-{}
 
 /// A raw midi event.
 /// Use this when you need to be able to clone the event.
@@ -77,11 +72,9 @@ impl RawMidiEvent {
 impl<'a> IsNot<SysExEvent<'a>> for RawMidiEvent {}
 
 impl Specialize<RawMidiEvent> for RawMidiEvent {
-    fn can_specialize(&self) -> bool {
-        true
-    }
-    fn specialize(self) -> Option<Self> {
-        Some(self)
+    fn specialize(self) -> Distinction<Self, RawMidiEvent> {
+
+        Distinction::Special(self)
     }
 }
 
@@ -129,16 +122,15 @@ impl<E, T> Specialize<T> for Timed<E> where T: NotInCrateRsynth {}
 impl<E, T> Specialize<Timed<T>> for Timed<E>
 where E:Specialize<T>
 {
-    fn can_specialize(&self) -> bool {
-        self.event.can_specialize()
-    }
-
-    fn specialize(self) -> Option<Timed<T>> {
+    fn specialize(self) -> Distinction<Timed<T>, Self> {
         let Timed{time_in_frames, event} = self;
-        if let Some(specialized) = event.specialize() {
-            Some(Timed{time_in_frames, event: specialized})
-        } else {
-            None
+        match event.specialize() {
+            Distinction::Generic(g) => {
+                Distinction::Generic(Timed{time_in_frames, event: g})
+            },
+            Distinction::Special(s) => {
+                Distinction::Special(Timed{time_in_frames, event: s})
+            }
         }
     }
 }
