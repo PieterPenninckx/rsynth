@@ -15,16 +15,16 @@
 //! for the output buffer, you may face the challenge that you can get
 //! the buffers for each channel and you can `collect()` them into a `Vec`,
 //! but you don't want to allocate that `Vec` in the realtime thread.
-//! In order you to help overcome this problem, we provide the `VecStorage`
-//! and `VecStorageMut`, which you can pre-allocate and re-use for every
+//! In order you to help overcome this problem, we provide
+//! [`VecStorage` and `VecStorageMut`], which you can pre-allocate and re-use for every
 //! call to `render_buffer` with different lifetimes of the slices.
 //!
-//! Writing a custom trait
-//! ----------------------
+//! Writing a custom trait for a backend
+//! ------------------------------------
 //!
 //! When the backend needs a special trait to be implemented by the plugin,
 //! ideally all middleware should "pass trough" this trait. The middleware
-//! does this by implementing the `Transparent` trait. The backend needs
+//! does this by implementing the [`Transparent`] trait. The backend needs
 //! to be able to "look trough" the middleware. This can be achieved by using
 //! a blanket impl as follows:
 //! ```
@@ -45,7 +45,7 @@
 //! Writing custom events
 //! ---------------------
 //!
-//! See below.
+//! See ["Writing events" below].
 //!
 //! Publishing a backend crate
 //! --------------------------
@@ -61,14 +61,14 @@
 //!
 //! Some backends might require plugins to implement a trait specific for that
 //! backend. In order to implement this trait for the middleware as well,
-//! you can simply implement the `Transparent` trait. A blanket impl defined
+//! you can simply implement the [`Transparent`] trait. A blanket impl defined
 //! by the backend will then ensure that the middleware also implements the
 //! backend specific trait.
 //!
 //! Handling events
 //! ---------------
 //!
-//! Middleware needs to implement `EventHandler` for "all" events.
+//! Middleware needs to implement [`EventHandler`] for "all" events.
 //! If the middleware does not do anything with events at all, it is
 //! easy to simply pass it to the child:
 //! ```
@@ -113,7 +113,7 @@
 //! ### Specializing for events with a concrete type
 //!
 //! If the event type for which you want to specialize is a concrete type,
-//! you can use the `IsNot` trait to distinguish the generic types from the special
+//! you can use the [`IsNot`] trait to distinguish the generic types from the special
 //! type. Because no event type should implement `IsNot<Self>`, the compiler
 //! knows there is no overlap. All event types should implement `IsNot<T>` for all
 //! other types `T`. How this is achieved, is explained below.
@@ -150,7 +150,7 @@
 //! you cannot use the `IsNot` trait because the compiler cannot know that
 //! no type (even not in a dependent crate) will event `IsNot<Self>`. This is
 //! just a convention, it is not compiler-enforced and the compiler cannot see
-//! this. To work around this, you can use the `Specialize` trait:
+//! this. To work around this, you can use the [`Specialize`] trait:
 //!
 //! ```
 //! use rsynth::event::EventHandler;
@@ -178,11 +178,26 @@
 //! }
 //! ```
 //!
+//! Writing special events for the middleware
+//! -----------------------------------------
+//!
+//! See ["Writing events" below].
+//!
 //! Publishing a middleware crate
 //! -----------------------------
 //!
 //! When you publish a middleware crate, let us know by opening an issue or pull request
 //! so that we can link to it in the documentation of rsynth.
+//!
+//! Writing events
+//! ==============
+//!
+//! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
+//! [`Transparent`]: ./transparent/trait.Transparent.html
+//! [`EventHandler`]: ../event/trait.EventHandler.html
+//! [`IsNot`]: ./specialize/trait.IsNot.html
+//! [`Specialize`]: ./specialize/trait.Specialize.html
+//! ["Writing events" below]: ./index.html#writing-events
 pub mod vecstorage;
 pub mod transparent;
 #[macro_use]
