@@ -27,11 +27,11 @@
 //! does this by implementing the `Transparent` trait. The backend needs
 //! to be able to "look trough" the middleware. This can be achieved by using
 //! a blanket impl as follows:
-//! ```
+//! ```ignore
 //! impl<T> MyCustomTrait for T
 //! where
 //!    T: Transparent,
-//!    <T as Transparent>::Inner: VstPlugin,
+//!    <T as Transparent>::Inner: MyCustomTrait,
 //! {
 //!     // ...
 //! }
@@ -52,6 +52,7 @@
 //! ==================
 //!
 pub mod vecstorage;
+pub mod transparent;
 #[macro_use]
 pub mod specialize;
 #[macro_use]

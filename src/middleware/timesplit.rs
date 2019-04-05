@@ -2,7 +2,7 @@
 // eventing system can be used in practice.
 
 use asprim::AsPrim;
-use crate::{Plugin, Transparent, dev_utilities::specialize::Specialize};
+use crate::{Plugin, dev_utilities::{specialize::Specialize, transparent::Transparent}};
 use event::{EventHandler, Timed, WithTime};
 use num_traits::Float;
 

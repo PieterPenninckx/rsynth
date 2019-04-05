@@ -4,7 +4,7 @@
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
 use asprim::AsPrim;
-use crate::{Plugin, Transparent};
+use crate::{Plugin, dev_utilities::transparent::Transparent};
 use num_traits::Float;
 use crate::event::EventHandler;
 

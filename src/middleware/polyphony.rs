@@ -1,6 +1,6 @@
 use asprim::AsPrim;
 use event::{RawMidiEvent, Timed, EventHandler};
-use crate::{Plugin, Transparent, dev_utilities::specialize::Specialize};
+use crate::{Plugin, dev_utilities::{transparent::Transparent, specialize::Specialize}};
 use note::*;
 use num_traits::Float;
 use std::default::Default;
