@@ -22,7 +22,7 @@
 /// Using the `IsNot` trait, we can circumvent this restriction of the language:
 ///
 /// ```
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// trait SomeTrait<T> { /* ... */ }
 /// struct SpecialType1 { /* ... */ }
 /// impl IsNot<SpecialType2> for SpecialType1 {}
@@ -60,13 +60,13 @@
 /// for this purpose in other crates, each crate typically defines a
 /// "marker trait":
 /// ```
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// trait IsNotInLibraryCrate {}
 /// ```
 /// This "marker traits" are then used as follows:
 ///
 /// ```
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// # trait IsNotInLibraryCrate {}
 /// struct SpecialType1 { /* ... */ }
 /// impl IsNot<SpecialType2> for SpecialType1 {}
@@ -82,7 +82,7 @@
 /// TODO: write this section
 /// ```ignore
 /// # // Does not compile because of conflicting implementations.
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// trait SomeTrait<T> { /* ... */ }
 /// struct MyStruct<T> { /* ... */ }
 /// impl<U> SomeTrait<U> for MyStruct<U> {
@@ -99,7 +99,7 @@
 /// to the following:
 /// ```ignore
 /// # // Ignoring because it has conflicting implementations.
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// struct MyStruct<U> { 
 /// # dummy: U
 ///     /* ... */ 
@@ -136,7 +136,7 @@
 /// "all other" types.
 /// 
 /// ```
-/// use rsynth::dev_utilities::is_not::IsNot;
+/// use rsynth::dev_utilities::specialize::IsNot;
 /// trait SomeTrait<T> { 
 ///     fn trait_function(&self, parameter: T);
 /// }
@@ -176,22 +176,80 @@
 ///             // special treatment
 ///         } else {
 ///             // default treatment
-///        impl < 'a > not_in_crate_rsynth ! (  ) for SysExEvent<'a> {  } }
+///         }
 ///     }
 /// }
 /// ```
 
 pub trait IsNot<T> {}
 
+/// Automatically implement `IsNot` for each pair of distinct types
+/// in the given list.
+/// Example:
+/// ```
+/// struct S1 {}
+/// struct S2 {}
+/// struct S3 {}
+/// impl_isnot!(S1; S2; S3;);
+/// // Equivalent to
+/// // impl IsNot<S1> for S2 {}
+/// // impl IsNot<S2> for S1 {}
+/// // impl IsNot<S3> for S1 {}
+/// // impl IsNot<S1> for S3 {}
+/// // impl IsNot<S3> for S2 {}
+/// // impl IsNot<S2> for S3 {}
+/// ```
+/// 
+/// Note `impl_isnot!` does not generate `Impl<T> IsNot for T`:
+/// ```compile_fail
+/// struct S1 {}
+/// struct S2 {}
+///
+/// impl_isnot!(S1; S2;);
+///
+/// fn f<T1, T2>() where T1: IsNot<T2> {}
+///
+/// fn g() {
+///     f::<S1, S1>();
+/// }
+/// ```
+macro_rules! impl_isnot {
+    (()) => {};
+    ($typ:ty;) => {};
+    ($head_typ:ty; $($tail_typ:ty;)*) => {
+        $(impl IsNot<$head_typ> for $tail_typ {})*
+        $(impl IsNot<$tail_typ> for $head_typ {})*
+        impl_isnot!($($tail_typ;)*);
+    }
+}
+
+#[test]
+fn impl_isnot_works() {
+    fn f<T1, T2>() 
+    where T1: IsNot<T2> {}
+    
+    struct S1 {}
+    struct S2 {}
+    struct S3 {}
+
+    impl_isnot!(S1; S2; S3;);
+    f::<S1, S2>();
+    f::<S2, S1>();
+    f::<S1, S3>();
+    f::<S3, S1>();
+    f::<S2, S3>();
+    f::<S2, S3>();
+}
+
 /// Macro to implement a given list of traits for a given type.
 /// Examples:
 /// ```
+/// # #[macro_use] extern crate rsynth;
 /// trait T1 {}
 /// trait T2 {}
 /// struct S<'a, T> {data: &'a T}
 /// impl_traits!((T1, T2,), impl<'a, T> trait for S<'a, T>);
 /// ```
-
 #[macro_export]
 macro_rules! impl_traits {
     (($($traits:path,)*), impl<$head:tt $(,$tail:tt)*> trait for $t:ty) => {
@@ -203,25 +261,8 @@ macro_rules! impl_traits {
     (@impl_traits ($($traits:path,)*) @ $t:ty , $head:tt @ $tuple:tt) => {
         $(impl_traits!(@impl_one_trait $traits , $t , $head @ $tuple);)*
     };
-    (@impl_one_trait $one_trait:path , $t:ty , $head:tt @ ($($tail:tt)*)) => {
+    (@impl_one_trait $one_trait:path , $t:ty , $head:tt @ ($($tail:tt,)*)) => {
         impl<$head $(,$tail)*> $one_trait for $t {}
-    }
-}
-
-// The following does not work (yet?)
-#[macro_export]
-macro_rules! impl_macro_traits {
-    (($($traits:tt,)*), impl<$head:tt $(,$tail:tt)*> trait for $t:ty) => {
-         impl_macro_traits!(@impl_traits ($($traits,)*) @ $t , $head @ ($($tail,)*));
-    };
-    (($($traits:tt,)*), impl trait for $t:ty) => {
-         $(impl $traits for $t {})*
-    };
-    (@impl_traits ($($traits:tt,)*) @ $t:ty , $head:tt @ $tuple:tt) => {
-        $(impl_macro_traits!(@impl_one_trait $traits , $t , $head @ $tuple);)*
-    };
-    (@impl_one_trait $one_trait:ident , $t:ty , $head:tt @ ($($tail:tt)*)) => {
-        impl<$head $(,$tail)*> $one_trait!() for $t {}
     }
 }
 
