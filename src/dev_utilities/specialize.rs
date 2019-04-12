@@ -241,6 +241,49 @@ fn impl_isnot_works() {
     f::<S2, S3>();
 }
 
+pub trait TestTrait {}
+
+macro_rules! impl_isnot_type_param {
+    (()) => {};
+    ($typ:ident $(::$typtail:ident)* $([ $($lt:ident,)* ; $($typar:ident,)* ])* ;) => {
+        impl$(<$($lt,)* $($typar,)*>)* TestTrait for $typ $(::$typtail)* $(<$($lt,)* $($typar,)*>)* {}
+    };
+    ($head_typ:path; $($tail_typ:path;)*) => {
+        $(impl IsNot<$head_typ> for $tail_typ {})*
+        $(impl IsNot<$tail_typ> for $head_typ {})*
+        impl_isnot!($($tail_typ;)*);
+    }
+}
+
+#[test]
+fn impl_isnot_type_param() {
+    fn f<T1, T2>()
+        where T1: IsNot<T2> {}
+
+    pub mod m {
+        pub struct S0 {}
+        pub struct Sa<T> {t: T}
+        pub struct Sb {}
+    }
+    struct S1 {}
+    struct S2 {}
+    struct S3 {}
+    struct Sc<T> {t: T}
+
+    impl_isnot_type_param!(m::S0; m::Sb; S1; S2; S3;);
+    impl_isnot_type_param!(m::Sa[;T,];);
+    impl_isnot_type_param!(Sc[;T,];);
+    f::<m::S0, S2>();
+    f::<m::S0, m::Sb>();
+    /*
+    f::<S2, S1>();
+    f::<S1, S3>();
+    f::<S3, S1>();
+    f::<S2, S3>();
+    f::<S2, S3>();
+    */
+}
+
 /// Macro to implement a given list of traits for a given type.
 /// Examples:
 /// ```

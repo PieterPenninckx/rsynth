@@ -57,13 +57,21 @@ pub trait VoiceStealMode {
 /// `Polyphonic` is middleware that adds polyphony by dispatching events of type `E`
 /// to the different voices. Events of other types are broadcasted to all voices.
 ///
-/// # Notes
+/// # Notes on the output buffer
 ///
 /// The voices are assumed to add values to the output buffer (`sample += value` instead of
 /// `sample = value`).
 /// If you are using a back-end that does not initialize the output buffers to zero
 /// before calling the plugin, then you will probably need to use the [`ZeroInit`] middleware as well:
 /// create a `ZeroInit::new(Polyphonic::new(...))`.
+///
+/// # Notes on events
+///
+/// The `Polyphonic` middleware can only handle event types that implement the `Copy` trait.
+/// This allows the `Polyphonic` middleware to dispatch events to more than one voice.
+/// Most event types implement the `Copy` trait, but if you need to handle an event-type
+/// that does not, it is best to ensure that it is handled before the `Polyphonic` middleware
+/// by some other middleware that does not delegate it to the `Polyphonic` middleware.
 ///
 /// [`ZeroInit`]: ../zero_init/index.html
 pub struct Polyphonic<Vc, VSM: VoiceStealMode<V = Vc>, E> {

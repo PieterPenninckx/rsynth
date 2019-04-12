@@ -5,16 +5,16 @@
 //!
 //! Custom backends do not need to be in the `rsynth` crate, you can write
 //! a backend in a separate crate. If you encounter problems that prevent you
-//! from writing your backend in a separate crate (e.g., we have forgotter to
+//! from writing your backend in a separate crate (e.g., we have forgotten to
 //! mark something as `pub`), let us know by opening an issue.
 //!
 //! Creating an input buffer and an output buffer
 //! ---------------------------------------------
 //!
-//! When you pass `*[&[f32]]` for the input buffer and `&mut[&mut[f32]]`
-//! for the output buffer, you may face the challenge that you can get
+//! When you pass `&[&[f32]]` for the input buffer and `&mut[&mut[f32]]`
+//! for the output buffer, you may face the challenge that you can have
 //! the buffers for each channel and you can `collect()` them into a `Vec`,
-//! but you don't want to allocate that `Vec` in the realtime thread.
+//! but you don't want to allocate that `Vec` in the real-time thread.
 //! In order you to help overcome this problem, we provide
 //! [`VecStorage` and `VecStorageMut`], which you can pre-allocate and re-use for every
 //! call to `render_buffer` with different lifetimes of the slices.
@@ -87,7 +87,7 @@
 //! When trying to handle one event type in a special way, this no longer
 //! works because Rust does not support specialization (at the time of writing):
 //! the following will not compile.
-//! ```ignore
+//! ```compile_fail
 //! use rsynth::event::EventHandler;
 //! struct MyMiddleware<P> {
 //!     child: P
@@ -148,8 +148,9 @@
 //!
 //! If the event type for which you want to specialize is a type parameter,
 //! you cannot use the `IsNot` trait because the compiler cannot know that
-//! no type (even not in a dependent crate) will event `IsNot<Self>`. This is
-//! just a convention, it is not compiler-enforced and the compiler cannot see
+//! no type (even not in a dependent crate) will implement `IsNot<Self>`.
+//! Not implementing `IsNot<Self>` is just a convention,
+//! it is not compiler-enforced and the compiler cannot see
 //! this. To work around this, you can use the [`Specialize`] trait:
 //!
 //! ```
@@ -191,6 +192,49 @@
 //!
 //! Writing events
 //! ==============
+//! 
+//! Copy
+//! ----
+//!
+//! If possible, implement the `Copy` trait for the event,
+//! so that the `Polyphonic` middleware can dispatch this event to all the voices.
+//!
+//! Compatibility
+//! -------------
+//!
+//! In order to allow specialization for the middleware (see above),
+//! any event type `T1` needs to implement
+//!
+//! * `IsNot<T2>` for every event type `T2` that differs from `T1`
+//! * `Specialize<T>` for every event type `T`, including `T1` itself.
+//!
+//!
+//! ### Compatibility in the manual way
+//!
+//! You can manually implement `IsNot` and `Specialize` as follows.
+//! We include this documentation for clarity; in practice, you may want
+//! to use the macro's as explained below in order to lower the risk that
+//! you forget something.
+//!
+//! #### Implementing `IsNot` by hand
+//!
+//! If you declare more than one event type, you need to ensure that each
+//! event type implements `IsNot` of each other:
+//! ```
+//! use rsynth::dev_utilities::specialize::IsNot;
+//! struct EventType1 {}
+//! struct EventType2 {}
+//! struct EventType3 {}
+//!
+//! impl IsNot<EventType2> for EventType1 {}
+//! impl IsNot<EventType3> for EventType1 {}
+//!
+//! impl IsNot<EventType1> for EventType2 {}
+//! impl IsNot<EventType3> for EventType2 {}
+//!
+//! impl IsNot<EventType1> for EventType3 {}
+//! impl IsNot<EventType2> for EventType3 {}
+//! ```
 //!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! [`Transparent`]: ./transparent/trait.Transparent.html
