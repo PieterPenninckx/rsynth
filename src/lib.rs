@@ -39,17 +39,16 @@ extern crate jack;
 extern crate num;
 extern crate num_traits;
 extern crate vst;
+#[macro_use]
+extern crate syllogism;
+extern crate syllogism_macro;
 
 #[macro_use]
 pub mod dev_utilities;
 pub mod event;
 pub mod backend;
-pub mod dsp;
-pub mod envelope;
 pub mod middleware;
 pub mod note;
-pub mod point;
-pub mod synth;
 
 use asprim::AsPrim;
 use num_traits::Float;

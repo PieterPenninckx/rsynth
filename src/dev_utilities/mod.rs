@@ -113,14 +113,15 @@
 //! ### Specializing for events with a concrete type
 //!
 //! If the event type for which you want to specialize is a concrete type,
-//! you can use the [`IsNot`] trait to distinguish the generic types from the special
-//! type. Because no event type should implement `IsNot<Self>`, the compiler
+//! you can use the [`IsNot`] trait from the `syllogism` crate to distinguish the generic
+//! ypes from the special type.
+//! Because no event type should implement `IsNot<Self>`, the compiler
 //! knows there is no overlap. All event types should implement `IsNot<T>` for all
 //! other types `T`. How this is achieved, is explained below.
 //!
 //! ```
 //! use rsynth::event::EventHandler;
-//! use rsynth::dev_utilities::specialize::IsNot;
+//! use syllogism::IsNot;
 //! struct MyMiddleware<P> {
 //!     child: P
 //! }
@@ -151,11 +152,12 @@
 //! no type (even not in a dependent crate) will implement `IsNot<Self>`.
 //! Not implementing `IsNot<Self>` is just a convention,
 //! it is not compiler-enforced and the compiler cannot see
-//! this. To work around this, you can use the [`Specialize`] trait:
+//! this. To work around this, you can use the `Specialize` trait from the
+//! `syllogism` crate:
 //!
 //! ```
 //! use rsynth::event::EventHandler;
-//! use rsynth::dev_utilities::specialize::{Specialize, Distinction};
+//! use syllogism::{Specialize, Distinction};
 //! struct MyMiddleware<P> {
 //!     child: P
 //! }
@@ -221,7 +223,7 @@
 //! If you declare more than one event type, you need to ensure that each
 //! event type implements `IsNot` of each other:
 //! ```
-//! use rsynth::dev_utilities::specialize::IsNot;
+//! use syllogism::IsNot;
 //! struct EventType1 {}
 //! struct EventType2 {}
 //! struct EventType3 {}
@@ -239,13 +241,9 @@
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! [`Transparent`]: ./transparent/trait.Transparent.html
 //! [`EventHandler`]: ../event/trait.EventHandler.html
-//! [`IsNot`]: ./specialize/trait.IsNot.html
-//! [`Specialize`]: ./specialize/trait.Specialize.html
 //! ["Writing events" below]: ./index.html#writing-events
 pub mod vecstorage;
 pub mod transparent;
-#[macro_use]
-pub mod specialize;
+
 #[macro_use]
 pub mod compatibility;
-

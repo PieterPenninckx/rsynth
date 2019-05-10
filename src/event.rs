@@ -1,24 +1,6 @@
-use dev_utilities::compatibility::NotInCrateRsynth;
-use dev_utilities::specialize::{IsNot, Specialize, Distinction};
-// I see two options to allow handling a large amount of event types:
-// * Work with an `EventHandler<E: EventType>` trait.
-//   In order to enable middleware to both impl `EventHandler<MySpecificType>` and also
-//   `impl<OtherType>` `EventHandler<OtherType>` (by delegating to a child) without getting
-//   overlapping impl, we either need specialization, but this has not landed yet,
-//   or we need to use the `IsNot` trick, which I am not too keen on.
-// * Have one `handle_event` method that takes an `&dyn Any` parameter. This works for all event
-//   types that are `'static` because of the `'static` lifetime requirement on `downcast_ref`.
-//   But SysEx events are not `'static`. There are some possible work arounds for this:
-//    * Store a pre-allocated `Vec<u8>` instead. This is what this struct does, but it has the
-//      downside of not being "zero-copy".
-//    * Use some unsafe blocks to get around the `'static` lifetime requirement on `downcast_ref`.
-//      This would probably be tricky and also not completely memory safe.
-//    * Replace the `&dyn Any` parameter by an `&DynamicEvent` parameter, where 
-//      `enum DynamicEvent<'a> {AnyEvent(&'a dyn Any), SysexEvent(&'a[u8])}`. I tried this, but
-//      I got lifetime errors while trying to `fn downcast(&'a self) -> Option<&SysExEvent<'a>>`.
-//      I guess it's not really possible to create a lifetime "out of thin air" because
-//      the `trait DownCastableTo<T> {fn downcast(&self) -> Option<&T>; }` does not really allow
-//      for a lifetime in `T` that depends on the lifetime of the `&self` parameter.
+use syllogism::{Specialize, Distinction};
+use syllogism_macro::impl_specialization;
+use crate::dev_utilities::compatibility::*;
 
 /// The trait that plugins should implement in order to handle the given type of events.
 pub trait EventHandler<E> {
@@ -36,23 +18,6 @@ impl<'a> SysExEvent<'a> {
     }
 }
 
-impl<'a> IsNot<RawMidiEvent> for SysExEvent<'a>{}
-
-impl<'a> Specialize<SysExEvent<'a>> for SysExEvent<'a> {
-    fn specialize(self) -> Distinction<Self, SysExEvent<'a>> {
-        Distinction::Special(self)
-    }
-}
-
-impl<'a, T> Specialize<T> for SysExEvent<'a>
-    where T: IsNot<SysExEvent<'a>>
-{}
-
-impl_traits_for_rsynth!(impl<'a> trait for SysExEvent<'a>);
-// In theory, the following should also work. In practice, it does not (yet?).
-//impl_traits_for_rsynth_macro!(impl<'a> trait for SysExEvent<'a>);
-
-
 /// A raw midi event.
 /// Use this when you need to be able to clone the event.
 #[derive(Clone, Copy)]
@@ -69,41 +34,17 @@ impl RawMidiEvent {
     }
 }
 
-impl<'a> IsNot<SysExEvent<'a>> for RawMidiEvent {}
-
-impl Specialize<RawMidiEvent> for RawMidiEvent {
-    fn specialize(self) -> Distinction<Self, RawMidiEvent> {
-
-        Distinction::Special(self)
-    }
-}
-
-impl<T> Specialize<T> for RawMidiEvent where T: IsNot<RawMidiEvent> {}
-
 pub struct Timed<E> {
     pub time_in_frames: u32,
     pub event: E
 }
 
+// TODO: Find out what the intention behind `WithTime` was.
 pub trait WithTime {
     fn time_in_frames(&self) -> Option<u32> {
         None
     }
 }
-
-impl<E> IsNot<RawMidiEvent> for Timed<E> {}
-impl WithTime for RawMidiEvent {}
-
-impl<'a, E> IsNot<SysExEvent<'a>> for Timed<E> {}
-impl<'a> WithTime for SysExEvent<'a> {}
-
-impl<E, EE> IsNot<Timed<EE>> for Timed<E> where E: IsNot<EE> {}
-impl<E> WithTime for Timed<E> {
-    fn time_in_frames(&self) -> Option<u32> {
-        Some(self.time_in_frames)
-    }
-}
-impl<E, EE> IsNot<Timed<E>> for EE where EE: NotInCrateRsynth {}
 
 impl<E> Clone for Timed<E> where E: Clone {
     fn clone(&self) -> Self {
@@ -116,9 +57,6 @@ impl<E> Clone for Timed<E> where E: Clone {
 
 impl<E> Copy for Timed<E> where E: Copy {}
 
-impl<E> Specialize<RawMidiEvent> for Timed<E> {}
-impl<'a, E> Specialize<SysExEvent<'a>> for Timed<E> {}
-impl<E, T> Specialize<T> for Timed<E> where T: NotInCrateRsynth {}
 impl<E, T> Specialize<Timed<T>> for Timed<E>
 where E:Specialize<T>
 {
@@ -134,3 +72,12 @@ where E:Specialize<T>
         }
     }
 }
+
+impl_specialization!(
+    trait NotInCrateRsynth;
+    macro macro_for_rsynth;
+
+    type SysExEvent<'a>;
+    type RawMidiEvent;
+    type Timed<E>;
+);

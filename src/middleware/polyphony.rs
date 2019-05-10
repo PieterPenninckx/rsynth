@@ -1,11 +1,12 @@
 use asprim::AsPrim;
-use event::{RawMidiEvent, Timed, EventHandler};
-use note::*;
+use crate::event::{RawMidiEvent, Timed, EventHandler};
+use crate::note::*;
 use num_traits::Float;
 use std::default::Default;
 use std::marker::PhantomData;
-use dev_utilities::{transparent::Transparent, specialize::{Specialize, Distinction}};
-use Plugin;
+use crate::dev_utilities::{transparent::Transparent};
+use crate::Plugin;
+use syllogism::{Specialize, Distinction};
 
 /// Implement this trait if for a struct if you want to use it inside a `Polyphonic`.
 pub trait Voice {
@@ -175,7 +176,7 @@ where
     where
         F: Float + AsPrim,
     {
-        for mut voice in self.voices.iter_mut() {
+        for voice in self.voices.iter_mut() {
             if voice.voice.is_playing() {
                 voice.voice.render_buffer::<F>(inputs, outputs);
             }
@@ -229,8 +230,8 @@ where
                     }
                 }
             },
-            Distinction::Generic(g) => {
-                for mut voice in self.voices.iter_mut() {
+            Distinction::Generic(_g) => {
+                for voice in self.voices.iter_mut() {
                     voice.voice.handle_event(event);
                 }
             }
@@ -318,7 +319,7 @@ where
     fn find_idle_voice<'v>(
         &mut self,
         voices: &'v mut [VoiceWithState<Self::V, Self::State>],
-        note: u8,
+        _note: u8,
     ) -> &'v mut VoiceWithState<Self::V, Self::State> {
         let mut idle_voice_index = None;
         let mut releasing_voice_index = None;

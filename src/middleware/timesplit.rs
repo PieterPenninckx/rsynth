@@ -3,9 +3,10 @@
 
 use asprim::AsPrim;
 use crate::Plugin;
-use event::{EventHandler, Timed, WithTime};
+use crate::event::{EventHandler, Timed, WithTime};
 use num_traits::Float;
-use dev_utilities::{transparent::Transparent, specialize::{Specialize, Distinction}};
+use crate::dev_utilities::{transparent::Transparent};
+use syllogism::{Specialize, Distinction};
 
 pub struct TimeSplit<P, E> {
     plugin: P,

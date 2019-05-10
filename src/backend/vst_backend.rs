@@ -8,8 +8,8 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
-use event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
+use crate::dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
+use crate::event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
 use crate::Plugin;
 use core::cmp;
 use vst::api::Events;
