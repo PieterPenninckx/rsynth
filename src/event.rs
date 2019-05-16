@@ -1,5 +1,8 @@
+#[cfg(feature = "stable")]
 use syllogism::{Specialize, Distinction};
+#[cfg(feature = "stable")]
 use syllogism_macro::impl_specialization;
+#[cfg(feature = "stable")]
 use crate::dev_utilities::compatibility::*;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -39,13 +42,6 @@ pub struct Timed<E> {
     pub event: E
 }
 
-// TODO: Find out what the intention behind `WithTime` was.
-pub trait WithTime {
-    fn time_in_frames(&self) -> Option<u32> {
-        None
-    }
-}
-
 impl<E> Clone for Timed<E> where E: Clone {
     fn clone(&self) -> Self {
         Timed{
@@ -57,6 +53,7 @@ impl<E> Clone for Timed<E> where E: Clone {
 
 impl<E> Copy for Timed<E> where E: Copy {}
 
+#[cfg(feature = "stable")]
 impl<E, T> Specialize<Timed<T>> for Timed<E>
 where E:Specialize<T>
 {
@@ -73,6 +70,7 @@ where E:Specialize<T>
     }
 }
 
+#[cfg(feature = "stable")]
 impl_specialization!(
     trait NotInCrateRsynth;
     macro macro_for_rsynth;

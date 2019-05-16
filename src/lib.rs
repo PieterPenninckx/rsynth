@@ -30,6 +30,9 @@
 //! [`vst`]: ./backend/vst_backend/index.html
 //! [`Polyphony`]: ./middleware/polyphony/index.html
 //! [`ZeroInit`]: ./middleware/zero_init/index.html
+
+#![cfg_attr(not(feature = "stable"), feature(specialization))]
+
 #[macro_use]
 extern crate log;
 extern crate asprim;
@@ -39,8 +42,11 @@ extern crate jack;
 extern crate num;
 extern crate num_traits;
 extern crate vst;
+
+#[cfg(feature = "stable")]
 #[macro_use]
 extern crate syllogism;
+#[cfg(feature = "stable")]
 extern crate syllogism_macro;
 
 #[macro_use]

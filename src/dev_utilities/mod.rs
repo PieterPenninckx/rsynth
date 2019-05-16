@@ -245,5 +245,6 @@
 pub mod vecstorage;
 pub mod transparent;
 
+#[cfg(feature = "stable")]
 #[macro_use]
 pub mod compatibility;

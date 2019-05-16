@@ -3,9 +3,10 @@
 
 use asprim::AsPrim;
 use crate::Plugin;
-use crate::event::{EventHandler, Timed, WithTime};
+use crate::event::{EventHandler, Timed};
 use num_traits::Float;
 use crate::dev_utilities::{transparent::Transparent};
+#[cfg(feature = "stable")]
 use syllogism::{Specialize, Distinction};
 
 pub struct TimeSplit<P, E> {
@@ -65,8 +66,7 @@ where
 impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
 where 
     P: EventHandler<EE>,
-    EE: Specialize<Timed<E>>,
-    EE: WithTime
+    EE: Specialize<Timed<E>>
 {
     fn handle_event(&mut self, event: EE) {
         match <EE as Specialize<Timed<E>>>::specialize(event) {
