@@ -21,6 +21,17 @@ impl<P, E> TimeSplit<P, E> {
             buffer: Vec::with_capacity(capacity)
         }
     }
+
+    fn save_event(&mut self, event: Timed<E>) {
+        if event.time_in_frames != 0 {
+            if self.buffer.len() < self.buffer.capacity() {
+                self.buffer.push(event);
+                return;
+            } else {
+                unimplemented!()
+            }
+        }
+    }
 }
 
 impl<P, E> Transparent for TimeSplit<P, E> {
@@ -63,6 +74,7 @@ where
     }
 }
 
+#[cfg(feature = "stable")]
 impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
 where 
     P: EventHandler<EE>,
@@ -71,18 +83,31 @@ where
     fn handle_event(&mut self, event: EE) {
         match <EE as Specialize<Timed<E>>>::specialize(event) {
             Distinction::Special(event) => {
-                if event.time_in_frames != 0 {
-                    if self.buffer.len() < self.buffer.capacity() {
-                        self.buffer.push(event);
-                        return;
-                    } else {
-                        unimplemented!()
-                    }
-                }
+                self.save_event(event);
             },
             Distinction::Generic(g) => {
                 self.plugin.handle_event(g);
             }
         }
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
+    where
+        P: EventHandler<EE>
+{
+    default fn handle_event(&mut self, event: EE) {
+        self.plugin.handle_event(event);
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<P, E> EventHandler<Timed<E>> for TimeSplit<P, E>
+    where
+        P: EventHandler<Timed<E>>
+{
+    fn handle_event(&mut self, event: Timed<E>) {
+        self.save_event(event);
     }
 }
