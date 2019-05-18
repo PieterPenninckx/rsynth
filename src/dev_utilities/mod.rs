@@ -85,7 +85,7 @@
 //! ```
 //!
 //! When trying to handle one event type in a special way, this no longer
-//! works because Rust does not support specialization (at the time of writing):
+//! works because Rust does not yet support specialization (at the time of writing):
 //! the following will not compile.
 //! ```compile_fail
 //! use rsynth::event::EventHandler;
@@ -108,13 +108,49 @@
 //! ```
 //!
 //! You can solve this problem in two ways, depending on the type that
-//! you want to handle in a special way.
+//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate.
+//! Additionally, we advise to provide also support using specialization:
+//!
+//! In the `Cargo.toml` file:
+//! ```toml
+//! [features]
+//! default=["stable"]
+//! stable=["syllogism", "syllogism-macro"]
+//!
+//! [dependencies]
+//! syllogism = {version = "0.1", optional = true}
+//! syllogism-macro = {version = "0.1", optional = true}
+//! ```
+//!
+//! In your source code:
+//! ```
+//! #[cfg(not(feature = "stable"))]
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where // ...
+//! # P: EventHandler<E> , E: IsNot<SpecialEventType>
+//! {
+//!     // An implementation that uses the syllogism crate.
+//! #    fn handle_event(&mut self, event: E) {
+//! #        self.child.handle_event(event);
+//! #    }
+//! }
+//!
+//! #[cfg(not(feature = "stable"))]
+//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! where // ...
+//! # P: EventHandler<E> , E: IsNot<SpecialEventType> {
+//!     // An implementation that uses specialization.
+//! #    fn handle_event(&mut self, event: E) {
+//! #        self.child.handle_event(event);
+//! #    }
+//! }
+//! ```
 //!
 //! ### Specializing for events with a concrete type
 //!
 //! If the event type for which you want to specialize is a concrete type,
-//! you can use the [`IsNot`] trait from the `syllogism` crate to distinguish the generic
-//! ypes from the special type.
+//! you can use the [`IsNot`] trait from the [`syllogism`] crate to distinguish the generic
+//! types from the special type.
 //! Because no event type should implement `IsNot<Self>`, the compiler
 //! knows there is no overlap. All event types should implement `IsNot<T>` for all
 //! other types `T`. How this is achieved, is explained below.
@@ -152,8 +188,8 @@
 //! no type (even not in a dependent crate) will implement `IsNot<Self>`.
 //! Not implementing `IsNot<Self>` is just a convention,
 //! it is not compiler-enforced and the compiler cannot see
-//! this. To work around this, you can use the `Specialize` trait from the
-//! `syllogism` crate:
+//! this. To work around this, you can use the [`Specialize`] trait from the
+//! [`syllogism`] crate:
 //!
 //! ```
 //! use rsynth::event::EventHandler;
@@ -190,7 +226,7 @@
 //! -----------------------------
 //!
 //! When you publish a middleware crate, let us know by opening an issue or pull request
-//! so that we can link to it in the documentation of rsynth.
+//! so that we can link to it in the documentation of `rsynth`.
 //!
 //! Writing events
 //! ==============
@@ -210,6 +246,12 @@
 //! * `IsNot<T2>` for every event type `T2` that differs from `T1`
 //! * `Specialize<T>` for every event type `T`, including `T1` itself.
 //!
+//! Here "every event type" also needs to include event types defined in other crates that you may
+//! or may not know about. In order to make this possible, open an issue for `rsynth` announcing
+//! that you want to develop a crate and we can provide you
+//!
+//! * a trait that is implemented for all event types defined outside your crate
+//! * a macro that you should use for all event types defined in your crate.
 //!
 //! ### Compatibility in the manual way
 //!
@@ -221,27 +263,42 @@
 //! #### Implementing `IsNot` by hand
 //!
 //! If you declare more than one event type, you need to ensure that each
-//! event type implements `IsNot` of each other:
+//! event type implements `IsNot` of each other. Suppose that you can
+//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`, then you can ensure that
+//! `IsNot` is implemented by hand in the following way:
 //! ```
 //! use syllogism::IsNot;
+//! # trait NotInMyCrate {}
+//! # macro_rules! macro_for_my_crate {
+//! # ($($t:tt)*) => {}
+//! # }
 //! struct EventType1 {}
 //! struct EventType2 {}
 //! struct EventType3 {}
 //!
 //! impl IsNot<EventType2> for EventType1 {}
 //! impl IsNot<EventType3> for EventType1 {}
+//! impl<T> IsNot<T> for EventType1 where T: NotInMyCrate {}
+//! macro_for_my_crate!(impl trait for EventType1);
 //!
 //! impl IsNot<EventType1> for EventType2 {}
 //! impl IsNot<EventType3> for EventType2 {}
+//! impl<T> IsNot<T> for EventType2 where T: NotInMyCrate {}
+//! macro_for_my_crate!(impl trait for EventType2);
 //!
 //! impl IsNot<EventType1> for EventType3 {}
 //! impl IsNot<EventType2> for EventType3 {}
+//! impl<T> IsNot<T> for EventType3 where T: NotInMyCrate {}
+//! macro_for_my_crate!(impl trait for EventType3);
 //! ```
 //!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! [`Transparent`]: ./transparent/trait.Transparent.html
 //! [`EventHandler`]: ../event/trait.EventHandler.html
 //! ["Writing events" below]: ./index.html#writing-events
+//! [`syllogism`]: https://docs.rs/syllogism/0.1.0/syllogism/
+//! [`IsNot`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.IsNot.html
+//! [`Specialize`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.Specialize.html
 pub mod vecstorage;
 pub mod transparent;
 
