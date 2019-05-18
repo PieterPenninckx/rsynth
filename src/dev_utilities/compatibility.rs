@@ -1,4 +1,3 @@
-
 define_compatibility!(
     $
     (NotInCrateRsynth, macro_for_rsynth),

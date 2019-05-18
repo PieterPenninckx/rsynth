@@ -264,8 +264,8 @@
 //!
 //! If you declare more than one event type, you need to ensure that each
 //! event type implements `IsNot` of each other. Suppose that you can
-//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`, then you can ensure that
-//! `IsNot` is implemented by hand in the following way:
+//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`,
+//! then you can ensure by hand that `IsNot` is implemented:
 //! ```
 //! use syllogism::IsNot;
 //! # trait NotInMyCrate {}
@@ -292,6 +292,80 @@
 //! macro_for_my_crate!(impl trait for EventType3);
 //! ```
 //!
+//! #### Implementing `Specialize` by hand
+//!
+//! Each event type needs to implement `Specialize<Self>`.
+//! Additionally, if you declare more than one event type, you need to ensure that each
+//! event type implements `Specialize` of each other.
+//! Suppose that you can
+//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`, then you can ensure by hand
+//! that `Specialize` is implemented:
+//! ```
+//! use syllogism::{Specialize, Distinction};
+//! # trait NotInMyCrate {}
+//! # macro_rules! macro_for_my_crate {
+//! # ($($t:tt)*) => {}
+//! # }
+//! struct EventType1 {}
+//! struct EventType2 {}
+//! struct EventType3 {}
+//!
+//! impl Specialize<EventType1> for EventType1 {
+//!     fn specialize(self) -> Distinction<EventType1, Self> {
+//!         Distinction::Special(self)
+//!     }
+//! }
+//! impl Specialize<EventType2> for EventType1 {
+//!     fn specialize(self) -> Distinction<EventType2, Self> {
+//!         Distinction::Generic(self)
+//!     }
+//! }
+//! impl Specialize<EventType3> for EventType1 {
+//!     fn specialize(self) -> Distinction<EventType3, Self> {
+//!         Distinction::Generic(self)
+//!     }
+//! }
+//! impl<T> Specialize<T> for EventType1 where T: NotInMyCrate {
+//!     fn specialize(self) -> Distinction<T, Self> {
+//!         Distinction::Generic(self)
+//!     }
+//! }
+//! macro_for_my_crate!(impl trait for EventType1);
+//!
+//! // And similar for `EventType2` and `EventType3`, I'm omitting this for brevity.
+//! ```
+//!
+//! ### Compatibility by using the macros from `syllogism-macro`
+//!
+//! Most of the implementations of `IsNot` and `Specialize` can be done by using
+//! the macro [`impl_specialization`] from the `syllogism-macro` crate:
+//! under the same assumptions as above, this can be simplified
+//! to the following (but see the note below for types with type parameters):
+//! ```
+//! use syllogism_macro::impl_specialization;
+//! # trait NotInMyCrate {}
+//! # macro_rules! macro_for_my_crate {
+//! # ($($t:tt)*) => {}
+//! # }
+//! struct EventType1 {}
+//! struct EventType2 {}
+//! struct EventType3 {}
+//!
+//! impl_specialization!(
+//!     trait NotInMyCrate;
+//!     macro macro_for_my_crate;
+//!
+//!     type EventType1;
+//!     type EventType2;
+//!     type EventType3;
+//! );
+//! # fn main () {}
+//! ```
+//! The caveats are that for types with type parameters, you still need to implement `Specialize`
+//! by hand and if you have more types with type parameters, you must use different names for
+//! the type parameters in the call to the [`impl_specialization`] macro.
+//! For more information, see the documentation of [`impl_specialization`].
+//!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! [`Transparent`]: ./transparent/trait.Transparent.html
 //! [`EventHandler`]: ../event/trait.EventHandler.html
@@ -299,6 +373,7 @@
 //! [`syllogism`]: https://docs.rs/syllogism/0.1.0/syllogism/
 //! [`IsNot`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.IsNot.html
 //! [`Specialize`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.Specialize.html
+//! [`impl_specialization`]: https://docs.rs/syllogism-macro/0.1.0/syllogism_macro/macro.impl_specialization.html
 pub mod vecstorage;
 pub mod transparent;
 
