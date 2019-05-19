@@ -8,11 +8,8 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use super::{Event, Plugin, RawMidiEvent};
-use backend::{
-    utilities::{VecStorage, VecStorageMut},
-    HostInterface,
-};
+use crate::{Plugin, event::{RawMidiEvent, Timed, EventHandler}};
+use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
@@ -23,7 +20,7 @@ impl<'c> HostInterface for &'c Client {}
 
 fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    for<'c> P: Plugin<E, &'c Client>,
+    for<'c> P: Plugin<&'c Client>,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -44,9 +41,8 @@ where
     in_ports
 }
 
-fn audio_out_ports<P, E>(client: &Client) -> Vec<Port<AudioOut>>
-where
-    for<'c> P: Plugin<E, &'c Client>,
+fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
+    for<'c> P: Plugin<&'c Client>,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -73,13 +69,12 @@ struct JackProcessHandler<P> {
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
     inputs: VecStorage<[f32]>,
-    outputs: VecStorageMut<[f32]>,
+    outputs: VecStorageMut<[f32]>
 }
 
 impl<P> JackProcessHandler<P>
 where
-    P: Send,
-    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
+    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
@@ -93,8 +88,8 @@ where
                 None
             }
         };
-        let audio_in_ports = audio_in_ports::<P, _>(&client);
-        let audio_out_ports = audio_out_ports::<P, _>(&client);
+        let audio_in_ports = audio_in_ports::<P>(&client);
+        let audio_out_ports = audio_out_ports::<P>(&client);
 
         let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
 
@@ -106,7 +101,7 @@ where
             midi_in_port,
             plugin,
             inputs,
-            outputs,
+            outputs
         }
     }
 
@@ -132,7 +127,7 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
+    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>>
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope, client);
@@ -167,7 +162,7 @@ where
 pub fn run<P>(mut plugin: P)
 where
     P: Send,
-    for<'a, 'c> P: Plugin<Event<RawMidiEvent<'a>, ()>, &'c Client>,
+    for<'c> P: Plugin + EventHandler<Timed<RawMidiEvent>>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 

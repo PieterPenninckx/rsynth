@@ -8,19 +8,15 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use backend::Event;
-use backend::Plugin;
-use backend::RawMidiEvent;
-use backend::Transparent;
-use backend::{
-    utilities::{VecStorage, VecStorageMut},
-    HostInterface,
-};
+use crate::dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
+use crate::event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
+use crate::Plugin;
+use crate::backend::HostInterface;
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
-use vst::event::Event as VstEvent;
+use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
@@ -47,13 +43,13 @@ pub struct VstPluginWrapper<P> {
     inputs_f32: VecStorage<[f32]>,
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
-    outputs_f64: VecStorageMut<[f64]>,
+    outputs_f64: VecStorageMut<[f64]>
 }
 
 impl<P> VstPluginWrapper<P>
 where
-    P: VstPlugin,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>, HostCallback>,
+    P: Plugin<HostCallback> + VstPlugin + EventHandler<Timed<RawMidiEvent>, HostCallback>,
+    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -74,7 +70,7 @@ where
             outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            host,
+            host
         }
     }
 
@@ -139,15 +135,46 @@ where
         trace!("process_events");
         for e in events.events() {
             match e {
-                VstEvent::Midi(VstMidiEvent {
-                    data, delta_frames, ..
+                VstEvent::SysEx(VstSysExEvent {
+                    payload, delta_frames, ..
                 }) => {
-                    let event = Event::Timed {
-                        samples: delta_frames as u32,
-                        event: RawMidiEvent { data: &data },
+                    /*
+                    if self.event_buffer.capacity() == 0 {
+                        error!("Vst wrapper event buffer is empty. This is a bug in the `rsynth` crate.");
+                        continue;
+                    }
+                    if payload.len() > self.event_buffer.capacity() {
+                        warn!("Got sysex event with {} bytes, but buffer only foresees {} bytes. Ignoring this event.", payload.len(), self.event_buffer.capacity());
+                        continue;
+                    }
+
+                    // `Vec::new()` does not allocate.
+                    let mut buffer = mem::replace(&mut self.event_buffer, Vec::new());
+
+                    buffer.clear();
+                    buffer.extend_from_slice(&payload);
+                    */
+                    let event = Timed {
+                        time_in_frames: delta_frames as u32,
+                        event: SysExEvent::new(payload),
                     };
-                    self.plugin.handle_event(&event, &mut self.host);
-                }
+                    self.plugin.handle_event(event, &mut self.host);
+
+                    /*
+                    let retrieved_buffer = event.event.into_inner();
+
+                    mem::replace(&mut self.event_buffer, retrieved_buffer);
+                    */
+                },
+                VstEvent::Midi(VstMidiEvent {
+                                    data, delta_frames, ..
+                                }) => {
+                    let event = Timed {
+                        time_in_frames: delta_frames as u32,
+                        event: RawMidiEvent::new(data),
+                    };
+                    self.plugin.handle_event(event, &mut self.host);
+                },
                 _ => (),
             }
         }
@@ -176,7 +203,19 @@ impl HostInterface for HostCallback {}
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::backend::{HostInterface, vst_backend::VstPlugin};
+/// use rsynth::{
+///     Plugin, 
+///     event::{
+///         EventHandler,
+///         Timed,
+///         RawMidiEvent,
+///         SysExEvent
+///     },
+///     backend::{
+///         HostInterface,
+///         vst_backend::VstPlugin
+///     }
+/// };
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -184,11 +223,10 @@ impl HostInterface for HostCallback {}
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::backend::{Plugin, Event, RawMidiEvent};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<'e, U, H> Plugin<Event<RawMidiEvent<'e>, U>, H> for MyPlugin
+/// impl<H> Plugin<H> for MyPlugin
 /// where
 ///     H: HostInterface,
 /// {
@@ -213,10 +251,21 @@ impl HostInterface for HostCallback {}
 /// #    {
 /// #        unimplemented!()
 /// #    }
-/// #
-/// #    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>, context: &mut H) {
-/// #        unimplemented!()
-/// #    }
+/// }
+/// 
+/// impl<H> EventHandler<Timed<RawMidiEvent>, H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
+/// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut H) {}
+///     // Implementation omitted for brevity.
+/// }
+/// impl<'a, H> EventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
+/// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>, context: &mut H) {}
+///     // Implementation omitted for brevity.
 /// }
 /// vst_init!(
 ///    fn init() -> MyPlugin {

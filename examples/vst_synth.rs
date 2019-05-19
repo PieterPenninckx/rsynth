@@ -12,9 +12,15 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-use rsynth::backend::{
-    output_mode::{Additive, OutputMode},
-    vst_backend::VstPlugin,
+use rsynth::{
+    output_mode::{
+        OutputMode, Additive
+    }, 
+    event::{
+        Timed,
+        RawMidiEvent
+    },
+    backend::vst_backend::VstPlugin
 };
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 
@@ -29,7 +35,7 @@ where
 }
 
 vst_init!(
-    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>> {
+    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
         initialize_logging();
 
         let mut voices = Vec::new();
