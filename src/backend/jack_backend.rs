@@ -218,3 +218,12 @@ where
         }
     }
 }
+
+// Not yet needed because we do not yet have Jack-specific types.
+/*
+#[cfg(feature = "stable")]
+impl_specialization!(
+    trait NotInCrateRsynthFeatureJack;
+    macro macro_for_rsynth_feature_jack;
+);
+*/
