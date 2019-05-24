@@ -10,6 +10,7 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::{Plugin, event::{RawMidiEvent, Timed, EventHandler}};
 use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use crate::backend::HostInterface;
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
@@ -18,7 +19,7 @@ use std::slice;
 
 impl<'c> HostInterface for &'c Client {}
 
-fn audio_in_ports<P, E>(client: &Client) -> Vec<Port<AudioIn>>
+fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
     for<'c> P: Plugin<&'c Client>,
 {
@@ -42,6 +43,7 @@ where
 }
 
 fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
+where
     for<'c> P: Plugin<&'c Client>,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
@@ -111,14 +113,17 @@ where
         if let Some(ref mut midi_in_port) = self.midi_in_port {
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
-                let raw_midi_event = RawMidiEvent {
-                    data: input_event.bytes,
-                };
-                let event = Event::Timed {
+                if input_event.bytes.len() != 3 {
+                    error!("Midi event is not three bytes.");
+                    continue;
+                }
+                // TODO: handle SysEx events
+                let raw_midi_event = RawMidiEvent::new([input_event.bytes[0], input_event.bytes[1], input_event.bytes[2]]);
+                let event = Timed {
                     event: raw_midi_event,
-                    samples: input_event.time,
+                    time_in_frames: input_event.time,
                 };
-                self.plugin.handle_event(&event, &mut &*client);
+                self.plugin.handle_event(event, &mut &*client);
             }
         }
     }
@@ -127,7 +132,7 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>>
+    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope, client);
@@ -162,7 +167,7 @@ where
 pub fn run<P>(mut plugin: P)
 where
     P: Send,
-    for<'c> P: Plugin + EventHandler<Timed<RawMidiEvent>>,
+    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 
