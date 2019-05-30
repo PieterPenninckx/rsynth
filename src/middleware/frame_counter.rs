@@ -2,9 +2,9 @@ use asprim::AsPrim;
 use num_traits::Float;
 #[cfg(feature = "stable")]
 use syllogism::IsNot;
+use std::borrow::{Borrow, BorrowMut};
 
 use crate::Plugin;
-use crate::backend::HostInterface;
 use crate::event::EventHandler;
 
 /// Example middleware to illustrate how middleware can interfere with the context.
@@ -23,58 +23,103 @@ pub struct FrameCounterContext<'sc, 'cc, C> {
     child_context: &'cc mut C
 }
 
-// TODO: improve this part.
-impl<H: HostInterface> IsNot<H> for FrameCounter {}
-
-impl<'sc, 'cc, C, T: IsNot<FrameCounter>> AsRef<T> for FrameCounterContext<'sc, 'cc, C>
-where C: AsRef<T>
+#[cfg(feature = "stable")]
+impl<'sc, 'cc, C> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 {
-    fn as_ref(&self) -> &T {
-        self.child_context.as_ref()
+    fn borrow(&self) -> &FrameCounter {
+        self.frame_counter
     }
 }
 
-impl<'sc, 'cc, C, T: IsNot<FrameCounter>> AsMut<T> for FrameCounterContext<'sc, 'cc, C>
-where C: AsMut<T>
+#[cfg(feature = "stable")]
+impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
+where
+    C: Borrow<T>,
+    T: IsNot<FrameCounter> 
 {
-    fn as_mut(&mut self) -> &mut T {
-        self.child_context.as_mut()
+    fn borrow(&self) -> &T {
+        (*self.child_context).borrow()
     }
 }
 
-impl<'sc, 'cc, C> AsRef<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
-    fn as_ref(&self) -> &FrameCounter {
-        &self.frame_counter
+#[cfg(feature = "stable")]
+impl<'sc, 'cc, C> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+{
+    fn borrow_mut(&mut self) -> &mut FrameCounter {
+        self.frame_counter
     }
 }
 
-impl<'sc, 'cc, C> AsMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
-    fn as_mut(&mut self) -> &mut FrameCounter {
-        &mut self.frame_counter
+#[cfg(feature = "stable")]
+impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+where
+    C: BorrowMut<T>,
+    T: IsNot<FrameCounter> 
+{
+    fn borrow_mut(&mut self) -> &mut T {
+        self.child_context.borrow_mut()
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'sc, 'cc, C, T> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+{
+    fn borrow(&self) -> &FrameCounter {
+        self.frame_counter
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
+where
+    C: Borrow<T>
+{
+    default fn borrow(&self) -> &T {
+        self.child_context.borrow()
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'sc, 'cc, C> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+{
+    fn borrow_mut(&mut self) -> &mut FrameCounter {
+        self.frame_counter
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+where
+    C: BorrowMut<T>
+{
+    default fn borrow_mut(&mut self) -> &mut T {
+        self.child_context.borrow_mut()
+    }
+}
+
+pub trait WithFrameCounter {
+    fn frame_counter(&self) -> &FrameCounter;
+}
+
+impl<T> WithFrameCounter for T where T: Borrow<FrameCounter> {
+    fn frame_counter(&self) -> &FrameCounter {
+        self.borrow()
+    }
+}
+
+pub trait WithFrameCounterMut {
+    fn frame_counter_mut(&mut self) -> &mut FrameCounter;
+}
+
+impl<T> WithFrameCounterMut for T where T: BorrowMut<FrameCounter> {
+    fn frame_counter_mut(&mut self) -> &mut FrameCounter {
+        self.borrow_mut()
     }
 }
 
 pub struct FrameCounterMiddleware<P> {
     sample_counter: FrameCounter,
     child_plugin: P
-}
-
-pub trait WithFrameCounter {
-    fn sample_counter(&self) -> &FrameCounter;
-}
-impl<T> WithFrameCounter for T where T: AsRef<FrameCounter> {
-    fn sample_counter(&self) -> &FrameCounter {
-        self.as_ref()
-    }
-}
-
-pub trait WithFrameCounterMut {
-    fn sample_counter_mut(&mut self) -> &mut FrameCounter;
-}
-impl<T> WithFrameCounterMut for T where T: AsMut<FrameCounter> {
-    fn sample_counter_mut(&mut self) -> &mut FrameCounter {
-        self.as_mut()
-    }
 }
 
 impl<P, C> Plugin<C> for FrameCounterMiddleware<P>

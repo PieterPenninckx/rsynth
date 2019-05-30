@@ -52,6 +52,7 @@ extern crate syllogism_macro;
 #[macro_use]
 pub mod dev_utilities;
 pub mod event;
+pub mod context;
 pub mod backend;
 pub mod middleware;
 pub mod note;
