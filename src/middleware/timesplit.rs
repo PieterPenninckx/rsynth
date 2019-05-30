@@ -93,9 +93,9 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
-impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
+impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
     where
-        P: EventHandler<EE>
+        P: EventHandler<EE, C>
 {
     default fn handle_event(&mut self, event: EE) {
         self.plugin.handle_event(event);
@@ -103,9 +103,9 @@ impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
 }
 
 #[cfg(not(feature = "stable"))]
-impl<P, E> EventHandler<Timed<E>> for TimeSplit<P, E>
+impl<P, E, C> EventHandler<Timed<E>, C> for TimeSplit<P, E>
     where
-        P: EventHandler<Timed<E>>
+        P: EventHandler<Timed<E>, C>
 {
     fn handle_event(&mut self, event: Timed<E>) {
         self.save_event(event);

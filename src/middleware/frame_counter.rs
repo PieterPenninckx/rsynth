@@ -6,11 +6,14 @@ use std::borrow::{Borrow, BorrowMut};
 
 use crate::Plugin;
 use crate::event::EventHandler;
+use crate::context::ContextFeature;
 
 /// Example middleware to illustrate how middleware can interfere with the context.
 pub struct FrameCounter {
     number_of_frames_rendered: usize
 }
+
+impl ContextFeature for FrameCounter {}
 
 impl FrameCounter {
     pub fn number_of_frames_rendered(&self) -> usize {
@@ -62,7 +65,7 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
-impl<'sc, 'cc, C, T> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+impl<'sc, 'cc, C> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 {
     fn borrow(&self) -> &FrameCounter {
         self.frame_counter
@@ -72,7 +75,8 @@ impl<'sc, 'cc, C, T> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 #[cfg(not(feature = "stable"))]
 impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
 where
-    C: Borrow<T>
+    C: Borrow<T>,
+    T: ContextFeature
 {
     default fn borrow(&self) -> &T {
         self.child_context.borrow()
@@ -90,7 +94,8 @@ impl<'sc, 'cc, C> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 #[cfg(not(feature = "stable"))]
 impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
 where
-    C: BorrowMut<T>
+    C: BorrowMut<T>,
+    T: ContextFeature
 {
     default fn borrow_mut(&mut self) -> &mut T {
         self.child_context.borrow_mut()

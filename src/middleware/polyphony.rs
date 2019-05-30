@@ -279,7 +279,7 @@ where
 impl<Vc, VSM, E, C> EventHandler<E, C> for Polyphonic<Vc, VSM, E>
     where
         VSM: VoiceStealMode<V = Vc>,
-        Vc: Plugin + Voice + EventHandler<E, C>,
+        Vc: Plugin<C> + Voice + EventHandler<E, C>,
         E: PolyphonicEvent
 {
     fn handle_event(&mut self, event: E, context: &mut C) {
