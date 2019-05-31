@@ -77,18 +77,15 @@ use num_traits::Float;
 // The `Plugin` trait is not object safe. In practice, this is not a problem for using `rust-vst`
 // because an extra macro wraps it.
 //
-// Type parameter for the event type
+// Separate EventHandler trait
 // ---------------------------------
-// The current design has a type parameter for the event type in the `Plugin` trait.
-// We are currently working on splitting `handle_event` to a separate trait
+// There is a separate trait for event handling: 
 // ```
 // trait EventHandler<E> {
 //      fn handle_event(&mut self, event: E);
 // }
 // ```
 // In this way, other crates can define their own event types.
-// The block on that road is to allow the middleware to specialise for special event types.
-// Rust doesn't support specialization (yet), so we're working on a work-around.
 // 
 // Associated constants for plugin meta-data
 // -----------------------------------------
@@ -178,13 +175,12 @@ use num_traits::Float;
 // mechanism to "add fields to a struct defined elsewhere".
 // This is not possible of course, but we can define traits like `WithContext`, `WithSamples`,
 // `WithHost` etc, compose structs and use blanket impls to make it all work. This sounds very
-// handwavy, but we're already making good progress and the bulk of the complexity is for
+// handwavy, but we've already largely implemented this and the bulk of the complexity is for
 // the back-end and the middleware: the plugin can simply 
 // `impl Plugin<C> for MyPlugin where C: WithContext + WithSamples`
 // etc., depending on what properties of the context the plugin wants to use.
 
 /// The trait that all plugins need to implement.
-/// The type parameter `E` represents the type of events the plugin supports.
 pub trait Plugin {
     /// The name of the plugin.
     const NAME: &'static str;
