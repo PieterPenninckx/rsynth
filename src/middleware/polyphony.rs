@@ -403,7 +403,7 @@ mod polyphony_tests {
             voices.push(TestVoice::new(i));
         }
 
-        let mut polyphonic = Polyphonic::new(TestVoiceStealer, voices);
+        let mut polyphonic = Polyphonic::<_, _, StartPlayEvent>::new(TestVoiceStealer, voices);
         polyphonic.handle_event(StartPlayEvent{});
         polyphonic.handle_event(OtherEvent{});
     }

@@ -123,26 +123,30 @@
 //! ```
 //!
 //! In your source code:
+//! In your source code:
 //! ```
+//! #![cfg_attr(not(feature = "stable"), feature(specialization))]
+//! # use rsynth::event::EventHandler;
+//! # struct MyMiddleware<P> {
+//! #     child: P
+//! # }
 //! #[cfg(not(feature = "stable"))]
 //! impl<E, P> EventHandler<E> for MyMiddleware<P>
 //! where // ...
-//! # P: EventHandler<E> , E: IsNot<SpecialEventType>
 //! {
-//!     // An implementation that uses the syllogism crate.
-//! #    fn handle_event(&mut self, event: E) {
-//! #        self.child.handle_event(event);
-//! #    }
+//!     default fn handle_event(&mut self, event: E) {
+//!         // The generic implementation.
+//!     }
 //! }
 //!
+//! # struct SpecialEventType {}
 //! #[cfg(not(feature = "stable"))]
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
 //! where // ...
-//! # P: EventHandler<E> , E: IsNot<SpecialEventType> {
-//!     // An implementation that uses specialization.
-//! #    fn handle_event(&mut self, event: E) {
-//! #        self.child.handle_event(event);
-//! #    }
+//! {
+//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!         // The specific implementation.
+//!     }
 //! }
 //! ```
 //!
