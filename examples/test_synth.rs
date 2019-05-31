@@ -100,8 +100,8 @@ where
 
     #[allow(unused_variables)]
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
-        where
-            F: Float + AsPrim,
+    where
+        F: Float + AsPrim,
     {
         assert_eq!(2, outputs.len());
         // for every output
@@ -135,7 +135,8 @@ where
         // We currently ignore the `time_in_frames` field.
         // There are some vague plans to add middleware that makes it easier
         // to make sample-accurate plugins.
-        // As a developer, we are simply waiting for that.
+        // As a developer, we are simply waiting for that, so right
+        // now it's not sample-accurate.
         let state_and_chanel = timed.event.data()[0];
 
         // We are digging into the details of midi-messages here.

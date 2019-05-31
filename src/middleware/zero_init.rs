@@ -53,8 +53,8 @@ where
     }
 
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
-        where
-            F: Float + AsPrim,
+    where
+        F: Float + AsPrim,
     {
         for output in outputs.iter_mut() {
             for sample in output.iter_mut() {

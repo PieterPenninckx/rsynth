@@ -68,7 +68,7 @@ struct JackProcessHandler<P> {
     midi_in_port: Option<Port<MidiIn>>,
     plugin: P,
     inputs: VecStorage<[f32]>,
-    outputs: VecStorageMut<[f32]>
+    outputs: VecStorageMut<[f32]>,
 }
 
 impl<P> JackProcessHandler<P>
@@ -100,7 +100,7 @@ where
             midi_in_port,
             plugin,
             inputs,
-            outputs
+            outputs,
         }
     }
 
