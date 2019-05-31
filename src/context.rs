@@ -11,5 +11,3 @@ impl_specialization!(
 
     type FrameCounter;
 );
-
-pub trait ContextFeature {}

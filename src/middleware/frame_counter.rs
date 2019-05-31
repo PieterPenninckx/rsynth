@@ -6,14 +6,11 @@ use std::borrow::{Borrow, BorrowMut};
 
 use crate::Plugin;
 use crate::event::EventHandler;
-use crate::context::ContextFeature;
 
 /// Example middleware to illustrate how middleware can interfere with the context.
 pub struct FrameCounter {
     number_of_frames_rendered: usize
 }
-
-impl ContextFeature for FrameCounter {}
 
 impl FrameCounter {
     pub fn number_of_frames_rendered(&self) -> usize {
@@ -65,40 +62,88 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
-impl<'sc, 'cc, C> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
-{
-    fn borrow(&self) -> &FrameCounter {
-        self.frame_counter
-    }
-}
+pub mod nightly {
+    use super::{FrameCounter, FrameCounterContext};
 
-#[cfg(not(feature = "stable"))]
-impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
-where
-    C: Borrow<T>,
-    T: ContextFeature
-{
-    default fn borrow(&self) -> &T {
-        self.child_context.borrow()
+    // Thanks to Lymia for this trick.
+    // For more info, see
+    // https://github.com/rust-lang/rust/issues/31844#issuecomment-397650553
+    trait UniversalBorrow<T> {
+        fn borrow(&self) -> &T;
     }
-}
 
-#[cfg(not(feature = "stable"))]
-impl<'sc, 'cc, C> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
-{
-    fn borrow_mut(&mut self) -> &mut FrameCounter {
-        self.frame_counter
+    trait UniversalBorrowMut<T> {
+        fn borrow_mut(&mut self) -> &mut T;
     }
-}
 
-#[cfg(not(feature = "stable"))]
-impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
-where
-    C: BorrowMut<T>,
-    T: ContextFeature
-{
-    default fn borrow_mut(&mut self) -> &mut T {
-        self.child_context.borrow_mut()
+    impl<'sc, 'cc, C, T> UniversalBorrow<T> for FrameCounterContext<'sc, 'cc, C> {
+        default fn borrow(&self) -> &T {
+            unreachable!();
+        }
+    }
+
+    impl<'sc, 'cc, C, T> UniversalBorrow<T> for FrameCounterContext<'sc, 'cc, C>
+        where
+            FrameCounterContext <'sc, 'cc, C>: GenericBorrow<T> {
+        fn borrow(&self) -> & T {
+            self.borrow();
+        }
+    }
+
+    impl<'sc, 'cc, C, T> UniversalBorrowMut<T> for FrameCounterContext<'sc, 'cc, C> {
+        default fn borrow_mut(&mut self) -> &mut T {
+            unreachable!();
+        }
+    }
+
+    impl<'sc, 'cc, C, T> UniversalBorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+        where
+            FrameCounterContext <'sc, 'cc, C>: GenericBorrow<T> {
+        fn borrow_mut(&mut self) -> &mut T {
+            self.borrow_mut();
+        }
+    }
+
+    trait GenericOrSpecial<T> {}
+
+    impl<'sc, 'cc, C, T> GenericOrSpecial<T> for FrameCounterContext<'sc, 'cc, C>
+    where
+        FrameCounterContext < 'sc, 'cc, C >: GenericBorrow<T> {
+    }
+
+    impl<'sc, 'cc, C, T> GenericOrSpecial<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
+    }
+
+    impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
+    where
+        FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
+        fn borrow(&self) -> &T {
+            (self as UniversalBorrow<T>)::borrow()
+        }
+    }
+
+    impl<'sc, 'cc, C, T> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+        where
+            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
+        fn borrow(&self) -> &FrameCounter {
+            self.frame_counter
+        }
+    }
+
+    impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+        where
+            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
+        fn borrow_mut(&mut self) -> &mut T {
+            (self as UniversalBorrowMut<T>)::borrow_mut()
+        }
+    }
+
+    impl<'sc, 'cc, C, T> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+        where
+            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
+        fn borrow(&mut self) -> &mut FrameCounter {
+            self.frame_counter
+        }
     }
 }
 

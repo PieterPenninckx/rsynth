@@ -97,8 +97,8 @@ impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
     where
         P: EventHandler<EE, C>
 {
-    default fn handle_event(&mut self, event: EE) {
-        self.plugin.handle_event(event);
+    default fn handle_event(&mut self, event: EE, context: &mut C) {
+        self.plugin.handle_event(event, context);
     }
 }
 
@@ -107,7 +107,7 @@ impl<P, E, C> EventHandler<Timed<E>, C> for TimeSplit<P, E>
     where
         P: EventHandler<Timed<E>, C>
 {
-    fn handle_event(&mut self, event: Timed<E>) {
+    fn handle_event(&mut self, event: Timed<E>, _context: &mut C) {
         self.save_event(event);
     }
 }

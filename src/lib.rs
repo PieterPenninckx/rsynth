@@ -31,7 +31,7 @@
 //! [`Polyphony`]: ./middleware/polyphony/index.html
 //! [`ZeroInit`]: ./middleware/zero_init/index.html
 
-#![cfg_attr(not(feature = "stable"), feature(specialization))]
+#![cfg_attr(not(feature = "stable"), feature(specialization, overlapping_marker_traits))]
 
 #[macro_use]
 extern crate log;
