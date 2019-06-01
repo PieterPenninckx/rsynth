@@ -138,7 +138,8 @@ where
         // We currently ignore the `time_in_frames` field.
         // There are some vague plans to add middleware that makes it easier
         // to make sample-accurate plugins.
-        // As a developer, we are simply waiting for that.
+        // As a developer, we are simply waiting for that, so right
+        // now it's not sample-accurate.
         let state_and_chanel = timed.event.data()[0];
 
         // We are digging into the details of midi-messages here.

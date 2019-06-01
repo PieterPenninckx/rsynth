@@ -43,7 +43,7 @@ pub struct VstPluginWrapper<P> {
     inputs_f32: VecStorage<[f32]>,
     outputs_f32: VecStorageMut<[f32]>,
     inputs_f64: VecStorage<[f64]>,
-    outputs_f64: VecStorageMut<[f64]>
+    outputs_f64: VecStorageMut<[f64]>,
 }
 
 impl<P> VstPluginWrapper<P>
@@ -70,7 +70,7 @@ where
             outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
             outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            host
+            host,
         }
     }
 
@@ -138,33 +138,11 @@ where
                 VstEvent::SysEx(VstSysExEvent {
                     payload, delta_frames, ..
                 }) => {
-                    /*
-                    if self.event_buffer.capacity() == 0 {
-                        error!("Vst wrapper event buffer is empty. This is a bug in the `rsynth` crate.");
-                        continue;
-                    }
-                    if payload.len() > self.event_buffer.capacity() {
-                        warn!("Got sysex event with {} bytes, but buffer only foresees {} bytes. Ignoring this event.", payload.len(), self.event_buffer.capacity());
-                        continue;
-                    }
-
-                    // `Vec::new()` does not allocate.
-                    let mut buffer = mem::replace(&mut self.event_buffer, Vec::new());
-
-                    buffer.clear();
-                    buffer.extend_from_slice(&payload);
-                    */
                     let event = Timed {
                         time_in_frames: delta_frames as u32,
                         event: SysExEvent::new(payload),
                     };
                     self.plugin.handle_event(event, &mut self.host);
-
-                    /*
-                    let retrieved_buffer = event.event.into_inner();
-
-                    mem::replace(&mut self.event_buffer, retrieved_buffer);
-                    */
                 },
                 VstEvent::Midi(VstMidiEvent {
                                     data, delta_frames, ..
@@ -368,3 +346,12 @@ macro_rules! vst_init {
         plugin_main!(VstWrapperWrapper);
     }
 }
+
+// Not yet needed because we do not yet have Vst-specific types.
+/*
+#[cfg(feature = "stable")]
+impl_specialization!(
+    trait NotInCrateRsynthFeatureVst;
+    macro macro_for_rsynth_feature_vst;
+);
+*/

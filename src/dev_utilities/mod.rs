@@ -123,8 +123,9 @@
 //! ```
 //!
 //! In your source code:
-//! ```ignore
-//! #![feature(specialization)]
+//! In your source code:
+//! ```
+//! #![cfg_attr(not(feature = "stable"), feature(specialization))]
 //! # use rsynth::event::EventHandler;
 //! # struct MyMiddleware<P> {
 //! #     child: P
@@ -255,6 +256,13 @@
 //!
 //! * a trait that is implemented for all event types defined outside your crate
 //! * a macro that you should use for all event types defined in your crate.
+//!
+//! In the meanwhile, you can use the trait `NotInUnpublishedCrate` and the macro
+//! `macro_for_unpublished_crate`.
+//!
+//! Please note that there are some subtleties around defining events with conditional compilation.
+//! If you are planning to define some events only when some compile-time conditions are met,
+//! please state so in the issue and we can discuss how we will handle this.
 //!
 //! ### Compatibility in the manual way
 //!

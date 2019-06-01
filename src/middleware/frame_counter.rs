@@ -64,6 +64,7 @@ where
 #[cfg(not(feature = "stable"))]
 pub mod nightly {
     use super::{FrameCounter, FrameCounterContext};
+    use std::borrow::{Borrow, BorrowMut};
 
     // Thanks to Lymia for this trick.
     // For more info, see
@@ -84,7 +85,7 @@ pub mod nightly {
 
     impl<'sc, 'cc, C, T> UniversalBorrow<T> for FrameCounterContext<'sc, 'cc, C>
         where
-            FrameCounterContext <'sc, 'cc, C>: GenericBorrow<T> {
+            FrameCounterContext <'sc, 'cc, C>: UniversalBorrow<T> {
         fn borrow(&self) -> & T {
             self.borrow();
         }
@@ -98,7 +99,7 @@ pub mod nightly {
 
     impl<'sc, 'cc, C, T> UniversalBorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
         where
-            FrameCounterContext <'sc, 'cc, C>: GenericBorrow<T> {
+            FrameCounterContext <'sc, 'cc, C>: UniversalBorrow<T> {
         fn borrow_mut(&mut self) -> &mut T {
             self.borrow_mut();
         }
@@ -118,7 +119,7 @@ pub mod nightly {
     where
         FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
         fn borrow(&self) -> &T {
-            (self as UniversalBorrow<T>)::borrow()
+            <self as UniversalBorrow<T>>::borrow()
         }
     }
 
@@ -134,7 +135,7 @@ pub mod nightly {
         where
             FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
         fn borrow_mut(&mut self) -> &mut T {
-            (self as UniversalBorrowMut<T>)::borrow_mut()
+            <self as UniversalBorrowMut<T>>::borrow_mut()
         }
     }
 
