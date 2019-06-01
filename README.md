@@ -31,7 +31,6 @@ there is none yet) and you can volunteer to test the feature before it is merged
 
 Features that are likely to be realized:
 
-- Make the event handling system extensible for other event types
 - Add the notion of context
 - Add a back-end for testing
 - Add middleware to split the audio-buffer so that timed events are at sample `0`
@@ -46,6 +45,25 @@ In the long term, rsynth can be split into multiple crates for maximum reusabili
 and for license clarity (e.g. when one back-end mandates a different license).
 We're currently keeping everything together because it's easier to coordinate breaking changes
 over the various components in this way.
+
+# Testing
+
+We're currently using the [syllogism](https://crates.io/crates/syllogism) crate as a workaround
+for the lack of specialization in Rust, but you can also test whether it still works when using the
+`specialization` feature using a feature flag with nightly rust.
+
+For this reason, it's advised to run the tests twice: one with stable Rust, using the 
+`syllogism` crate:
+
+```bash
+cargo test --features jack-backend
+```
+
+and once using nightly rust, without the `syllogism` crate and with the `specialization` feature:
+
+```bash
+cargo +nightly test --no-default-features --features jack-backend
+```
 
 # Contributing
 

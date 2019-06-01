@@ -261,7 +261,7 @@ vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
 #[test]
 #[should_panic(expected="`VecStorage` has been locked. Probably `mem::forget()` was called on a `VecGuard`")]
 fn mem_forgetting_guard_leads_to_panic_with_new_guard() {
-    use ::dev_utilities::vecstorage::VecStorage;
+    use crate::dev_utilities::vecstorage::VecStorage;
     let mut v = VecStorage::with_capacity(2);
     {
         let x = 1;
@@ -277,7 +277,7 @@ fn mem_forgetting_guard_leads_to_panic_with_new_guard() {
 
 #[test]
 fn mem_forgetting_guard_does_not_lead_to_panic() {
-    use ::dev_utilities::vecstorage::VecStorage;
+    use crate::dev_utilities::vecstorage::VecStorage;
     let mut v = VecStorage::with_capacity(2);
     {
         let x = 1;
@@ -291,7 +291,7 @@ fn mem_forgetting_guard_does_not_lead_to_panic() {
 
 #[test]
 fn vec_storage_mut_common_use_cases() {
-    use ::dev_utilities::vecstorage::VecStorageMut;
+    use crate::dev_utilities::vecstorage::VecStorageMut;
     let capacity;
     let mut v = VecStorageMut::with_capacity(2);
     {

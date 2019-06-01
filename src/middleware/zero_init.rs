@@ -6,6 +6,7 @@
 use asprim::AsPrim;
 use crate::{Plugin, dev_utilities::transparent::Transparent};
 use num_traits::Float;
+use crate::event::EventHandler;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".
 pub struct ZeroInit<P> {
@@ -31,9 +32,9 @@ impl<P> Transparent for ZeroInit<P> {
     }
 }
 
-impl<P, E> Plugin<E> for ZeroInit<P>
+impl<P> Plugin for ZeroInit<P>
 where
-    P: Plugin<E>,
+    P: Plugin,
 {
     const NAME: &'static str = P::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = P::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -62,8 +63,12 @@ where
         }
         self.plugin.render_buffer(inputs, outputs);
     }
+}
 
-    fn handle_event(&mut self, event: &E) {
+impl<E, P> EventHandler<E> for ZeroInit<P>
+where P: EventHandler<E>
+{
+    fn handle_event(&mut self, event: E) {
         self.plugin.handle_event(event);
     }
 }

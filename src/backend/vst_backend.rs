@@ -8,14 +8,14 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use dev_utilities::vecstorage::{VecStorage, VecStorageMut};
-use event::{Event, RawMidiEvent};
-use crate::{Plugin, dev_utilities::transparent::Transparent};
+use crate::dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
+use crate::event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
+use crate::Plugin;
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
-use vst::event::Event as VstEvent;
+use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::event::MidiEvent as VstMidiEvent;
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
@@ -47,8 +47,8 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: VstPlugin,
-    for<'a> P: Plugin<Event<RawMidiEvent<'a>, ()>>,
+    P: Plugin + VstPlugin + EventHandler<Timed<RawMidiEvent>>,
+    for<'a> P: EventHandler<Timed<SysExEvent<'a>>>
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -133,15 +133,24 @@ where
         trace!("process_events");
         for e in events.events() {
             match e {
-                VstEvent::Midi(VstMidiEvent {
-                    data, delta_frames, ..
+                VstEvent::SysEx(VstSysExEvent {
+                    payload, delta_frames, ..
                 }) => {
-                    let event = Event::Timed {
-                        samples: delta_frames as u32,
-                        event: RawMidiEvent { data: &data },
+                    let event = Timed {
+                        time_in_frames: delta_frames as u32,
+                        event: SysExEvent::new(payload),
                     };
-                    self.plugin.handle_event(&event);
-                }
+                    self.plugin.handle_event(event);
+                },
+                VstEvent::Midi(VstMidiEvent {
+                                    data, delta_frames, ..
+                                }) => {
+                    let event = Timed {
+                        time_in_frames: delta_frames as u32,
+                        event: RawMidiEvent::new(data),
+                    };
+                    self.plugin.handle_event(event);
+                },
                 _ => (),
             }
         }
@@ -168,7 +177,16 @@ where
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::backend::vst_backend::VstPlugin;
+/// use rsynth::{
+///     Plugin, 
+///     event::{
+///         EventHandler,
+///         Timed,
+///         RawMidiEvent,
+///         SysExEvent
+///     },
+///     backend::vst_backend::VstPlugin
+/// };
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -176,11 +194,10 @@ where
 /// #    const CATEGORY: Category = Category::Synth;
 /// }
 ///
-/// use rsynth::{Plugin, event::{Event, RawMidiEvent}};
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<'e, U> Plugin<Event<RawMidiEvent<'e>, U>> for MyPlugin {
+/// impl Plugin for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
 /// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
@@ -202,10 +219,15 @@ where
 /// #    {
 /// #        unimplemented!()
 /// #    }
-/// #
-/// #    fn handle_event(&mut self, event: &Event<RawMidiEvent<'e>, U>) {
-/// #        unimplemented!()
-/// #    }
+/// }
+/// 
+/// impl EventHandler<Timed<RawMidiEvent>> for MyPlugin {
+/// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {}
+///     // Implementation omitted for brevity.
+/// }
+/// impl<'a> EventHandler<Timed<SysExEvent<'a>>> for MyPlugin {
+/// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>) {}
+///     // Implementation omitted for brevity.
 /// }
 /// vst_init!(
 ///    fn init() -> MyPlugin {
@@ -308,3 +330,12 @@ macro_rules! vst_init {
         plugin_main!(VstWrapperWrapper);
     }
 }
+
+// Not yet needed because we do not yet have Vst-specific types.
+/*
+#[cfg(feature = "stable")]
+impl_specialization!(
+    trait NotInCrateRsynthFeatureVst;
+    macro macro_for_rsynth_feature_vst;
+);
+*/

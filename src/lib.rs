@@ -25,11 +25,14 @@
 //! * [`Polyphony`]
 //! * [`ZeroInit`]
 //!
-//! [`Plugin`]: ./backend/trait.Plugin.html
+//! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
 //! [`Polyphony`]: ./middleware/polyphony/index.html
 //! [`ZeroInit`]: ./middleware/zero_init/index.html
+
+#![cfg_attr(not(feature = "stable"), feature(specialization))]
+
 #[macro_use]
 extern crate log;
 extern crate asprim;
@@ -40,15 +43,18 @@ extern crate num;
 extern crate num_traits;
 extern crate vst;
 
+#[cfg(feature = "stable")]
+#[macro_use]
+extern crate syllogism;
+#[cfg(feature = "stable")]
+extern crate syllogism_macro;
+
+#[macro_use]
 pub mod dev_utilities;
 pub mod event;
 pub mod backend;
-pub mod dsp;
-pub mod envelope;
 pub mod middleware;
 pub mod note;
-pub mod point;
-pub mod synth;
 
 use asprim::AsPrim;
 use num_traits::Float;
@@ -71,18 +77,15 @@ use num_traits::Float;
 // The `Plugin` trait is not object safe. In practice, this is not a problem for using `rust-vst`
 // because an extra macro wraps it.
 //
-// Type parameter for the event type
+// Separate EventHandler trait
 // ---------------------------------
-// The current design has a type parameter for the event type in the `Plugin` trait.
-// We are currently working on splitting `handle_event` to a separate trait
+// There is a separate trait for event handling: 
 // ```
 // trait EventHandler<E> {
 //      fn handle_event(&mut self, event: E);
 // }
 // ```
 // In this way, other crates can define their own event types.
-// The block on that road is to allow the middleware to specialise for special event types.
-// Rust doesn't support specialization (yet), so we're working on a work-around.
 // 
 // Associated constants for plugin meta-data
 // -----------------------------------------
@@ -172,14 +175,13 @@ use num_traits::Float;
 // mechanism to "add fields to a struct defined elsewhere".
 // This is not possible of course, but we can define traits like `WithContext`, `WithSamples`,
 // `WithHost` etc, compose structs and use blanket impls to make it all work. This sounds very
-// handwavy, but we're already making good progress and the bulk of the complexity is for
+// handwavy, but we've already largely implemented this and the bulk of the complexity is for
 // the back-end and the middleware: the plugin can simply 
 // `impl Plugin<C> for MyPlugin where C: WithContext + WithSamples`
 // etc., depending on what properties of the context the plugin wants to use.
 
 /// The trait that all plugins need to implement.
-/// The type parameter `E` represents the type of events the plugin supports.
-pub trait Plugin<E> {
+pub trait Plugin {
     /// The name of the plugin.
     const NAME: &'static str;
 
@@ -216,9 +218,6 @@ pub trait Plugin<E> {
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
         where
             F: Float + AsPrim;
-
-    /// This function is called for each event.
-    fn handle_event(&mut self, event: &E);
 }
 
 /// Utilities to handle both polyphonic and monophonic plugins.
