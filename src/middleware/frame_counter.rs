@@ -2,10 +2,10 @@ use asprim::AsPrim;
 use num_traits::Float;
 #[cfg(feature = "stable")]
 use syllogism::IsNot;
-use std::borrow::{Borrow, BorrowMut};
 
 use crate::Plugin;
 use crate::event::EventHandler;
+use crate::context::{TransparentContext, TransparentContextMut};
 
 /// Example middleware to illustrate how middleware can interfere with the context.
 pub struct FrameCounter {
@@ -24,84 +24,84 @@ pub struct FrameCounterContext<'sc, 'cc, C> {
 }
 
 #[cfg(feature = "stable")]
-impl<'sc, 'cc, C> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+impl<'sc, 'cc, C> TransparentContext<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 {
-    fn borrow(&self) -> &FrameCounter {
+    fn get(&self) -> &FrameCounter {
         self.frame_counter
     }
 }
 
 #[cfg(feature = "stable")]
-impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
+impl<'sc, 'cc, C, T> TransparentContext<T> for FrameCounterContext<'sc, 'cc, C>
 where
-    C: Borrow<T>,
+    C: TransparentContext<T>,
     T: IsNot<FrameCounter> 
 {
-    fn borrow(&self) -> &T {
-        (*self.child_context).borrow()
+    fn get(&self) -> &T {
+        (*self.child_context).get()
     }
 }
 
 #[cfg(feature = "stable")]
-impl<'sc, 'cc, C> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+impl<'sc, 'cc, C> TransparentContextMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 {
-    fn borrow_mut(&mut self) -> &mut FrameCounter {
+    fn get_mut(&mut self) -> &mut FrameCounter {
         self.frame_counter
     }
 }
 
 #[cfg(feature = "stable")]
-impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+impl<'sc, 'cc, C, T> TransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C>
 where
-    C: BorrowMut<T>,
+    C: TransparentContextMut<T>,
     T: IsNot<FrameCounter> 
 {
-    fn borrow_mut(&mut self) -> &mut T {
-        self.child_context.borrow_mut()
+    fn get_mut(&mut self) -> &mut T {
+        self.child_context.get_mut()
     }
 }
 
 #[cfg(not(feature = "stable"))]
 pub mod nightly {
     use super::{FrameCounter, FrameCounterContext};
-    use std::borrow::{Borrow, BorrowMut};
+    use crate::context::{TransparentContext, TransparentContextMut};
 
     // Thanks to Lymia for this trick.
     // For more info, see
     // https://github.com/rust-lang/rust/issues/31844#issuecomment-397650553
-    trait UniversalBorrow<T> {
-        fn borrow(&self) -> &T;
+    trait UniversalTransparentContext<T> {
+        fn get(&self) -> &T;
     }
 
-    trait UniversalBorrowMut<T> {
-        fn borrow_mut(&mut self) -> &mut T;
+    trait UniversalTransparentContextMut<T> {
+        fn get_mut(&mut self) -> &mut T;
     }
 
-    impl<'sc, 'cc, C, T> UniversalBorrow<T> for FrameCounterContext<'sc, 'cc, C> {
-        default fn borrow(&self) -> &T {
+    impl<'sc, 'cc, C, T> UniversalTransparentContext<T> for FrameCounterContext<'sc, 'cc, C> {
+        default fn get(&self) -> &T {
             unreachable!();
         }
     }
 
-    impl<'sc, 'cc, C, T> UniversalBorrow<T> for FrameCounterContext<'sc, 'cc, C>
+    impl<'sc, 'cc, C, T> UniversalTransparentContext<T> for FrameCounterContext<'sc, 'cc, C>
         where
-            FrameCounterContext <'sc, 'cc, C>: UniversalBorrow<T> {
-        fn borrow(&self) -> & T {
-            self.borrow();
+            C: TransparentContext<T>{
+        fn get(&self) -> & T {
+            self.child_context.get()
         }
     }
 
-    impl<'sc, 'cc, C, T> UniversalBorrowMut<T> for FrameCounterContext<'sc, 'cc, C> {
-        default fn borrow_mut(&mut self) -> &mut T {
+    impl<'sc, 'cc, C, T> UniversalTransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C> {
+        default fn get_mut(&mut self) -> &mut T {
             unreachable!();
         }
     }
 
-    impl<'sc, 'cc, C, T> UniversalBorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
+    impl<'sc, 'cc, C, T> UniversalTransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C>
         where
-            FrameCounterContext <'sc, 'cc, C>: UniversalBorrow<T> {
-        fn borrow_mut(&mut self) -> &mut T {
-            self.borrow_mut();
+            C: TransparentContextMut<T> {
+        fn get_mut(&mut self) -> &mut T {
+            self.child_context.get_mut()
         }
     }
 
@@ -109,40 +109,40 @@ pub mod nightly {
 
     impl<'sc, 'cc, C, T> GenericOrSpecial<T> for FrameCounterContext<'sc, 'cc, C>
     where
-        FrameCounterContext < 'sc, 'cc, C >: GenericBorrow<T> {
+        C: TransparentContext<T> {
     }
 
-    impl<'sc, 'cc, C, T> GenericOrSpecial<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
+    impl<'sc, 'cc, C> GenericOrSpecial<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
     }
 
-    impl<'sc, 'cc, C, T> Borrow<T> for FrameCounterContext<'sc, 'cc, C>
+    impl<'sc, 'cc, C, T> TransparentContext<T> for FrameCounterContext<'sc, 'cc, C>
     where
         FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
-        fn borrow(&self) -> &T {
-            <self as UniversalBorrow<T>>::borrow()
+        default fn get(&self) -> &T {
+            <Self as UniversalTransparentContext<T>>::get(self)
         }
     }
 
-    impl<'sc, 'cc, C, T> Borrow<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
-        where
-            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
-        fn borrow(&self) -> &FrameCounter {
+    impl<'sc, 'cc, C> TransparentContext<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+    where
+        FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
+        fn get(&self) -> &FrameCounter {
             self.frame_counter
         }
     }
 
-    impl<'sc, 'cc, C, T> BorrowMut<T> for FrameCounterContext<'sc, 'cc, C>
-        where
-            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
-        fn borrow_mut(&mut self) -> &mut T {
-            <self as UniversalBorrowMut<T>>::borrow_mut()
+    impl<'sc, 'cc, C, T> TransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C>
+    where
+        FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<T> {
+        default fn get_mut(&mut self) -> &mut T {
+            <Self as UniversalTransparentContextMut<T>>::get_mut(self)
         }
     }
 
-    impl<'sc, 'cc, C, T> BorrowMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
-        where
-            FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
-        fn borrow(&mut self) -> &mut FrameCounter {
+    impl<'sc, 'cc, C> TransparentContextMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
+    where
+        FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter> {
+        fn get_mut(&mut self) -> &mut FrameCounter {
             self.frame_counter
         }
     }
@@ -152,9 +152,9 @@ pub trait WithFrameCounter {
     fn frame_counter(&self) -> &FrameCounter;
 }
 
-impl<T> WithFrameCounter for T where T: Borrow<FrameCounter> {
+impl<T> WithFrameCounter for T where T: TransparentContext<FrameCounter> {
     fn frame_counter(&self) -> &FrameCounter {
-        self.borrow()
+        self.get()
     }
 }
 
@@ -162,9 +162,9 @@ pub trait WithFrameCounterMut {
     fn frame_counter_mut(&mut self) -> &mut FrameCounter;
 }
 
-impl<T> WithFrameCounterMut for T where T: BorrowMut<FrameCounter> {
+impl<T> WithFrameCounterMut for T where T: TransparentContextMut<FrameCounter> {
     fn frame_counter_mut(&mut self) -> &mut FrameCounter {
-        self.borrow_mut()
+        self.get_mut()
     }
 }
 

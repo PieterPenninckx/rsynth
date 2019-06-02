@@ -11,3 +11,12 @@ impl_specialization!(
 
     type FrameCounter;
 );
+
+/// Same as the Borrow trait from `std`, but without the default impls.
+pub trait TransparentContext<T> {
+    fn get(&self) -> &T;
+}
+
+pub trait TransparentContextMut<T> {
+    fn get_mut(&mut self) -> &mut T;
+}
