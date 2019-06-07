@@ -12,7 +12,10 @@ pub trait WithHost<H: HostInterface> {
     fn host(&self) -> &H;
 }
 
-impl<T, H: HostInterface> WithHost<H> for T where T: TransparentContext<H> {
+impl<T, H: HostInterface> WithHost<H> for T
+where
+    T: TransparentContext<H>,
+{
     fn host(&self) -> &H {
         self.get()
     }

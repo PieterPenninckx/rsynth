@@ -52,18 +52,13 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-use rsynth::{
-    output_mode::{
-        OutputMode, Additive
-    }, 
-    event::{
-        Timed,
-        RawMidiEvent
-    },
-};
 #[cfg(feature = "vst-backend")]
 use rsynth::backend::vst_backend::VstPlugin;
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
+use rsynth::{
+    event::{RawMidiEvent, Timed},
+    output_mode::{Additive, OutputMode},
+};
 
 #[cfg(feature = "vst-backend")]
 use vst::plugin::Category;
@@ -77,6 +72,7 @@ where
     const CATEGORY: Category = Category::Synth;
 }
 
+#[rustfmt::skip::macros(vst_init)]
 #[cfg(feature = "vst-backend")]
 vst_init!(
     fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {

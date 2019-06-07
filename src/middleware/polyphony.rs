@@ -1,13 +1,13 @@
-use asprim::AsPrim;
-use crate::event::{RawMidiEvent, Timed, EventHandler};
+use crate::dev_utilities::transparent::Transparent;
+use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::note::*;
+use crate::Plugin;
+use asprim::AsPrim;
 use num_traits::Float;
 use std::default::Default;
 use std::marker::PhantomData;
-use crate::dev_utilities::{transparent::Transparent};
-use crate::Plugin;
 #[cfg(feature = "stable")]
-use syllogism::{Specialize, Distinction};
+use syllogism::{Distinction, Specialize};
 
 /// Implement this trait if for a struct if you want to use it inside a `Polyphonic`.
 pub trait Voice {
@@ -79,12 +79,12 @@ pub trait VoiceStealMode {
 pub struct Polyphonic<Vc, VSM: VoiceStealMode<V = Vc>, E> {
     voices: Vec<VoiceWithState<Vc, VSM::State>>,
     voice_steal_mode: VSM,
-    _phantom_event: PhantomData<E>
+    _phantom_event: PhantomData<E>,
 }
 
 impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
 where
-    VSM: VoiceStealMode<V = Vc>
+    VSM: VoiceStealMode<V = Vc>,
 {
     /// Create a new `Polyphonic` with the given voices and the given `voice_steal_mode`.
     ///
@@ -105,7 +105,7 @@ where
         Polyphonic {
             voices: voices_with_states,
             voice_steal_mode,
-            _phantom_event: PhantomData::default()
+            _phantom_event: PhantomData::default(),
         }
     }
 }
@@ -116,15 +116,15 @@ pub enum EventType {
     /// The event should be broadcasted to all voices
     Broadcast,
     /// The event is specific for the voice with the given tone
-    VoiceSpecific{tone: u8},
+    VoiceSpecific { tone: u8 },
     /// The event indicates that a new voice should be created with the given tone
-    NewVoice{tone: u8},
+    NewVoice { tone: u8 },
     /// The event indicates that the voice with the given tone should start releasing
-    ReleaseVoice{tone: u8},
+    ReleaseVoice { tone: u8 },
 }
 
 /// Implement this trait for an event so that `Polyphonic` knows how to dispatch it.
-pub trait PolyphonicEvent : Copy {
+pub trait PolyphonicEvent: Copy {
     fn event_type(&self) -> EventType;
 }
 
@@ -132,18 +132,27 @@ impl PolyphonicEvent for RawMidiEvent {
     fn event_type(&self) -> EventType {
         let note_data = NoteData::data(self.data());
         if note_data.state == NoteState::On {
-            return EventType::NewVoice { tone: note_data.note };
+            return EventType::NewVoice {
+                tone: note_data.note,
+            };
         } else {
             if note_data.state == NoteState::Off {
-                return EventType::ReleaseVoice { tone: note_data.note };
+                return EventType::ReleaseVoice {
+                    tone: note_data.note,
+                };
             } else {
-                return EventType::VoiceSpecific { tone: note_data.note };
+                return EventType::VoiceSpecific {
+                    tone: note_data.note,
+                };
             }
         }
     }
 }
 
-impl<E> PolyphonicEvent for Timed<E> where E: PolyphonicEvent {
+impl<E> PolyphonicEvent for Timed<E>
+where
+    E: PolyphonicEvent,
+{
     fn event_type(&self) -> EventType {
         self.event.event_type()
     }
@@ -153,7 +162,7 @@ impl<Vc, VSM, E, C> Plugin<C> for Polyphonic<Vc, VSM, E>
 where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Plugin<C> + Voice,
-    E: PolyphonicEvent
+    E: PolyphonicEvent,
 {
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -186,30 +195,32 @@ where
 }
 
 impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
-    where
-        VSM: VoiceStealMode<V = Vc>,
-        Vc: Voice,
-        E: PolyphonicEvent
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Voice,
+    E: PolyphonicEvent,
 {
     fn handle_special_event<C>(&mut self, e: E, context: &mut C)
-    where Vc: EventHandler<E, C>
+    where
+        Vc: EventHandler<E, C>,
     {
         match e.event_type() {
             EventType::Broadcast => {
                 for voice in self.voices.iter_mut() {
                     voice.voice.handle_event(e, context);
                 }
-            },
+            }
             EventType::VoiceSpecific { tone } => {
                 if let Some(v) = self
                     .voice_steal_mode
-                    .find_voice_playing_note(&mut self.voices, tone) {
+                    .find_voice_playing_note(&mut self.voices, tone)
+                {
                     v.voice.handle_event(e, context);
                 } else {
                     info!("Voice with tone {} cannot be found, dropping event.", tone);
                 }
-            },
-            EventType::NewVoice {tone} => {
+            }
+            EventType::NewVoice { tone } => {
                 // When releasing a voice, we always release at most one voice
                 // (instead of all voices playing a single note), so we assume
                 // that at any given time, there is only one voice playing a
@@ -217,10 +228,9 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
                 let v = self
                     .voice_steal_mode
                     .find_idle_voice(&mut self.voices, tone);
-                self.voice_steal_mode
-                    .mark_voice_as_active(v, tone);
+                self.voice_steal_mode.mark_voice_as_active(v, tone);
                 v.voice.handle_event(e, context);
-            },
+            }
             EventType::ReleaseVoice { tone } => {
                 if let Some(v) = self
                     .voice_steal_mode
@@ -229,7 +239,10 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
                     self.voice_steal_mode.mark_voice_as_inactive(v);
                     v.voice.handle_event(e, context);
                 } else {
-                    info!("Voice with tone {} cannot be found, dropping 'release voice' event.", tone);
+                    info!(
+                        "Voice with tone {} cannot be found, dropping 'release voice' event.",
+                        tone
+                    );
                 }
             }
         }
@@ -237,14 +250,14 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
 }
 
 impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
-    where
-        VSM: VoiceStealMode<V = Vc>,
-        Vc: Voice,
-        E: PolyphonicEvent,
-
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Voice,
+    E: PolyphonicEvent,
 {
     fn broadcast_event<EE: Copy, C>(&mut self, event: EE, context: &mut C)
-    where Vc: EventHandler<EE, C> + EventHandler<E, C>
+    where
+        Vc: EventHandler<EE, C> + EventHandler<E, C>,
     {
         for voice in self.voices.iter_mut() {
             voice.voice.handle_event(event, context);
@@ -258,13 +271,13 @@ where
     VSM: VoiceStealMode<V = Vc>,
     Vc: Voice + EventHandler<EE, C> + EventHandler<E, C>,
     E: PolyphonicEvent,
-    EE: Specialize<E> + Copy
+    EE: Specialize<E> + Copy,
 {
     fn handle_event(&mut self, event: EE, context: &mut C) {
         match <EE as Specialize<E>>::specialize(event) {
             Distinction::Special(s) => {
                 self.handle_special_event(s, context);
-            },
+            }
             Distinction::Generic(g) => {
                 self.broadcast_event(g, context);
             }
@@ -274,10 +287,10 @@ where
 
 #[cfg(not(feature = "stable"))]
 impl<Vc, VSM, E, C> EventHandler<E, C> for Polyphonic<Vc, VSM, E>
-    where
-        VSM: VoiceStealMode<V = Vc>,
-        Vc: Plugin<C> + Voice + EventHandler<E, C>,
-        E: PolyphonicEvent
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Plugin<C> + Voice + EventHandler<E, C>,
+    E: PolyphonicEvent,
 {
     fn handle_event(&mut self, event: E, context: &mut C) {
         self.handle_special_event(event, context);
@@ -286,11 +299,11 @@ impl<Vc, VSM, E, C> EventHandler<E, C> for Polyphonic<Vc, VSM, E>
 
 #[cfg(not(feature = "stable"))]
 impl<Vc, VSM, E, EE, C> EventHandler<EE, C> for Polyphonic<Vc, VSM, E>
-    where
-        VSM: VoiceStealMode<V = Vc>,
-        Vc: Voice + EventHandler<E, C> + EventHandler<EE, C>,
-        E: PolyphonicEvent,
-        EE: Copy
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Voice + EventHandler<E, C> + EventHandler<EE, C>,
+    E: PolyphonicEvent,
+    EE: Copy,
 {
     default fn handle_event(&mut self, event: EE, context: &mut C) {
         self.broadcast_event(event, context);
@@ -299,7 +312,7 @@ impl<Vc, VSM, E, EE, C> EventHandler<EE, C> for Polyphonic<Vc, VSM, E>
 
 impl<Vc, VSM, E> Transparent for Polyphonic<Vc, VSM, E>
 where
-    VSM: VoiceStealMode<V = Vc>
+    VSM: VoiceStealMode<V = Vc>,
 {
     type Inner = Vc;
 
@@ -314,17 +327,17 @@ where
 
 #[cfg(test)]
 mod polyphony_tests {
-    use super::{Voice, Polyphonic, PolyphonicEvent, VoiceStealMode, VoiceWithState, EventType};
-    use crate::event::{EventHandler};
+    use super::{EventType, Polyphonic, PolyphonicEvent, Voice, VoiceStealMode, VoiceWithState};
+    use crate::event::EventHandler;
     #[cfg(feature = "stable")]
-    use syllogism::{Specialize, Distinction};
+    use syllogism::{Distinction, Specialize};
 
     #[derive(Default, Debug, PartialEq, Eq)]
     struct TestVoice {
         index: usize,
         is_playing: bool,
         is_releasing: bool,
-        event_recieved: bool
+        event_recieved: bool,
     }
 
     impl TestVoice {
@@ -333,7 +346,7 @@ mod polyphony_tests {
                 index: i,
                 is_playing: false,
                 is_releasing: false,
-                event_recieved: false
+                event_recieved: false,
             }
         }
     }
@@ -348,9 +361,7 @@ mod polyphony_tests {
     struct StartPlayEvent {}
     impl PolyphonicEvent for StartPlayEvent {
         fn event_type(&self) -> EventType {
-            EventType::VoiceSpecific{
-                tone: 0
-            }
+            EventType::VoiceSpecific { tone: 0 }
         }
     }
 
@@ -386,19 +397,30 @@ mod polyphony_tests {
         type V = TestVoice;
         type State = ();
 
-        fn find_idle_voice<'v>(&mut self, voices: &'v mut [VoiceWithState<Self::V, <Self as VoiceStealMode>::State>], note: u8) -> &'v mut VoiceWithState<Self::V, Self::State> {
+        fn find_idle_voice<'v>(
+            &mut self,
+            voices: &'v mut [VoiceWithState<Self::V, <Self as VoiceStealMode>::State>],
+            note: u8,
+        ) -> &'v mut VoiceWithState<Self::V, Self::State> {
             &mut voices[0]
         }
 
-        fn find_voice_playing_note<'v>(&mut self, voices: &'v mut [VoiceWithState<Self::V, Self::State>], note: u8) -> Option<&'v mut VoiceWithState<Self::V, Self::State>> {
+        fn find_voice_playing_note<'v>(
+            &mut self,
+            voices: &'v mut [VoiceWithState<Self::V, Self::State>],
+            note: u8,
+        ) -> Option<&'v mut VoiceWithState<Self::V, Self::State>> {
             None
         }
 
-        fn mark_voice_as_active(&mut self, voice: & mut VoiceWithState<Self::V, Self::State>, note: u8) {
+        fn mark_voice_as_active(
+            &mut self,
+            voice: &mut VoiceWithState<Self::V, Self::State>,
+            note: u8,
+        ) {
         }
 
-        fn mark_voice_as_inactive(&mut self, voice: & mut VoiceWithState<Self::V, Self::State>) {
-        }
+        fn mark_voice_as_inactive(&mut self, voice: &mut VoiceWithState<Self::V, Self::State>) {}
     }
 
     #[test]
@@ -410,8 +432,8 @@ mod polyphony_tests {
         }
 
         let mut polyphonic = Polyphonic::<_, _, StartPlayEvent>::new(TestVoiceStealer, voices);
-        polyphonic.handle_event(StartPlayEvent{}, &mut ());
-        polyphonic.handle_event(OtherEvent{}, &mut ());
+        polyphonic.handle_event(StartPlayEvent {}, &mut ());
+        polyphonic.handle_event(OtherEvent {}, &mut ());
     }
 }
 

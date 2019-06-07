@@ -4,11 +4,11 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::output_mode::OutputMode;
-use rsynth::event::{EventHandler, Timed, RawMidiEvent, SysExEvent};
-use rsynth::Plugin;
-use rsynth::middleware::polyphony::Voice;
 use rsynth::backend::HostInterface;
+use rsynth::event::{EventHandler, RawMidiEvent, SysExEvent, Timed};
+use rsynth::middleware::polyphony::Voice;
+use rsynth::output_mode::OutputMode;
+use rsynth::Plugin;
 use std::env;
 use std::fs::File;
 
@@ -131,13 +131,13 @@ where
     }
 }
 
-
 impl<M, C> EventHandler<Timed<RawMidiEvent>, C> for Sound<M>
 where
     M: OutputMode,
 {
     fn handle_event(&mut self, timed: Timed<RawMidiEvent>, _context: &mut C) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
+
         // We currently ignore the `time_in_frames` field.
         // There are some vague plans to add middleware that makes it easier
         // to make sample-accurate plugins.
@@ -160,7 +160,8 @@ where
 }
 
 impl<'a, M, C> EventHandler<Timed<SysExEvent<'a>>, C> for Sound<M>
-where M: OutputMode
+where
+    M: OutputMode,
 {
     fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, context: &mut C) {
         // We don't do anything with SysEx events.

@@ -8,16 +8,19 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
-use crate::dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
-use crate::event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
-use crate::Plugin;
 use crate::backend::HostInterface;
+use crate::dev_utilities::{
+    transparent::Transparent,
+    vecstorage::{VecStorage, VecStorageMut},
+};
+use crate::event::{EventHandler, RawMidiEvent, SysExEvent, Timed};
+use crate::Plugin;
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
-use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::event::MidiEvent as VstMidiEvent;
+use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
 
@@ -49,7 +52,7 @@ pub struct VstPluginWrapper<P> {
 impl<P> VstPluginWrapper<P>
 where
     P: Plugin<HostCallback> + VstPlugin + EventHandler<Timed<RawMidiEvent>, HostCallback>,
-    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>
+    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>,
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -136,23 +139,25 @@ where
         for e in events.events() {
             match e {
                 VstEvent::SysEx(VstSysExEvent {
-                    payload, delta_frames, ..
+                    payload,
+                    delta_frames,
+                    ..
                 }) => {
                     let event = Timed {
                         time_in_frames: delta_frames as u32,
                         event: SysExEvent::new(payload),
                     };
                     self.plugin.handle_event(event, &mut self.host);
-                },
+                }
                 VstEvent::Midi(VstMidiEvent {
-                                    data, delta_frames, ..
-                                }) => {
+                    data, delta_frames, ..
+                }) => {
                     let event = Timed {
                         time_in_frames: delta_frames as u32,
                         event: RawMidiEvent::new(data),
                     };
                     self.plugin.handle_event(event, &mut self.host);
-                },
+                }
                 _ => (),
             }
         }
@@ -182,7 +187,7 @@ impl HostInterface for HostCallback {}
 /// }
 ///
 /// use rsynth::{
-///     Plugin, 
+///     Plugin,
 ///     event::{
 ///         EventHandler,
 ///         Timed,
@@ -230,7 +235,7 @@ impl HostInterface for HostCallback {}
 /// #        unimplemented!()
 /// #    }
 /// }
-/// 
+///
 /// impl<H> EventHandler<Timed<RawMidiEvent>, H> for MyPlugin
 /// where
 ///     H: HostInterface,

@@ -8,9 +8,12 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use crate::{Plugin, event::{RawMidiEvent, Timed, EventHandler}};
-use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use crate::backend::HostInterface;
+use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use crate::{
+    event::{EventHandler, RawMidiEvent, Timed},
+    Plugin,
+};
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
@@ -115,16 +118,15 @@ where
                 trace!("handle_events found event: {:?}", &input_event.bytes);
                 if input_event.bytes.len() <= 3 {
                     let mut data = [0, 0, 0];
-                    for i in 0 .. input_event.bytes.len() {
+                    for i in 0..input_event.bytes.len() {
                         data[i] = input_event.bytes[i];
                     }
-                    let event = Timed{
+                    let event = Timed {
                         time_in_frames: input_event.time,
-                        event: RawMidiEvent::new(data)
+                        event: RawMidiEvent::new(data),
                     };
                     self.plugin.handle_event(event, &mut &*client);
-                }
-                else {
+                } else {
                     // TODO: SysEx event
                     // self.plugin.handle_event(event, &mut &*client);
                 }
@@ -136,7 +138,7 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>
+    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope, client);
