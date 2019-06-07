@@ -10,7 +10,7 @@ Rsynth has the following components:
 * Glue code for different API's (called back-ends). Currently supported are
   * [rust-vst](https://github.com/rust-dsp/rust-vst)
   * Jack
-* Middleware components that you can put between your code and the abstraction lyer to provide 
+* Middleware components that you can put between your code and the abstraction layer to provide 
   various functionalities:
   * polyphony
   * ...
@@ -26,8 +26,8 @@ The team behind it is very small, so progress is slow.
 
 We try to focus on features that we are actually using ourselves.
 This helps to ensure that the features that we provide, can actually be used in practice.
-So if you want to use a particular feature that isn't there yet, feel free to open an issue (if 
-there is none yet) and you can volunteer to test the feature before it is merged. 
+So if you want to use a particular feature that isn't there yet, feel free to open an issue (if
+needed) and you can volunteer to test the feature before it is merged. 
 
 Features that are likely to be realized:
 
@@ -56,13 +56,13 @@ For this reason, it's advised to run the tests twice: one with stable Rust, usin
 `syllogism` crate:
 
 ```bash
-cargo test --features jack-backend
+cargo test --features jack-backend,vst-backend
 ```
 
 and once using nightly rust, without the `syllogism` crate and with the `specialization` feature:
 
 ```bash
-cargo +nightly test --no-default-features --features jack-backend
+cargo +nightly test --no-default-features --features jack-backend,vst-backend
 ```
 
 # Contributing

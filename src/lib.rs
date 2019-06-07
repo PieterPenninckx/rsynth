@@ -37,11 +37,13 @@
 extern crate log;
 extern crate asprim;
 extern crate core;
-#[cfg(feature = "jack-backend")]
-extern crate jack;
 extern crate num;
 extern crate num_traits;
+
+#[cfg(feature = "vst-backend")]
 extern crate vst;
+#[cfg(feature = "jack-backend")]
+extern crate jack;
 
 #[cfg(feature = "stable")]
 #[macro_use]

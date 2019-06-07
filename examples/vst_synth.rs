@@ -5,7 +5,7 @@
 // =========
 // You can compile this example with
 // ```
-// cargo build --release --examples
+// cargo build --release --examples --features vst-backend
 // ```
 // This generates a library that you can find
 //
@@ -37,6 +37,7 @@
 // Note that these environment variables need to be visible to the host.
 // Note that the example is also logging to a file in the realtime thread, which may cause clipping.
 
+#[cfg(feature = "vst-backend")]
 #[macro_use]
 extern crate vst;
 #[macro_use]
@@ -59,12 +60,15 @@ use rsynth::{
         Timed,
         RawMidiEvent
     },
-    backend::vst_backend::VstPlugin
 };
+#[cfg(feature = "vst-backend")]
+use rsynth::backend::vst_backend::VstPlugin;
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 
+#[cfg(feature = "vst-backend")]
 use vst::plugin::Category;
 
+#[cfg(feature = "vst-backend")]
 impl<M> VstPlugin for Sound<M>
 where
     M: OutputMode,
@@ -73,6 +77,7 @@ where
     const CATEGORY: Category = Category::Synth;
 }
 
+#[cfg(feature = "vst-backend")]
 vst_init!(
     fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
         initialize_logging();

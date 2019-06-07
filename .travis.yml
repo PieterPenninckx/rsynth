@@ -7,17 +7,17 @@ matrix:
   include: 
     - name: "Test nightly"
       rust: nightly
-      env: FEATURES="--no-default-features --features jack-backend"
+      env: FEATURES="--no-default-features --features jack-backend,vst-backend"
     - name: "Test beta"
       rust: beta
-      env: FEATURES="--features jack-backend"
+      env: FEATURES="--features jack-backend,vst-backend"
     - name: "Test stable"
       rust: stable
-      env: FEATURES="--features jack-backend"
+      env: FEATURES="--features jack-backend,vst-backend"
 script:
   - cargo test --verbose $FEATURES
 after_success: |
-    cargo rustdoc --features jack-backend \
+    cargo rustdoc --features jack-backend,vst-backend \
     && echo '<meta http-equiv=refresh content=0;url=rsynth/index.html>' > target/doc/index.html && \
     sudo pip install ghp-import && \
     ghp-import -n target/doc && \

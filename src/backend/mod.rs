@@ -1,6 +1,7 @@
 //! Defines the different backends.
 #[cfg(feature = "jack-backend")]
 pub mod jack_backend;
+#[cfg(feature = "vst-backend")]
 pub mod vst_backend;
 use crate::context::TransparentContext;
 
