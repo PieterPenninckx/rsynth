@@ -23,6 +23,14 @@ pub struct FrameCounterContext<'sc, 'cc, C> {
     child_context: &'cc mut C
 }
 
+// Note: we cannot write a more generic implementation in the following style:
+// pub struct GenericContextWrapper<'e, 'c, E, C> {
+//      extra: &'e mut E,
+//      child_context: &'c mut C,
+// }
+// because the compiler doesn't know that `E` does not implement `IsNot<E>`,
+// so we would get into trouble with specialization.
+
 #[cfg(feature = "stable")]
 impl<'sc, 'cc, C> TransparentContext<FrameCounter> for FrameCounterContext<'sc, 'cc, C>
 {

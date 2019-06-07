@@ -1,7 +1,8 @@
-//! Defines the JACK backend and the VST backend.
+//! Defines the different backends.
 #[cfg(feature = "jack-backend")]
 pub mod jack_backend;
 pub mod vst_backend;
+use crate::context::TransparentContext;
 
 /// Defines an interface for communicating with the host or server.
 pub trait HostInterface {}
@@ -10,24 +11,8 @@ pub trait WithHost<H: HostInterface> {
     fn host(&self) -> &H;
 }
 
-/*
-pub trait WithHostMut {
-    type Host: HostInterface;
-    fn host_mut(&mut self) -> &mut Self::Host;
-}
-*/
-
-impl<T, H: HostInterface> WithHost<H> for T where T: AsRef<H> {
+impl<T, H: HostInterface> WithHost<H> for T where T: TransparentContext<H> {
     fn host(&self) -> &H {
-        self.as_ref()
+        self.get()
     }
 }
-
-/*
-impl<T, U: WithHostMut> WithHostMut for T where T: AsMut<U>{
-    type Host = U::Host;
-    fn host_mut(&mut self) -> &mut Self::Host {
-        self.as_mut().host_mut()
-    }
-}
-*/
