@@ -58,21 +58,19 @@ extern crate rand;
 extern crate rsynth;
 extern crate simplelog;
 
-
-
 mod test_synth;
 use test_synth::*;
 
 #[cfg(feature = "jack-backend")]
 use rsynth::backend::jack_backend::run;
 #[allow(unused_imports)]
-use rsynth::event::{Timed, RawMidiEvent};
-#[allow(unused_imports)]
-use rsynth::output_mode::Additive;
+use rsynth::event::{RawMidiEvent, Timed};
 #[allow(unused_imports)]
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 #[allow(unused_imports)]
 use rsynth::middleware::zero_init::ZeroInit;
+#[allow(unused_imports)]
+use rsynth::output_mode::Additive;
 
 #[cfg(feature = "jack-backend")]
 fn main() {

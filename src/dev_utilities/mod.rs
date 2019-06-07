@@ -234,7 +234,7 @@
 //!
 //! Writing events
 //! ==============
-//! 
+//!
 //! Copy
 //! ----
 //!
@@ -385,8 +385,8 @@
 //! [`IsNot`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.IsNot.html
 //! [`Specialize`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.Specialize.html
 //! [`impl_specialization`]: https://docs.rs/syllogism-macro/0.1.0/syllogism_macro/macro.impl_specialization.html
-pub mod vecstorage;
 pub mod transparent;
+pub mod vecstorage;
 
 #[cfg(feature = "stable")]
 #[macro_use]

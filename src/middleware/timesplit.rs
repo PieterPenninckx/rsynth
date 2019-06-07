@@ -1,24 +1,24 @@
 // Currently largely unimplemented because this is only to check if the
 // eventing system can be used in practice.
 
-use asprim::AsPrim;
-use crate::Plugin;
+use crate::dev_utilities::transparent::Transparent;
 use crate::event::{EventHandler, Timed};
+use crate::Plugin;
+use asprim::AsPrim;
 use num_traits::Float;
-use crate::dev_utilities::{transparent::Transparent};
 #[cfg(feature = "stable")]
-use syllogism::{Specialize, Distinction};
+use syllogism::{Distinction, Specialize};
 
 pub struct TimeSplit<P, E> {
     plugin: P,
-    buffer: Vec<Timed<E>>
+    buffer: Vec<Timed<E>>,
 }
 
 impl<P, E> TimeSplit<P, E> {
     pub fn new(plugin: P, capacity: usize) -> Self {
-        Self { 
+        Self {
             plugin,
-            buffer: Vec::with_capacity(capacity)
+            buffer: Vec::with_capacity(capacity),
         }
     }
 
@@ -67,8 +67,8 @@ where
     }
 
     fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
-        where
-            F: Float + AsPrim,
+    where
+        F: Float + AsPrim,
     {
         unimplemented!()
     }
@@ -76,15 +76,15 @@ where
 
 #[cfg(feature = "stable")]
 impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
-where 
+where
     P: EventHandler<EE, C>,
-    EE: Specialize<Timed<E>>
+    EE: Specialize<Timed<E>>,
 {
     fn handle_event(&mut self, event: EE, context: &mut C) {
         match <EE as Specialize<Timed<E>>>::specialize(event) {
             Distinction::Special(event) => {
                 self.save_event(event);
-            },
+            }
             Distinction::Generic(g) => {
                 self.plugin.handle_event(g, context);
             }
@@ -94,8 +94,8 @@ where
 
 #[cfg(not(feature = "stable"))]
 impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
-    where
-        P: EventHandler<EE, C>
+where
+    P: EventHandler<EE, C>,
 {
     default fn handle_event(&mut self, event: EE, context: &mut C) {
         self.plugin.handle_event(event, context);
@@ -104,8 +104,8 @@ impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
 
 #[cfg(not(feature = "stable"))]
 impl<P, E, C> EventHandler<Timed<E>, C> for TimeSplit<P, E>
-    where
-        P: EventHandler<Timed<E>, C>
+where
+    P: EventHandler<Timed<E>, C>,
 {
     fn handle_event(&mut self, event: Timed<E>, _context: &mut C) {
         self.save_event(event);

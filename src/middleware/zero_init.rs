@@ -3,10 +3,10 @@
 //! You will need this when you use a back-end that does not zero-initialize the output buffer
 //! before calling the plugin and you are using the `Polyphony` middleware.
 
-use asprim::AsPrim;
-use crate::{Plugin, dev_utilities::transparent::Transparent};
-use num_traits::Float;
 use crate::event::EventHandler;
+use crate::{dev_utilities::transparent::Transparent, Plugin};
+use asprim::AsPrim;
+use num_traits::Float;
 
 /// Set all output values to 0 before calling `render_buffer` on the "child".
 pub struct ZeroInit<P> {
@@ -65,7 +65,8 @@ where
     }
 }
 impl<E, P, C> EventHandler<E, C> for ZeroInit<P>
-where P: EventHandler<E, C>
+where
+    P: EventHandler<E, C>,
 {
     fn handle_event(&mut self, event: E, context: &mut C) {
         self.plugin.handle_event(event, context);
