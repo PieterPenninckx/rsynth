@@ -94,7 +94,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f32>(&*inputs, &mut *outputs, &mut self.host);
+            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -113,7 +113,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f64>(&*inputs, &mut *outputs, &mut self.host);
+            .render_buffer::<f64>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {

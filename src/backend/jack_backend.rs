@@ -113,17 +113,21 @@ where
         if let Some(ref mut midi_in_port) = self.midi_in_port {
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
-                if input_event.bytes.len() != 3 {
-                    error!("Midi event is not three bytes.");
-                    continue;
+                if input_event.bytes.len() <= 3 {
+                    let mut data = [0, 0, 0];
+                    for i in 0 .. input_event.bytes.len() {
+                        data[i] = input_event.bytes[i];
+                    }
+                    let event = Timed{
+                        time_in_frames: input_event.time,
+                        event: RawMidiEvent::new(data)
+                    };
+                    self.plugin.handle_event(event, &mut &*client);
                 }
-                // TODO: handle SysEx events
-                let raw_midi_event = RawMidiEvent::new([input_event.bytes[0], input_event.bytes[1], input_event.bytes[2]]);
-                let event = Timed {
-                    event: raw_midi_event,
-                    time_in_frames: input_event.time,
-                };
-                self.plugin.handle_event(event, &mut &*client);
+                else {
+                    // TODO: SysEx event
+                    // self.plugin.handle_event(event, &mut &*client);
+                }
             }
         }
     }

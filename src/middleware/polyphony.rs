@@ -149,7 +149,7 @@ impl<E> PolyphonicEvent for Timed<E> where E: PolyphonicEvent {
     }
 }
 
-impl<'e, Vc, E, VSM, C> Plugin<C> for Polyphonic<Vc, VSM, E>
+impl<Vc, VSM, E, C> Plugin<C> for Polyphonic<Vc, VSM, E>
     where
         VSM: VoiceStealMode<V = Vc>,
         Vc: Plugin<C> + Voice,
@@ -204,7 +204,6 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
                 if let Some(v) = self
                     .voice_steal_mode
                     .find_voice_playing_note(&mut self.voices, tone) {
-                    trace!("Handling event for tone {}.", tone);
                     v.voice.handle_event(e, context);
                 } else {
                     info!("Voice with tone {} cannot be found, dropping event.", tone);
@@ -218,7 +217,6 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
                 let v = self
                     .voice_steal_mode
                     .find_idle_voice(&mut self.voices, tone);
-                info!("Allocating voice for tone {}.", tone);
                 self.voice_steal_mode
                     .mark_voice_as_active(v, tone);
                 v.voice.handle_event(e, context);
@@ -228,7 +226,6 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
                     .voice_steal_mode
                     .find_voice_playing_note(&mut self.voices, tone)
                 {
-                    info!("Releasing voice for tone {}.", tone);
                     self.voice_steal_mode.mark_voice_as_inactive(v);
                     v.voice.handle_event(e, context);
                 } else {
@@ -246,7 +243,7 @@ impl<Vc, VSM, E> Polyphonic<Vc, VSM, E>
         E: PolyphonicEvent,
 
 {
-    fn broadcast_event<C, EE: Copy>(&mut self, event: EE, context: &mut C)
+    fn broadcast_event<EE: Copy, C>(&mut self, event: EE, context: &mut C)
     where Vc: EventHandler<EE, C> + EventHandler<E, C>
     {
         for voice in self.voices.iter_mut() {

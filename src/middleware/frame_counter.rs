@@ -92,8 +92,8 @@ pub mod nightly {
     }
 
     impl<'sc, 'cc, C, T> UniversalTransparentContext<T> for FrameCounterContext<'sc, 'cc, C>
-        where
-            C: TransparentContext<T>{
+    where
+        C: TransparentContext<T>{
         fn get(&self) -> & T {
             self.child_context.get()
         }
@@ -106,8 +106,8 @@ pub mod nightly {
     }
 
     impl<'sc, 'cc, C, T> UniversalTransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C>
-        where
-            C: TransparentContextMut<T> {
+    where
+        C: TransparentContextMut<T> {
         fn get_mut(&mut self) -> &mut T {
             self.child_context.get_mut()
         }
