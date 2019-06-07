@@ -150,10 +150,10 @@ impl<E> PolyphonicEvent for Timed<E> where E: PolyphonicEvent {
 }
 
 impl<Vc, VSM, E, C> Plugin<C> for Polyphonic<Vc, VSM, E>
-    where
-        VSM: VoiceStealMode<V = Vc>,
-        Vc: Plugin<C> + Voice,
-        E: PolyphonicEvent
+where
+    VSM: VoiceStealMode<V = Vc>,
+    Vc: Plugin<C> + Voice,
+    E: PolyphonicEvent
 {
     const NAME: &'static str = Vc::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = Vc::MAX_NUMBER_OF_AUDIO_INPUTS;
