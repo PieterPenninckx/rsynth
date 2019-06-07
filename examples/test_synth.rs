@@ -1,3 +1,6 @@
+// This file contains the actual sound generation of a plugin that is shared between all backends.
+// The integration with VST is in the `vst_synt.rs` file.
+// The integration with Jack is in the `jack_synth.rs` file.
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
