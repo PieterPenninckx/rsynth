@@ -1,6 +1,21 @@
 language: rust
 rust:
+  - stable
+  - beta
   - nightly
+matrix:
+  include: 
+    - name: "Test nightly"
+      rust: nightly
+      env: FEATURES="--no-default-features --features jack-backend"
+    - name: "Test beta"
+      rust: beta
+      env: FEATURES="--features jack-backend"
+    - name: "Test stable"
+      rust: stable
+      env: FEATURES="--features jack-backend"
+script:
+  - cargo test --verbose $FEATURES
 after_success: |
     cargo rustdoc --features jack-backend \
     && echo '<meta http-equiv=refresh content=0;url=rsynth/index.html>' > target/doc/index.html && \
