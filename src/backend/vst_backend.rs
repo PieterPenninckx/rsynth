@@ -11,6 +11,7 @@
 use crate::dev_utilities::{vecstorage::{VecStorage, VecStorageMut}, transparent::Transparent};
 use crate::event::{RawMidiEvent, SysExEvent, EventHandler, Timed};
 use crate::Plugin;
+use crate::backend::HostInterface;
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -47,8 +48,8 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: Plugin + VstPlugin + EventHandler<Timed<RawMidiEvent>>,
-    for<'a> P: EventHandler<Timed<SysExEvent<'a>>>
+    P: Plugin<HostCallback> + VstPlugin + EventHandler<Timed<RawMidiEvent>, HostCallback>,
+    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -93,7 +94,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice());
+            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -111,7 +112,8 @@ where
             outputs.push(output_buffers.get_mut(i));
         }
 
-        self.plugin.render_buffer::<f64>(&*inputs, &mut *outputs);
+        self.plugin
+            .render_buffer::<f64>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
@@ -140,7 +142,7 @@ where
                         time_in_frames: delta_frames as u32,
                         event: SysExEvent::new(payload),
                     };
-                    self.plugin.handle_event(event);
+                    self.plugin.handle_event(event, &mut self.host);
                 },
                 VstEvent::Midi(VstMidiEvent {
                                     data, delta_frames, ..
@@ -149,7 +151,7 @@ where
                         time_in_frames: delta_frames as u32,
                         event: RawMidiEvent::new(data),
                     };
-                    self.plugin.handle_event(event);
+                    self.plugin.handle_event(event, &mut self.host);
                 },
                 _ => (),
             }
@@ -161,6 +163,8 @@ where
         self.plugin.set_sample_rate(sample_rate);
     }
 }
+
+impl HostInterface for HostCallback {}
 
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
@@ -185,7 +189,10 @@ where
 ///         RawMidiEvent,
 ///         SysExEvent
 ///     },
-///     backend::vst_backend::VstPlugin
+///     backend::{
+///         HostInterface,
+///         vst_backend::VstPlugin
+///     }
 /// };
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
@@ -197,7 +204,10 @@ where
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl Plugin for MyPlugin {
+/// impl<H> Plugin<H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
 /// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
@@ -214,19 +224,25 @@ where
 /// #    fn set_sample_rate(&mut self, _sample_rate: f64) {
 /// #    }
 /// #
-/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]])
+/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
 /// #        where F: Float + AsPrim
 /// #    {
 /// #        unimplemented!()
 /// #    }
 /// }
 /// 
-/// impl EventHandler<Timed<RawMidiEvent>> for MyPlugin {
-/// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {}
+/// impl<H> EventHandler<Timed<RawMidiEvent>, H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
+/// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
-/// impl<'a> EventHandler<Timed<SysExEvent<'a>>> for MyPlugin {
-/// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>) {}
+/// impl<'a, H> EventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
+/// where
+///     H: HostInterface,
+/// {
+/// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
 /// vst_init!(

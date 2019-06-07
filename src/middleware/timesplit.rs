@@ -46,9 +46,9 @@ impl<P, E> Transparent for TimeSplit<P, E> {
     }
 }
 
-impl<P, E> Plugin for TimeSplit<P, E>
+impl<P, E, C> Plugin<C> for TimeSplit<P, E>
 where
-    P: Plugin,
+    P: Plugin<C>,
 {
     const NAME: &'static str = P::NAME;
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = P::MAX_NUMBER_OF_AUDIO_INPUTS;
@@ -66,7 +66,7 @@ where
         self.plugin.set_sample_rate(sample_rate);
     }
 
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
         where
             F: Float + AsPrim,
     {
@@ -75,39 +75,39 @@ where
 }
 
 #[cfg(feature = "stable")]
-impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
+impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
 where 
-    P: EventHandler<EE>,
+    P: EventHandler<EE, C>,
     EE: Specialize<Timed<E>>
 {
-    fn handle_event(&mut self, event: EE) {
+    fn handle_event(&mut self, event: EE, context: &mut C) {
         match <EE as Specialize<Timed<E>>>::specialize(event) {
             Distinction::Special(event) => {
                 self.save_event(event);
             },
             Distinction::Generic(g) => {
-                self.plugin.handle_event(g);
+                self.plugin.handle_event(g, context);
             }
         }
     }
 }
 
 #[cfg(not(feature = "stable"))]
-impl<P, E, EE> EventHandler<EE> for TimeSplit<P, E>
+impl<P, E, EE, C> EventHandler<EE, C> for TimeSplit<P, E>
     where
-        P: EventHandler<EE>
+        P: EventHandler<EE, C>
 {
-    default fn handle_event(&mut self, event: EE) {
-        self.plugin.handle_event(event);
+    default fn handle_event(&mut self, event: EE, context: &mut C) {
+        self.plugin.handle_event(event, context);
     }
 }
 
 #[cfg(not(feature = "stable"))]
-impl<P, E> EventHandler<Timed<E>> for TimeSplit<P, E>
+impl<P, E, C> EventHandler<Timed<E>, C> for TimeSplit<P, E>
     where
-        P: EventHandler<Timed<E>>
+        P: EventHandler<Timed<E>, C>
 {
-    fn handle_event(&mut self, event: Timed<E>) {
+    fn handle_event(&mut self, event: Timed<E>, _context: &mut C) {
         self.save_event(event);
     }
 }

@@ -76,10 +76,10 @@
 //! struct MyMiddleware<P> {
 //!     child: P
 //! }
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
-//! where P: EventHandler<E> {
-//!     fn handle_event(&mut self, event: E) {
-//!         self.child.handle_event(event);
+//! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
+//! where P: EventHandler<E, C> {
+//!     fn handle_event(&mut self, event: E, context: &mut C) {
+//!         self.child.handle_event(event, context);
 //!     }
 //! }
 //! ```
@@ -92,16 +92,16 @@
 //! struct MyMiddleware<P> {
 //!     child: P
 //! }
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
-//! where P: EventHandler<E> {
-//!     fn handle_event(&mut self, event: E) {
-//!         self.child.handle_event(event);
+//! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
+//! where P: EventHandler<E, C> {
+//!     fn handle_event(&mut self, event: E, context: &mut C) {
+//!         self.child.handle_event(event, context);
 //!     }
 //! }
 //! # struct SpecialEventType {}
-//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
+//! impl<P, C> EventHandler<SpecialEventType, C> for MyMiddleware<P>
 //! {
-//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!     fn handle_event(&mut self, event: SpecialEventType, context: &mut C) {
 //!         // Do something specific with the middleware.
 //!     }
 //! }
@@ -131,20 +131,20 @@
 //! #     child: P
 //! # }
 //! #[cfg(not(feature = "stable"))]
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
+//! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
 //! where // ...
 //! {
-//!     default fn handle_event(&mut self, event: E) {
+//!     default fn handle_event(&mut self, event: E, context: &mut C) {
 //!         // The generic implementation.
 //!     }
 //! }
 //!
 //! # struct SpecialEventType {}
 //! #[cfg(not(feature = "stable"))]
-//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
+//! impl<P, C> EventHandler<SpecialEventType, C> for MyMiddleware<P>
 //! where // ...
 //! {
-//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!     fn handle_event(&mut self, event: SpecialEventType, context: &mut C) {
 //!         // The specific implementation.
 //!     }
 //! }
@@ -168,17 +168,17 @@
 //! # struct SpecialEventType {}
 //!
 //! // The generic event types
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
-//! where P: EventHandler<E> , E: IsNot<SpecialEventType> {
-//!     fn handle_event(&mut self, event: E) {
-//!         self.child.handle_event(event);
+//! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
+//! where P: EventHandler<E, C> , E: IsNot<SpecialEventType> {
+//!     fn handle_event(&mut self, event: E, context: &mut C) {
+//!         self.child.handle_event(event, context);
 //!     }
 //! }
 //!
 //! // The special event type
-//! impl<P> EventHandler<SpecialEventType> for MyMiddleware<P>
+//! impl<P, C> EventHandler<SpecialEventType, C> for MyMiddleware<P>
 //! {
-//!     fn handle_event(&mut self, event: SpecialEventType) {
+//!     fn handle_event(&mut self, event: SpecialEventType, context: &mut C) {
 //!         // Do something specific with the middleware.
 //!     }
 //! }
@@ -206,15 +206,15 @@
 //! #   fn specialize(self) -> Distinction<SpecialEventType, Self> { Distinction::Special(self) }
 //! # }
 //!
-//! impl<E, P> EventHandler<E> for MyMiddleware<P>
-//! where P: EventHandler<E> , E: Specialize<SpecialEventType> {
-//!     fn handle_event(&mut self, event: E) {
+//! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
+//! where P: EventHandler<E, C> , E: Specialize<SpecialEventType> {
+//!     fn handle_event(&mut self, event: E, context: &mut C) {
 //!         match event.specialize() {
 //!             Distinction::Special(special) => {
 //!                 // Do something special
 //!             },
 //!             Distinction::Generic(generic) => {
-//!                 // self.child.handle_event(generic);
+//!                 // self.child.handle_event(generic, context);
 //!             }
 //!         }
 //!     }

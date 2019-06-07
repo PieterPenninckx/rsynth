@@ -31,7 +31,7 @@
 //! [`Polyphony`]: ./middleware/polyphony/index.html
 //! [`ZeroInit`]: ./middleware/zero_init/index.html
 
-#![cfg_attr(not(feature = "stable"), feature(specialization))]
+#![cfg_attr(not(feature = "stable"), feature(specialization, overlapping_marker_traits))]
 
 #[macro_use]
 extern crate log;
@@ -52,6 +52,7 @@ extern crate syllogism_macro;
 #[macro_use]
 pub mod dev_utilities;
 pub mod event;
+pub mod context;
 pub mod backend;
 pub mod middleware;
 pub mod note;
@@ -181,7 +182,7 @@ use num_traits::Float;
 // etc., depending on what properties of the context the plugin wants to use.
 
 /// The trait that all plugins need to implement.
-pub trait Plugin {
+pub trait Plugin<C> {
     /// The name of the plugin.
     const NAME: &'static str;
 
@@ -215,7 +216,7 @@ pub trait Plugin {
     /// This shared length can however be different for subsequent calls to `render_buffer`.
     //Right now, the `render_buffer` function is generic over floats. How do we specialize
     //  if we want to use SIMD?
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
         where
             F: Float + AsPrim;
 }

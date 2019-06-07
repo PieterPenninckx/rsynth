@@ -5,6 +5,7 @@ use rsynth::output_mode::OutputMode;
 use rsynth::event::{EventHandler, Timed, RawMidiEvent, SysExEvent};
 use rsynth::Plugin;
 use rsynth::middleware::polyphony::Voice;
+use rsynth::backend::HostInterface;
 use std::env;
 use std::fs::File;
 
@@ -55,9 +56,10 @@ where
 }
 
 /// The DSP stuff goes here
-impl<M> Plugin for Sound<M>
+impl<M, H> Plugin<H> for Sound<M>
 where
     M: OutputMode,
+    H: HostInterface,
 {
     // This is the name of our plugin.
     const NAME: &'static str = "RSynth Example";
@@ -99,7 +101,7 @@ where
     }
 
     #[allow(unused_variables)]
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]])
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], _context: &mut H)
     where
         F: Float + AsPrim,
     {
@@ -126,11 +128,12 @@ where
     }
 }
 
-impl<M> EventHandler<Timed<RawMidiEvent>> for Sound<M>
+
+impl<M, C> EventHandler<Timed<RawMidiEvent>, C> for Sound<M>
 where
-    M: OutputMode
+    M: OutputMode,
 {
-    fn handle_event(&mut self, timed: Timed<RawMidiEvent>) {
+    fn handle_event(&mut self, timed: Timed<RawMidiEvent>, _context: &mut C) {
         trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
         // We currently ignore the `time_in_frames` field.
         // There are some vague plans to add middleware that makes it easier
@@ -153,10 +156,10 @@ where
     }
 }
 
-impl<'a, M> EventHandler<Timed<SysExEvent<'a>>> for Sound<M>
+impl<'a, M, C> EventHandler<Timed<SysExEvent<'a>>, C> for Sound<M>
 where M: OutputMode
 {
-    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>) {
+    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, context: &mut C) {
         // We don't do anything with SysEx events.
     }
 }

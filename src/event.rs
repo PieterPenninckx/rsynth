@@ -6,8 +6,8 @@ use syllogism_macro::impl_specialization;
 use crate::dev_utilities::compatibility::*;
 
 /// The trait that plugins should implement in order to handle the given type of events.
-pub trait EventHandler<E> {
-    fn handle_event(&mut self, event: E);
+pub trait EventHandler<E, C> {
+    fn handle_event(&mut self, event: E, context: &mut C);
 }
 
 #[derive(Clone, Copy)]
