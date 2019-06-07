@@ -1,8 +1,8 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
+addons:
+  apt:
+    packages:
+      - libjack-dev
 matrix:
   include: 
     - name: "Test nightly"
