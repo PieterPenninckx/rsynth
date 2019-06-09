@@ -18,54 +18,14 @@ impl FrameCounter {
     }
 }
 
+#[cfg(not(feature = "stable"))]
 pub struct FrameCounterContext<'sc, 'cc, C> {
-    frame_counter: &'sc mut FrameCounter,
+    aspect: &'sc mut FrameCounter,
     child_context: &'cc mut C,
 }
 
-// Note: we cannot write a more generic implementation in the following style:
-// pub struct GenericContextWrapper<'e, 'c, E, C> {
-//      extra: &'e mut E,
-//      child_context: &'c mut C,
-// }
-// because the compiler doesn't know that `E` does not implement `IsNot<E>`,
-// so we would get into trouble with specialization.
-
 #[cfg(feature = "stable")]
-impl<'sc, 'cc, C> TransparentContext<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
-    fn get(&self) -> &FrameCounter {
-        self.frame_counter
-    }
-}
-
-#[cfg(feature = "stable")]
-impl<'sc, 'cc, C, T> TransparentContext<T> for FrameCounterContext<'sc, 'cc, C>
-where
-    C: TransparentContext<T>,
-    T: IsNot<FrameCounter>,
-{
-    fn get(&self) -> &T {
-        (*self.child_context).get()
-    }
-}
-
-#[cfg(feature = "stable")]
-impl<'sc, 'cc, C> TransparentContextMut<FrameCounter> for FrameCounterContext<'sc, 'cc, C> {
-    fn get_mut(&mut self) -> &mut FrameCounter {
-        self.frame_counter
-    }
-}
-
-#[cfg(feature = "stable")]
-impl<'sc, 'cc, C, T> TransparentContextMut<T> for FrameCounterContext<'sc, 'cc, C>
-where
-    C: TransparentContextMut<T>,
-    T: IsNot<FrameCounter>,
-{
-    fn get_mut(&mut self) -> &mut T {
-        self.child_context.get_mut()
-    }
-}
+wrap_context!(FrameCounter, FrameCounterContext);
 
 #[cfg(not(feature = "stable"))]
 pub mod nightly {
@@ -137,7 +97,7 @@ pub mod nightly {
         FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter>,
     {
         fn get(&self) -> &FrameCounter {
-            self.frame_counter
+            self.aspect
         }
     }
 
@@ -155,7 +115,7 @@ pub mod nightly {
         FrameCounterContext<'sc, 'cc, C>: GenericOrSpecial<FrameCounter>,
     {
         fn get_mut(&mut self) -> &mut FrameCounter {
-            self.frame_counter
+            self.aspect
         }
     }
 }
@@ -219,7 +179,7 @@ where
             self.sample_counter.number_of_frames_rendered += outputs[0].len();
         }
         let mut new_context = FrameCounterContext {
-            frame_counter: &mut self.sample_counter,
+            aspect: &mut self.sample_counter,
             child_context: context,
         };
         self.child_plugin
@@ -233,7 +193,7 @@ where
 {
     fn handle_event(&mut self, event: E, context: &mut C) {
         let mut new_context = FrameCounterContext {
-            frame_counter: &mut self.sample_counter,
+            aspect: &mut self.sample_counter,
             child_context: context,
         };
         self.child_plugin.handle_event(event, &mut new_context);
