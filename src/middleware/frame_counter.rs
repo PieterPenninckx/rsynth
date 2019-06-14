@@ -78,10 +78,7 @@ where
         if outputs.len() > 0 {
             self.sample_counter.number_of_frames_rendered += outputs[0].len();
         }
-        let mut new_context = FrameCounterContext {
-            aspect: &mut self.sample_counter,
-            child_context: context,
-        };
+        let mut new_context = FrameCounterContext::new(&mut self.sample_counter, context);
         self.child_plugin
             .render_buffer(inputs, outputs, &mut new_context);
     }
@@ -92,10 +89,7 @@ where
     for<'sc, 'cc> P: EventHandler<E, FrameCounterContext<'sc, 'cc, C>>,
 {
     fn handle_event(&mut self, event: E, context: &mut C) {
-        let mut new_context = FrameCounterContext {
-            aspect: &mut self.sample_counter,
-            child_context: context,
-        };
+        let mut new_context = FrameCounterContext::new(&mut self.sample_counter, context);
         self.child_plugin.handle_event(event, &mut new_context);
     }
 }

@@ -37,6 +37,12 @@ macro_rules! wrap_context {
             child_context: &'c mut C,
         }
 
+        impl<'a, 'c, C> $wrapper_name<'a, 'c, C> {
+            pub fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
+                Self {aspect, child_context}
+            }
+        }
+
         impl<'a, 'c, C> TransparentContext<$type_name> for $wrapper_name<'a, 'c, C> {
             fn get(&self) -> &$type_name {
                 self.aspect
@@ -75,97 +81,125 @@ macro_rules! wrap_context {
 // For more info, see
 // https://github.com/rust-lang/rust/issues/31844#issuecomment-397650553
 #[cfg(not(feature = "stable"))]
+#[doc(hidden)]
 pub trait UniversalTransparentContext<T> {
     fn get(&self) -> &T;
 }
 
 #[cfg(not(feature = "stable"))]
+#[doc(hidden)]
 pub trait UniversalTransparentContextMut<T> {
     fn get_mut(&mut self) -> &mut T;
 }
 
 #[cfg(not(feature = "stable"))]
+#[doc(hidden)]
 pub trait GenericOrSpecial<T> {}
+
+#[cfg(not(feature = "stable"))]
+pub struct ContextWrapper<'a, 'c, A, C> {
+    aspect: &'a mut A,
+    child_context: &'c mut C,
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C> ContextWrapper<'a, 'c, A, C> {
+    pub fn new(aspect: &'a mut A, child_context: &'c mut C) -> Self {
+        ContextWrapper {
+            aspect,
+            child_context,
+        }
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> UniversalTransparentContext<T> for ContextWrapper<'a, 'c, A, C> {
+    default fn get(&self) -> &T {
+        unreachable!();
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> UniversalTransparentContext<T> for ContextWrapper<'a, 'c, A, C>
+where
+    C: TransparentContext<T>,
+{
+    fn get(&self) -> &T {
+        self.child_context.get()
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> UniversalTransparentContextMut<T> for ContextWrapper<'a, 'c, A, C> {
+    default fn get_mut(&mut self) -> &mut T {
+        unreachable!();
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> UniversalTransparentContextMut<T> for ContextWrapper<'a, 'c, A, C>
+where
+    C: TransparentContextMut<T>,
+{
+    fn get_mut(&mut self) -> &mut T {
+        self.child_context.get_mut()
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> GenericOrSpecial<T> for ContextWrapper<'a, 'c, A, C>
+where
+    C: TransparentContext<T>
+{
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C> GenericOrSpecial<A> for ContextWrapper<'a, 'c, A, C> {
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> TransparentContext<T> for ContextWrapper<'a, 'c, A, C>
+where
+    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<T>,
+{
+    default fn get(&self) -> &T {
+        <Self as UniversalTransparentContext<T>>::get(self)
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C> TransparentContext<A> for ContextWrapper<'a, 'c, A, C>
+where
+    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<A>,
+{
+    fn get(&self) -> &A {
+        self.aspect
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C, T> TransparentContextMut<T> for ContextWrapper<'a, 'c, A, C>
+where
+    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<T>,
+    {
+        default fn get_mut(&mut self) -> &mut T {
+            <Self as UniversalTransparentContextMut<T>>::get_mut(self)
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<'a, 'c, A, C> TransparentContextMut<A> for ContextWrapper<'a, 'c, A, C>
+where
+    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<A>,
+{
+    fn get_mut(&mut self) -> &mut A {
+        self.aspect
+    }
+}
 
 #[cfg(not(feature = "stable"))]
 macro_rules! wrap_context {
     ($type_name:ty, $wrapper_name:ident) => {
-        pub struct $wrapper_name<'a, 'c, C> {
-            aspect: &'a mut $type_name,
-            child_context: &'c mut C,
-        }
-
-        impl<'a, 'c, C, T> $crate::context::UniversalTransparentContext<T> for $wrapper_name<'a, 'c, C> {
-            default fn get(&self) -> &T {
-                unreachable!();
-            }
-        }
-
-        impl<'a, 'c, C, T> $crate::context::UniversalTransparentContext<T> for $wrapper_name<'a, 'c, C>
-        where
-            C: $crate::context::TransparentContext<T>,
-        {
-            fn get(&self) -> &T {
-                self.child_context.get()
-            }
-        }
-
-        impl<'a, 'c, C, T> $crate::context::UniversalTransparentContextMut<T> for $wrapper_name<'a, 'c, C> {
-            default fn get_mut(&mut self) -> &mut T {
-                unreachable!();
-            }
-        }
-
-        impl<'a, 'c, C, T> $crate::context::UniversalTransparentContextMut<T> for $wrapper_name<'a, 'c, C>
-        where
-            C: $crate::context::TransparentContextMut<T>,
-        {
-            fn get_mut(&mut self) -> &mut T {
-                self.child_context.get_mut()
-            }
-        }
-
-        impl<'a, 'c, C, T> $crate::context::GenericOrSpecial<T> for $wrapper_name<'a, 'c, C> where
-            C: $crate::context::TransparentContext<T>
-        {
-        }
-
-        impl<'a, 'c, C> $crate::context::GenericOrSpecial<$type_name> for $wrapper_name<'a, 'c, C> {}
-
-        impl<'a, 'c, C, T> $crate::context::TransparentContext<T> for $wrapper_name<'a, 'c, C>
-        where
-            $wrapper_name<'a, 'c, C>: $crate::context::GenericOrSpecial<T>,
-        {
-            default fn get(&self) -> &T {
-                <Self as $crate::context::UniversalTransparentContext<T>>::get(self)
-            }
-        }
-
-        impl<'a, 'c, C> $crate::context::TransparentContext<$type_name> for $wrapper_name<'a, 'c, C>
-        where
-            $wrapper_name<'a, 'c, C>: $crate::context::GenericOrSpecial<$type_name>,
-        {
-            fn get(&self) -> &FrameCounter {
-                self.aspect
-            }
-        }
-
-        impl<'a, 'c, C, T> $crate::context::TransparentContextMut<T> for $wrapper_name<'a, 'c, C>
-        where
-            $wrapper_name<'a, 'c, C>: $crate::context::GenericOrSpecial<T>,
-        {
-            default fn get_mut(&mut self) -> &mut T {
-                <Self as $crate::context::UniversalTransparentContextMut<T>>::get_mut(self)
-            }
-        }
-
-        impl<'a, 'c, C> $crate::context::TransparentContextMut<$type_name> for $wrapper_name<'a, 'c, C>
-        where
-            $wrapper_name<'a, 'c, C>: $crate::context::GenericOrSpecial<$type_name>,
-        {
-            fn get_mut(&mut self) -> &mut $type_name {
-                self.aspect
-            }
-        }
+        type $wrapper_name<'a, 'c, C> = $crate::context::ContextWrapper<'a, 'c, $type_name, C>;
     };
 }
