@@ -3,7 +3,7 @@ use num_traits::Float;
 #[cfg(feature = "stable")]
 use syllogism::IsNot;
 
-use crate::context::{TransparentContext, TransparentContextMut};
+use crate::context::TransparentContext;
 use crate::event::EventHandler;
 use crate::Plugin;
 
@@ -21,28 +21,15 @@ impl FrameCounter {
 wrap_context!(FrameCounter, FrameCounterContext);
 
 pub trait WithFrameCounter {
-    fn frame_counter(&self) -> &FrameCounter;
+    fn frame_counter(&mut self) -> &mut FrameCounter;
 }
 
 impl<T> WithFrameCounter for T
 where
     T: TransparentContext<FrameCounter>,
 {
-    fn frame_counter(&self) -> &FrameCounter {
+    fn frame_counter(&mut self) -> &mut FrameCounter {
         self.get()
-    }
-}
-
-pub trait WithFrameCounterMut {
-    fn frame_counter_mut(&mut self) -> &mut FrameCounter;
-}
-
-impl<T> WithFrameCounterMut for T
-where
-    T: TransparentContextMut<FrameCounter>,
-{
-    fn frame_counter_mut(&mut self) -> &mut FrameCounter {
-        self.get_mut()
     }
 }
 

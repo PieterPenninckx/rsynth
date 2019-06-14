@@ -9,14 +9,14 @@ use crate::context::TransparentContext;
 pub trait HostInterface {}
 
 pub trait WithHost<H: HostInterface> {
-    fn host(&self) -> &H;
+    fn host(&mut self) -> &H;
 }
 
 impl<T, H: HostInterface> WithHost<H> for T
 where
     T: TransparentContext<H>,
 {
-    fn host(&self) -> &H {
+    fn host(&mut self) -> &H {
         self.get()
     }
 }

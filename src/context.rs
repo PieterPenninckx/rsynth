@@ -12,13 +12,9 @@ impl_specialization!(
     type FrameCounter;
 );
 
-/// Same as the Borrow trait from `std`, but without the default impls.
+/// Same as the BorrowMut trait from `std`, but without the default impls.
 pub trait TransparentContext<T> {
-    fn get(&self) -> &T;
-}
-
-pub trait TransparentContextMut<T> {
-    fn get_mut(&mut self) -> &mut T;
+    fn get(&mut self) -> &mut T;
 }
 
 // Note: we cannot write a more generic implementation in the following style:
@@ -28,6 +24,13 @@ pub trait TransparentContextMut<T> {
 // }
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
+/// A macro that generates a type with the given name with two fields:
+/// * `aspect`, which is a reference as mutable to the given type, and
+/// * `child_context`, which is a reference as mutable to the "child context".
+///
+/// The generated type implements `TransparentContext<$type_name>` by
+/// returning the field `aspect` and `TransparentContext<T>` for "any other" type
+/// that the child context supports by delegating it to the child context.
 #[cfg(feature = "stable")]
 #[macro_export]
 macro_rules! wrap_context {
@@ -38,13 +41,13 @@ macro_rules! wrap_context {
         }
 
         impl<'a, 'c, C> $wrapper_name<'a, 'c, C> {
-            pub fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
+            fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
                 Self {aspect, child_context}
             }
         }
 
         impl<'a, 'c, C> TransparentContext<$type_name> for $wrapper_name<'a, 'c, C> {
-            fn get(&self) -> &$type_name {
+            fn get(&mut self) -> &mut $type_name {
                 self.aspect
             }
         }
@@ -54,24 +57,8 @@ macro_rules! wrap_context {
             C: TransparentContext<T>,
             T: IsNot<$type_name>,
         {
-            fn get(&self) -> &T {
-                (*self.child_context).get()
-            }
-        }
-
-        impl<'a, 'c, C> TransparentContextMut<$type_name> for $wrapper_name<'a, 'c, C> {
-            fn get_mut(&mut self) -> &mut $type_name {
-                self.aspect
-            }
-        }
-
-        impl<'a, 'c, C, T> TransparentContextMut<T> for $wrapper_name<'a, 'c, C>
-        where
-            C: TransparentContextMut<T>,
-            T: IsNot<$type_name>,
-        {
-            fn get_mut(&mut self) -> &mut T {
-                self.child_context.get_mut()
+            fn get(&mut self) -> &mut T {
+                self.child_context.get()
             }
         }
     };
@@ -83,13 +70,7 @@ macro_rules! wrap_context {
 #[cfg(not(feature = "stable"))]
 #[doc(hidden)]
 pub trait UniversalTransparentContext<T> {
-    fn get(&self) -> &T;
-}
-
-#[cfg(not(feature = "stable"))]
-#[doc(hidden)]
-pub trait UniversalTransparentContextMut<T> {
-    fn get_mut(&mut self) -> &mut T;
+    fn get(&mut self) -> &mut T;
 }
 
 #[cfg(not(feature = "stable"))]
@@ -114,7 +95,7 @@ impl<'a, 'c, A, C> ContextWrapper<'a, 'c, A, C> {
 
 #[cfg(not(feature = "stable"))]
 impl<'a, 'c, A, C, T> UniversalTransparentContext<T> for ContextWrapper<'a, 'c, A, C> {
-    default fn get(&self) -> &T {
+    default fn get(&mut self) -> &mut T {
         unreachable!();
     }
 }
@@ -124,25 +105,8 @@ impl<'a, 'c, A, C, T> UniversalTransparentContext<T> for ContextWrapper<'a, 'c, 
 where
     C: TransparentContext<T>,
 {
-    fn get(&self) -> &T {
+    fn get(&mut self) -> &mut T {
         self.child_context.get()
-    }
-}
-
-#[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C, T> UniversalTransparentContextMut<T> for ContextWrapper<'a, 'c, A, C> {
-    default fn get_mut(&mut self) -> &mut T {
-        unreachable!();
-    }
-}
-
-#[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C, T> UniversalTransparentContextMut<T> for ContextWrapper<'a, 'c, A, C>
-where
-    C: TransparentContextMut<T>,
-{
-    fn get_mut(&mut self) -> &mut T {
-        self.child_context.get_mut()
     }
 }
 
@@ -162,7 +126,7 @@ impl<'a, 'c, A, C, T> TransparentContext<T> for ContextWrapper<'a, 'c, A, C>
 where
     ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<T>,
 {
-    default fn get(&self) -> &T {
+    default fn get(&mut self) -> &mut T {
         <Self as UniversalTransparentContext<T>>::get(self)
     }
 }
@@ -172,27 +136,7 @@ impl<'a, 'c, A, C> TransparentContext<A> for ContextWrapper<'a, 'c, A, C>
 where
     ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<A>,
 {
-    fn get(&self) -> &A {
-        self.aspect
-    }
-}
-
-#[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C, T> TransparentContextMut<T> for ContextWrapper<'a, 'c, A, C>
-where
-    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<T>,
-    {
-        default fn get_mut(&mut self) -> &mut T {
-            <Self as UniversalTransparentContextMut<T>>::get_mut(self)
-    }
-}
-
-#[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C> TransparentContextMut<A> for ContextWrapper<'a, 'c, A, C>
-where
-    ContextWrapper<'a, 'c, A, C>: GenericOrSpecial<A>,
-{
-    fn get_mut(&mut self) -> &mut A {
+    fn get(&mut self) -> &mut A {
         self.aspect
     }
 }
