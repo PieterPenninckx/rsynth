@@ -31,6 +31,11 @@ pub trait TransparentContext<T> {
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other" type
 /// that the child context supports by delegating it to the child context.
+///
+/// The generated type has also a non-public `new` function as follows:
+/// ```ignore
+/// fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self;
+/// ```
 #[cfg(feature = "stable")]
 #[macro_export]
 macro_rules! wrap_context {
@@ -141,7 +146,20 @@ where
     }
 }
 
+/// A macro that generates a type with the given name with two fields:
+/// * `aspect`, which is a reference as mutable to the given type, and
+/// * `child_context`, which is a reference as mutable to the "child context".
+///
+/// The generated type implements `TransparentContext<$type_name>` by
+/// returning the field `aspect` and `TransparentContext<T>` for "any other" type
+/// that the child context supports by delegating it to the child context.
+///
+/// The generated type has also a non-public `new` function as follows:
+/// ```ignore
+/// fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self;
+/// ```
 #[cfg(not(feature = "stable"))]
+#[macro_export]
 macro_rules! wrap_context {
     ($type_name:ty, $wrapper_name:ident) => {
         type $wrapper_name<'a, 'c, C> = $crate::context::ContextWrapper<'a, 'c, $type_name, C>;
