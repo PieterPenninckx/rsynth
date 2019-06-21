@@ -30,7 +30,8 @@ struct MyPlugin {
 
 impl<C, H> Plugin<C> for MyPlugin
 where
-    C: WithHost<HostInterface>
+    C: WithHost<H>,
+    H: HostInterface
 {
     // For brevity, we omit some methods that describe the plugin (plugin name etc.)
 
@@ -53,7 +54,7 @@ where
     }
 }
 
-impl<C> EventHandler<Timed<RawMidiEvent>> for MyPlugin
+impl<C> EventHandler<Timed<RawMidiEvent>, C> for MyPlugin
 {
     fn handle_event(&mut self, timed: Timed<RawMidiEvent>, context: &mut C) {
         // Here we can handle the event.
