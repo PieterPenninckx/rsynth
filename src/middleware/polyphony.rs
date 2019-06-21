@@ -110,16 +110,16 @@ where
     }
 }
 
-/// This struct defines what should happen with an event in a polyphonic instrument
+/// This struct defines what should happen with an event in a polyphonic instrument.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EventType {
-    /// The event should be broadcasted to all voices
+    /// The event should be broadcasted to all voices.
     Broadcast,
-    /// The event is specific for the voice with the given tone
+    /// The event is specific for the voice with the given tone.
     VoiceSpecific { tone: u8 },
-    /// The event indicates that a new voice should be created with the given tone
+    /// The event indicates that a new voice should be created with the given tone.
     NewVoice { tone: u8 },
-    /// The event indicates that the voice with the given tone should start releasing
+    /// The event indicates that the voice with the given tone should start releasing.
     ReleaseVoice { tone: u8 },
 }
 
@@ -450,6 +450,7 @@ impl Default for PlayingState {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[doc(hidden)]
 pub struct SimpleVoiceStealerState {
     is_releasing: bool,
     playing_state: PlayingState,

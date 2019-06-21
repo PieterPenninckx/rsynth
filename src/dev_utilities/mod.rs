@@ -123,7 +123,6 @@
 //! ```
 //!
 //! In your source code:
-//! In your source code:
 //! ```
 //! #![cfg_attr(not(feature = "stable"), feature(specialization))]
 //! # use rsynth::event::EventHandler;
@@ -389,5 +388,6 @@ pub mod transparent;
 pub mod vecstorage;
 
 #[cfg(feature = "stable")]
+#[doc(hidden)]
 #[macro_use]
 pub mod compatibility;

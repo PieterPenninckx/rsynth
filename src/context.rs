@@ -1,3 +1,6 @@
+//! Traits and macros for working with context.
+//!
+//! TODO: Describe how the "`With*`" traits work.
 #[cfg(feature = "stable")]
 use crate::dev_utilities::compatibility::*;
 #[cfg(feature = "stable")]
@@ -12,7 +15,7 @@ impl_specialization!(
     type FrameCounter;
 );
 
-/// Same as the BorrowMut trait from `std`, but without the default impls.
+/// Same as the `BorrowMut` trait from `std`, but without the default impls.
 pub trait TransparentContext<T> {
     fn get(&mut self) -> &mut T;
 }
@@ -27,15 +30,14 @@ pub trait TransparentContext<T> {
 // ```
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
-//
-/// A macro that generates a type with the given name with two fields:
-/// * `aspect`, which is a reference as mutable to the given type, and
-/// * `child_context`, which is a reference as mutable to the "child context".
-///
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other" 
 /// type `T` for which the child context implements `Transparentcontext<T>`
 /// by delegating it to the child context.
+///
+/// The generated type has the following two fields
+/// * `aspect`, which is a reference as mutable to the given type, and
+/// * `child_context`, which is a reference as mutable to the "child context".
 ///
 /// The generated type has also a non-public `new` function as follows:
 /// ```ignore
@@ -151,14 +153,15 @@ where
     }
 }
 
-/// A macro that generates a type with the given name with two fields:
-/// * `aspect`, which is a reference as mutable to the given type, and
-/// * `child_context`, which is a reference as mutable to the "child context".
-///
+/// A macro that generates a type with the given name.
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other" 
 /// type `T` for which the child context implements `Transparentcontext<T>`
 /// by delegating it to the child context.
+///
+/// The generated type has the following two fields
+/// * `aspect`, which is a reference as mutable to the given type, and
+/// * `child_context`, which is a reference as mutable to the "child context".
 ///
 /// The generated type has also a non-public `new` function as follows:
 /// ```ignore

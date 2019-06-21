@@ -8,18 +8,76 @@ Rsynth has the following components:
 
 * An API abstraction layer
 * Glue code for different API's (called back-ends). Currently supported are
-  * [rust-vst](https://github.com/rust-dsp/rust-vst)
+  * [rust-vst](https://github.com/RustAudio/vst-rs)
   * Jack
 * Middleware components that you can put between your code and the abstraction layer to provide 
   various functionalities:
   * polyphony
   * ...
 
+# Documentation
 [Documentation](https://resamplr.github.io/rsynth)
+
+# Examples
+There are full examples in 
+[the examples folder in the source code](https://github.com/resamplr/rsynth/tree/master/examples).
+
+Below we give a simplified example that illustrates the main features.
+```rust
+struct MyPlugin {
+    // ...
+}
+
+impl<C, H> Plugin<C> for MyPlugin
+where
+    C: WithHost<H>,
+    H: HostInterface
+{
+    // For brevity, we omit some methods that describe the plugin (plugin name etc.)
+
+    fn set_sample_rate(&mut self, sample_rate: f64) {
+        // ...
+    }
+
+    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
+    where
+        F: Float + AsPrim,
+    {
+        // This is the core of the plugin. Here you do the actual sound rendering.
+        // `inputs` is a slice of input buffers. 
+        // `outputs` is a slice of output buffers.
+        // An input buffer is just a slice of floats (f32 or f64),
+        // an output buffer is just a mutable slice of floats.
+        // `context` contains some data that is computed outside of the `MyPlugin` struct.
+        // In this case, because it implements `WithHost`, we can access the host as follows:
+        let host = context.host();
+    }
+}
+
+impl<C> EventHandler<Timed<RawMidiEvent>, C> for MyPlugin
+{
+    fn handle_event(&mut self, timed: Timed<RawMidiEvent>, context: &mut C) {
+        // Here we can handle the event.
+    }
+}
+```
+
+This plugin can then be used in the main function as follows:
+```rust
+fn main() {
+    let my_plugin = MyPlugin{ /* ... */ };
+    // Use the `ZeroInit` middleware:
+    let zero_initialized = ZeroInit::new(my_plugin);
+    // this may be wrapped further in other middleware.
+    
+    jack_backend::run(zero_initialized);
+}
+```
 
 # Current State
 
-rsynth is in its early stage of development and many changes are still breaking changes.
+rsynth is in its early stage of development and many changes are breaking changes.
+There is currently no support for GUI's.
 The team behind it is very small, so progress is slow.
 
 # Roadmap
@@ -31,7 +89,6 @@ needed) and you can volunteer to test the feature before it is merged.
 
 Features that are likely to be realized:
 
-- Add the notion of context
 - Add a back-end for testing
 - Add middleware to split the audio-buffer so that timed events are at sample `0`
 - Add support for envelopes
@@ -42,7 +99,7 @@ team and other issues (unless somebody joins to help with these)
 - Support for LV2
 
 In the long term, rsynth can be split into multiple crates for maximum reusability
-and for license clarity (e.g. when one back-end mandates a different license).
+and for license clarity (e.g. when one back-end requires a different license).
 We're currently keeping everything together because it's easier to coordinate breaking changes
 over the various components in this way.
 
