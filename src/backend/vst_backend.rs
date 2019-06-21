@@ -1,5 +1,8 @@
 //! Wrapper for the VST backend.
 //!
+//! Support is only enabled if you compile with the "vst-backend" feature, see
+//! [the cargo reference] for more information on setting cargo features.
+//!
 //! For an example, see `vst_synth.rs` in the `examples` folder.
 //! `examples/test_synth.rs` contains the code that is shared for all backends and
 //! `examples/vst_synth.rs` contains the jack-specific code.
@@ -8,6 +11,7 @@
 //! See also the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
+//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
 use crate::dev_utilities::{
     transparent::Transparent,

@@ -3,7 +3,15 @@
 //!
 //! # The `Plugin` trait
 //! The functionality of the plugin that is common to all back-ends is defined
-//! by the [`Plugin`] trait.
+//! by the [`Plugin`] trait. It defines some meta-data about the plugin and contains
+//! the methods for rendering the audio.
+//!
+//! # The `EventHandler` trait
+//! Plugins also implement `EventHandler` for each event type that they support.
+//! Currently supported events are:
+//!
+//! * [`RawMidiEvent`]
+//! * [`SysExEvent`]
 //!
 //! # Back-ends
 //! `rsynth` currently supports two back-ends:
@@ -20,16 +28,30 @@
 //! Typically, suppose `M` is middleware and your plugin `P` implement the `Plugin` trait and
 //! any other backend-specific trait, then `M<P>` also implements the `Plugin` trait
 //! and the backend-specific traits `P` implements.
+//! Similar for the `EventHandler` trait: when your plugin `P` implements `EventHandler<E>`,
+//! then `M<P>` typically does the same.
+//!
 //! Currently, supported middleware is
 //!
 //! * [`Polyphony`]
 //! * [`ZeroInit`]
+//!
+//! # Context
+//! Context can be used to access data that is not stored in your plugin, but
+//! e.g. stored by the host or some middleware.
+//! The context is passed to every call to [`render_buffer`] in the [`Plugin`] trait and
+//! to every call to [`handle_event`] in the [`EventHandler`] trait.
 //!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
 //! [`Polyphony`]: ./middleware/polyphony/index.html
 //! [`ZeroInit`]: ./middleware/zero_init/index.html
+//! [`EventHandler`]: ./event/trait.EventHandler.html
+//! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
+//! [`SysExEvent`]: ./event/struct.SysExEvent.html
+//! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer
+//! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event
 
 #![cfg_attr(
     not(feature = "stable"),
@@ -171,7 +193,7 @@ use num_traits::Float;
 // Context
 // -------
 // Sometimes, plugins will want to e.g. share some data (e.g. samples) by all voices.
-// In order to allow this, we're planning to add a `context` parameter (of generic type) to the
+// In order to allow this, there is a `context` parameter (of generic type) to the
 // `handle_events` and the `render_buffer` methods.
 // We will typically want to use this context for many things and there are different parties
 // involved:
@@ -180,14 +202,15 @@ use num_traits::Float;
 // * the back-end and the plugin may want to use the context for some communication
 // Because these involved parties potentially are defined in different crates, we want to have a
 // mechanism to "add fields to a struct defined elsewhere".
-// This is not possible of course, but we can define traits like `WithContext`, `WithSamples`,
+// This is not possible of course, but we can define traits like `WithParameters`, `WithSamples`,
 // `WithHost` etc, compose structs and use blanket impls to make it all work. This sounds very
-// handwavy, but we've already largely implemented this and the bulk of the complexity is for
-// the back-end and the middleware: the plugin can simply
-// `impl Plugin<C> for MyPlugin where C: WithContext + WithSamples`
-// etc., depending on what properties of the context the plugin wants to use.
+// handwavy, but you can have a look at the source code in `middleware/frame_counter.rs` for
+// examples.
 
 /// The trait that all plugins need to implement.
+/// The parameter `C` corresponds to the [context] of the plugin.
+///
+/// [context]: ./context/index.html
 pub trait Plugin<C> {
     /// The name of the plugin.
     const NAME: &'static str;

@@ -5,9 +5,11 @@ pub mod jack_backend;
 pub mod vst_backend;
 use crate::context::TransparentContext;
 
-/// Defines an interface for communicating with the host or server.
+/// Defines an interface for communicating with the host or server of the backend,
+/// e.g. the VST host when using VST or the  Jack server when using Jack.
 pub trait HostInterface {}
 
+/// Interface that can be used to access the host from a context that supports it.
 pub trait WithHost<H: HostInterface> {
     fn host(&mut self) -> &H;
 }
