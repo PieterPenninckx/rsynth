@@ -14,6 +14,9 @@ matrix:
     - name: "Test stable"
       rust: stable
       env: FEATURES="--features jack-backend,vst-backend"
+before_script:
+  - rustup component add rustfmt
+  - cargo fmt --all -- --check
 script:
   - cargo test --verbose $FEATURES
 after_success: |
