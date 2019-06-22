@@ -7,16 +7,16 @@ matrix:
   include: 
     - name: "Test nightly"
       rust: nightly
-      env: FEATURES="--no-default-features --features jack-backend,vst-backend"
+      env: FEATURES="--no-default-features --features jack-backend,vst-backend" RUSTUP="" FMT=""
     - name: "Test beta"
       rust: beta
-      env: FEATURES="--features jack-backend,vst-backend"
+      env: FEATURES="--features jack-backend,vst-backend" RUSTUP="" FMT=""
     - name: "Test stable"
       rust: stable
-      env: FEATURES="--features jack-backend,vst-backend"
+      env: FEATURES="--features jack-backend,vst-backend" RUSTUP="rustup component add rustfmt" FMT="cargo fmt --all -- --check"
 before_script:
-  - rustup component add rustfmt
-  - cargo fmt --all -- --check
+  - $RUSTUP
+  - $FMT
 script:
   - cargo test --verbose $FEATURES
 after_success: |
