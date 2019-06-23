@@ -132,6 +132,13 @@ In this way, we can coordinate development.
 Issues labeled with "good first issue" should not conflict too much with other changes
 that are in flight, but better check before you start working on one.
 
+## Code formatting
+Please use `cargo fmt` to format your code before opening a pull request.
+
+_Tip_: you can auto-format your code on save in your IDE:
+* IntelliJ: `File > Settings > Languages & Frameworks > Rust > Rustfmt > Run rustfmt on save`
+* [Visual Studio Code with `rls-vscode`](https://github.com/rust-lang/rls-vscode#format-on-save)
+
 # Sponsorship
 
 rsynth is helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
