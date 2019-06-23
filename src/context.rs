@@ -31,7 +31,7 @@ pub trait TransparentContext<T> {
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
 /// The generated type implements `TransparentContext<$type_name>` by
-/// returning the field `aspect` and `TransparentContext<T>` for "any other" 
+/// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
 /// by delegating it to the child context.
 ///
@@ -54,7 +54,10 @@ macro_rules! wrap_context {
 
         impl<'a, 'c, C> $wrapper_name<'a, 'c, C> {
             fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
-                Self {aspect, child_context}
+                Self {
+                    aspect,
+                    child_context,
+                }
             }
         }
 
@@ -123,15 +126,13 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C, T> GenericOrSpecial<T> for ContextWrapper<'a, 'c, A, C>
-where
+impl<'a, 'c, A, C, T> GenericOrSpecial<T> for ContextWrapper<'a, 'c, A, C> where
     C: TransparentContext<T>
 {
 }
 
 #[cfg(not(feature = "stable"))]
-impl<'a, 'c, A, C> GenericOrSpecial<A> for ContextWrapper<'a, 'c, A, C> {
-}
+impl<'a, 'c, A, C> GenericOrSpecial<A> for ContextWrapper<'a, 'c, A, C> {}
 
 #[cfg(not(feature = "stable"))]
 impl<'a, 'c, A, C, T> TransparentContext<T> for ContextWrapper<'a, 'c, A, C>
@@ -155,7 +156,7 @@ where
 
 /// A macro that generates a type with the given name.
 /// The generated type implements `TransparentContext<$type_name>` by
-/// returning the field `aspect` and `TransparentContext<T>` for "any other" 
+/// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
 /// by delegating it to the child context.
 ///
