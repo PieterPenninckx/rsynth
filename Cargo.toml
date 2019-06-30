@@ -30,7 +30,8 @@ jack = "0.6.0"
 syllogism = "0.1"       # See also under dependencies.
 syllogism-macro = "0.1" # See also under dependencies.
 
-
+[package.metadata.docs.rs]
+all-features = true
 
 [[example]]
 name = "vst_synth"
