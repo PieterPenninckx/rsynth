@@ -30,6 +30,10 @@ pub trait TransparentContext<T> {
 // ```
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
+//
+// TODO: Extend so that type_name accepts a type parameter (to be added as an extra parameter
+// to the macro).
+// 
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
