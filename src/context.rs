@@ -50,13 +50,15 @@ pub trait TransparentContext<T> {
 #[cfg(feature = "stable")]
 #[macro_export]
 macro_rules! wrap_context {
-    ($type_name:ty, $wrapper_name:ident) => {
-        pub struct $wrapper_name<'a, 'c, C> {
+    ($type_name:ty, $wrapper_name:ident $(,$type_param:ident)*) => {
+        pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
             aspect: &'a mut $type_name,
             child_context: &'c mut C,
         }
 
-        impl<'a, 'c, C> $wrapper_name<'a, 'c, C> {
+        impl<'a, 'c, C $(,$type_param)*> 
+            $wrapper_name<'a, 'c, C $(,$type_param)*> 
+        {
             fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
                 Self {
                     aspect,
@@ -65,13 +67,18 @@ macro_rules! wrap_context {
             }
         }
 
-        impl<'a, 'c, C> TransparentContext<$type_name> for $wrapper_name<'a, 'c, C> {
+        impl<'a, 'c, C $(,$type_param)*> TransparentContext<$type_name> 
+        for
+            $wrapper_name<'a, 'c, C $(,$type_param)*> 
+        {
             fn get(&mut self) -> &mut $type_name {
                 self.aspect
             }
         }
 
-        impl<'a, 'c, C, T> TransparentContext<T> for $wrapper_name<'a, 'c, C>
+        impl<'a, 'c, C, T> TransparentContext<T> 
+        for 
+            $wrapper_name<'a, 'c, C$(,$type_param)*>
         where
             C: TransparentContext<T>,
             T: IsNot<$type_name>,
@@ -175,7 +182,8 @@ where
 #[cfg(not(feature = "stable"))]
 #[macro_export]
 macro_rules! wrap_context {
-    ($type_name:ty, $wrapper_name:ident) => {
-        type $wrapper_name<'a, 'c, C> = $crate::context::ContextWrapper<'a, 'c, $type_name, C>;
+    ($type_name:ty, $wrapper_name:ident $(,$type_param:ident)*) => {
+        type $wrapper_name<'a, 'c, C $(,$type_param)*> 
+            = $crate::context::ContextWrapper<'a, 'c, $type_name, C $(,$type_param)*>;
     };
 }
