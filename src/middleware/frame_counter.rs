@@ -23,7 +23,7 @@ impl FrameCounter {
     }
 }
 
-wrap_context!(FrameCounter, FrameCounterContext);
+wrap_context!(FrameCounterContext, FrameCounter);
 
 pub trait WithFrameCounter {
     fn frame_counter(&mut self) -> &mut FrameCounter;
