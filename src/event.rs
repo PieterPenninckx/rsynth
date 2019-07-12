@@ -28,6 +28,10 @@ impl<'a> SysExEvent<'a> {
     pub fn new(data: &'a [u8]) -> Self {
         Self { data }
     }
+    /// Get the data from the `SysExEvent`
+    pub fn data(&self) -> &'a [u8] {
+        self.data
+    }
 }
 
 /// A raw midi event.

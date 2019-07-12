@@ -1,7 +1,5 @@
 use asprim::AsPrim;
 use num_traits::Float;
-#[cfg(feature = "stable")]
-use syllogism::IsNot;
 
 use crate::context::TransparentContext;
 use crate::event::EventHandler;

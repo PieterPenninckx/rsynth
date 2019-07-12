@@ -53,8 +53,6 @@
 //! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer
 //! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event
 
-
-
 #![cfg_attr(
     not(feature = "stable"),
     feature(specialization, overlapping_marker_traits)
@@ -83,6 +81,7 @@ pub mod dev_utilities;
 pub mod backend;
 #[macro_use]
 pub mod context;
+pub mod envelope;
 pub mod event;
 pub mod middleware;
 pub mod note;
