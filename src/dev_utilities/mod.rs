@@ -108,10 +108,14 @@
 //! ```
 //!
 //! You can solve this problem in two ways, depending on the type that
-//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate.
-//! Additionally, we advise to provide also support using specialization:
+//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate
+//! and will be described below.
+//! Additionally, we advise to provide support using specialization in addition to the techniques
+//! from the [`syllogism`] crate. This allows you to ensure that your middleware still works when
+//! we would switch from the [`syllogism`] crate to using specializationg, once that gets
+//! stabilized.
 //!
-//! In the `Cargo.toml` file:
+//! In order to support specialization, you can edit tthe `Cargo.toml` file as follows:
 //! ```toml
 //! [features]
 //! default=["stable"]
@@ -122,7 +126,7 @@
 //! syllogism-macro = {version = "0.1", optional = true}
 //! ```
 //!
-//! In your source code:
+//! In order to support specilization, you can change your source code as follows:
 //! ```
 //! #![cfg_attr(not(feature = "stable"), feature(specialization))]
 //! # use rsynth::event::EventHandler;
@@ -149,7 +153,7 @@
 //! }
 //! ```
 //!
-//! ### Specializing for events with a concrete type
+//! ### Specializing for events with a concrete type using the `syllogism` crate
 //!
 //! If the event type for which you want to specialize is a concrete type,
 //! you can use the [`IsNot`] trait from the [`syllogism`] crate to distinguish the generic
@@ -184,7 +188,7 @@
 //! ```
 //!
 //!
-//! ### Specializing for events of a type parameter
+//! ### Specializing for events of a type parameter using the `syllogism` crate
 //!
 //! If the event type for which you want to specialize is a type parameter,
 //! you cannot use the `IsNot` trait because the compiler cannot know that

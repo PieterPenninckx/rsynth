@@ -1,15 +1,12 @@
+use crate::envelope::Envelope;
 use crate::event::{RawMidiEvent, Timed};
 pub struct AfterTouchMarker;
+use super::EnvelopeContext;
+use crate::dev_utilities::transparent::Transparent;
 use core::marker::PhantomData;
 
 pub struct AfterTouchContext<E> {
     envelope: E,
-}
-
-pub trait EnvelopeContext {
-    type Marker;
-    type Data;
-    fn data(&mut self) -> &mut Self::Data;
 }
 
 impl<E> EnvelopeContext for AfterTouchContext<E> {
@@ -45,10 +42,22 @@ where
     }
 }
 
-pub struct AfterTouchMiddleware<Event: AfterTouchEvent, E, C> {
+pub struct AfterTouchMiddleware<Event, E, C> {
     phantom: PhantomData<Event>,
     envelope: E,
     child: C,
+}
+
+impl<Event, E, C> Transparent for AfterTouchMiddleware<Event, E, C> {
+    type Inner = C;
+
+    fn get(&self) -> &Self::Inner {
+        &self.child
+    }
+
+    fn get_mut(&mut self) -> &mut Self::Inner {
+        &mut self.child
+    }
 }
 
 impl<Event: AfterTouchEvent, E, C> AfterTouchMiddleware<Event, E, C> {
@@ -61,10 +70,18 @@ impl<Event: AfterTouchEvent, E, C> AfterTouchMiddleware<Event, E, C> {
     }
 }
 
-impl<Event: AfterTouchEvent, E, C> AfterTouchMiddleware<Event, E, C> {
-    fn handle_aftertouch_event(event: Event) {
-        if let Some(aftertouch) = event.aftertouch() {
-            unimplemented!();
+impl<Event, E, C> AfterTouchMiddleware<Event, E, C>
+where
+    Event: AfterTouchEvent,
+    for<'a> E: Envelope<'a, (), EventType = Timed<u8>>,
+    // TODO:                ^^ This should be a real type, now it's a dummy.
+{
+    fn handle_aftertouch_event(&mut self, event: Timed<Event>) {
+        if let Some(aftertouch) = event.event.aftertouch() {
+            self.envelope.insert_event(Timed {
+                time_in_frames: event.time_in_frames,
+                event: aftertouch,
+            })
         }
     }
 }
