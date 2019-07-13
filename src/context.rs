@@ -30,6 +30,17 @@ pub trait TransparentContext<T> {
 // ```
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
+/// `wrap_context!($wrapper_type, $type_name, $(,$type_param)*);`
+/// generates a type with the name `$wrapper_type` that adds an already-existing type
+/// `$type_name` to a "child_context".
+///
+/// The generated type looks as follows:
+/// ```ignore
+/// pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
+///      aspect: &'a mut $type_name,
+///      child_context: &'c mut C,
+///  }
+/// ```
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
@@ -182,7 +193,17 @@ where
     }
 }
 
-/// A macro that generates a type with the given name.
+/// `wrap_context!($wrapper_type, $type_name, $(,$type_param)*);`
+/// generates a type with the name `$wrapper_type` that adds an already-existing type
+/// `$type_name` to a "child_context".
+///
+/// The generated type looks as follows:
+/// ```ignore
+/// pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
+///      aspect: &'a mut $type_name,
+///      child_context: &'c mut C,
+///  }
+/// ```
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`

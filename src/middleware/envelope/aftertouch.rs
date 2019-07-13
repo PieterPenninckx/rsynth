@@ -4,7 +4,8 @@ pub struct AfterTouchMarker;
 use super::EnvelopeContext;
 use crate::dev_utilities::transparent::Transparent;
 use core::marker::PhantomData;
-use syllogism::Specialize;
+#[cfg(feature = "stable")]
+use syllogism::{Distinction, Specialize};
 
 pub struct AfterTouchContext<E> {
     envelope: E,
@@ -17,6 +18,8 @@ impl<E> EnvelopeContext for AfterTouchContext<E> {
         &mut self.envelope
     }
 }
+
+wrap_context!(EnvelopeContextWrapper, AfterTouchContext<E>, E);
 
 pub trait AfterTouchEvent: Copy {
     fn aftertouch(&self) -> Option<u8>;
@@ -47,7 +50,7 @@ pub struct AfterTouchMiddleware<Event, E, C, T>
 where
     for<'a> E: Envelope<'a, T>,
 {
-    envelope: E,
+    envelope: AfterTouchContext<E>,
     child: C,
     _phantom_event: PhantomData<Event>,
     _phantom_t: PhantomData<T>,
@@ -74,7 +77,7 @@ where
 {
     fn new(child: C, envelope: E) -> Self {
         Self {
-            envelope,
+            envelope: AfterTouchContext { envelope },
             child,
             _phantom_event: PhantomData,
             _phantom_t: PhantomData,
@@ -89,7 +92,7 @@ where
 {
     fn handle_aftertouch_event(&mut self, event: Timed<Event>) {
         if let Some(aftertouch) = event.event.aftertouch() {
-            self.envelope.insert_event(Timed {
+            self.envelope.envelope.insert_event(Timed {
                 time_in_frames: event.time_in_frames,
                 event: aftertouch,
             })
@@ -98,6 +101,7 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
+// TODO: "wrap" the context.
 impl<Event, E, C, T, GenericEvent, Context> EventHandler<GenericEvent, Context>
     for AfterTouchMiddleware<Event, E, C, T>
 where
@@ -111,6 +115,7 @@ where
 }
 
 #[cfg(not(feature = "stable"))]
+// TODO: "wrap" the context.
 impl<Event, E, C, T, Context> EventHandler<Timed<Event>, Context>
     for AfterTouchMiddleware<Event, E, C, T>
 where
@@ -128,12 +133,23 @@ where
 impl<Event, E, C, T, GenericEvent, Context> EventHandler<GenericEvent, Context>
     for AfterTouchMiddleware<Event, E, C, T>
 where
-    Event: Specialize<AfterTouchEvent>,
+    GenericEvent: Specialize<Timed<Event>>,
+    Event: AfterTouchEvent,
     for<'a> E: Envelope<'a, T, EventType = Timed<u8>>,
-    C: EventHandler<GenericEvent, Context>,
+    for<'ac, 'cc> C: EventHandler<GenericEvent, EnvelopeContextWrapper<'ac, 'cc, Context, E>>
+        + EventHandler<Timed<Event>, EnvelopeContextWrapper<'ac, 'cc, Context, E>>,
 {
-    fn handle_event(&mut self, event: E, context: &mut C) {
-        unimplemented!();
-        self.child.handle_event(event, context);
+    fn handle_event(&mut self, event: GenericEvent, context: &mut Context) {
+        match event.specialize() {
+            Distinction::Special(special) => {
+                self.handle_aftertouch_event(special);
+                let mut wrapped_context = EnvelopeContextWrapper::new(&mut self.envelope, context);
+                self.child.handle_event(special, &mut wrapped_context);
+            }
+            Distinction::Generic(generic) => {
+                let mut wrapped_context = EnvelopeContextWrapper::new(&mut self.envelope, context);
+                self.child.handle_event(generic, &mut wrapped_context);
+            }
+        }
     }
 }
