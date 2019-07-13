@@ -1,9 +1,10 @@
 use crate::envelope::Envelope;
-use crate::event::{RawMidiEvent, Timed};
+use crate::event::{EventHandler, RawMidiEvent, Timed};
 pub struct AfterTouchMarker;
 use super::EnvelopeContext;
 use crate::dev_utilities::transparent::Transparent;
 use core::marker::PhantomData;
+use syllogism::Specialize;
 
 pub struct AfterTouchContext<E> {
     envelope: E,
@@ -17,7 +18,7 @@ impl<E> EnvelopeContext for AfterTouchContext<E> {
     }
 }
 
-pub trait AfterTouchEvent {
+pub trait AfterTouchEvent: Copy {
     fn aftertouch(&self) -> Option<u8>;
 }
 
@@ -42,13 +43,20 @@ where
     }
 }
 
-pub struct AfterTouchMiddleware<Event, E, C> {
-    phantom: PhantomData<Event>,
+pub struct AfterTouchMiddleware<Event, E, C, T>
+where
+    for<'a> E: Envelope<'a, T>,
+{
     envelope: E,
     child: C,
+    _phantom_event: PhantomData<Event>,
+    _phantom_t: PhantomData<T>,
 }
 
-impl<Event, E, C> Transparent for AfterTouchMiddleware<Event, E, C> {
+impl<Event, E, C, T> Transparent for AfterTouchMiddleware<Event, E, C, T>
+where
+    for<'a> E: Envelope<'a, T>,
+{
     type Inner = C;
 
     fn get(&self) -> &Self::Inner {
@@ -60,21 +68,24 @@ impl<Event, E, C> Transparent for AfterTouchMiddleware<Event, E, C> {
     }
 }
 
-impl<Event: AfterTouchEvent, E, C> AfterTouchMiddleware<Event, E, C> {
+impl<Event: AfterTouchEvent, E, C, T> AfterTouchMiddleware<Event, E, C, T>
+where
+    for<'a> E: Envelope<'a, T>,
+{
     fn new(child: C, envelope: E) -> Self {
         Self {
-            phantom: PhantomData,
             envelope,
             child,
+            _phantom_event: PhantomData,
+            _phantom_t: PhantomData,
         }
     }
 }
 
-impl<Event, E, C> AfterTouchMiddleware<Event, E, C>
+impl<Event, E, C, T> AfterTouchMiddleware<Event, E, C, T>
 where
     Event: AfterTouchEvent,
-    for<'a> E: Envelope<'a, (), EventType = Timed<u8>>,
-    // TODO:                ^^ This should be a real type, now it's a dummy.
+    for<'a> E: Envelope<'a, T, EventType = Timed<u8>>,
 {
     fn handle_aftertouch_event(&mut self, event: Timed<Event>) {
         if let Some(aftertouch) = event.event.aftertouch() {
@@ -83,5 +94,46 @@ where
                 event: aftertouch,
             })
         }
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<Event, E, C, T, GenericEvent, Context> EventHandler<GenericEvent, Context>
+    for AfterTouchMiddleware<Event, E, C, T>
+where
+    Event: AfterTouchEvent,
+    for<'a> E: Envelope<'a, T, EventType = Timed<u8>>,
+    C: EventHandler<GenericEvent, Context>,
+{
+    default fn handle_event(&mut self, event: GenericEvent, context: &mut Context) {
+        self.child.handle_event(event, context);
+    }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<Event, E, C, T, Context> EventHandler<Timed<Event>, Context>
+    for AfterTouchMiddleware<Event, E, C, T>
+where
+    Event: AfterTouchEvent,
+    for<'a> E: Envelope<'a, T, EventType = Timed<u8>>,
+    C: EventHandler<Timed<Event>, Context>,
+{
+    fn handle_event(&mut self, event: Timed<Event>, context: &mut Context) {
+        self.handle_aftertouch_event(event);
+        self.child.handle_event(event, context);
+    }
+}
+
+#[cfg(feature = "stable")]
+impl<Event, E, C, T, GenericEvent, Context> EventHandler<GenericEvent, Context>
+    for AfterTouchMiddleware<Event, E, C, T>
+where
+    Event: Specialize<AfterTouchEvent>,
+    for<'a> E: Envelope<'a, T, EventType = Timed<u8>>,
+    C: EventHandler<GenericEvent, Context>,
+{
+    fn handle_event(&mut self, event: E, context: &mut C) {
+        unimplemented!();
+        self.child.handle_event(event, context);
     }
 }
