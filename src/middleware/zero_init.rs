@@ -64,6 +64,7 @@ where
         self.plugin.render_buffer(inputs, outputs, context);
     }
 }
+
 impl<E, P, C> EventHandler<E, C> for ZeroInit<P>
 where
     P: EventHandler<E, C>,

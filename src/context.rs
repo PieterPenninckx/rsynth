@@ -30,6 +30,17 @@ pub trait TransparentContext<T> {
 // ```
 // because the compiler doesn't know that `E` does not implement `IsNot<E>`,
 // so we would get into trouble with specialization.
+/// `wrap_context!($wrapper_type, $type_name, $(,$type_param)*);`
+/// generates a type with the name `$wrapper_type` that adds an already-existing type
+/// `$type_name` to a "child_context".
+///
+/// The generated type looks as follows:
+/// ```ignore
+/// pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
+///      aspect: &'a mut $type_name,
+///      child_context: &'c mut C,
+///  }
+/// ```
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
@@ -43,16 +54,39 @@ pub trait TransparentContext<T> {
 /// ```ignore
 /// fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self;
 /// ```
+/// ## Examples
+/// ```
+/// # #[macro_use] extern crate rsynth;
+/// struct MyContextAspect {
+///     // ...
+/// }
+///
+/// wrap_context!(MyContext, MyContextAspect);
+/// ```
+///
+/// If the type has type parameters, these must be added at the end:
+///
+/// ```
+/// # #[macro_use] extern crate rsynth;
+/// struct MyContextAspect<T1, T2> {
+/// # t1: T1, t2: T2
+///     // ...
+/// }
+///
+/// wrap_context!(MyContext, MyContextAspect<T1, T2>, T1, T2);
+/// ```
 #[cfg(feature = "stable")]
 #[macro_export]
 macro_rules! wrap_context {
-    ($type_name:ty, $wrapper_name:ident) => {
-        pub struct $wrapper_name<'a, 'c, C> {
+    ($wrapper_name:ident, $type_name:ty $(,$type_param:ident)*) => {
+        pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
             aspect: &'a mut $type_name,
             child_context: &'c mut C,
         }
 
-        impl<'a, 'c, C> $wrapper_name<'a, 'c, C> {
+        impl<'a, 'c, C $(,$type_param)*>
+            $wrapper_name<'a, 'c, C $(,$type_param)*>
+        {
             fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self {
                 Self {
                     aspect,
@@ -61,16 +95,21 @@ macro_rules! wrap_context {
             }
         }
 
-        impl<'a, 'c, C> TransparentContext<$type_name> for $wrapper_name<'a, 'c, C> {
+        impl<'a, 'c, C $(,$type_param)*> $crate::context::TransparentContext<$type_name>
+        for
+            $wrapper_name<'a, 'c, C $(,$type_param)*>
+        {
             fn get(&mut self) -> &mut $type_name {
                 self.aspect
             }
         }
 
-        impl<'a, 'c, C, T> TransparentContext<T> for $wrapper_name<'a, 'c, C>
+        impl<'a, 'c, C, T $(,$type_param)*> $crate::context::TransparentContext<T>
+        for
+            $wrapper_name<'a, 'c, C $(,$type_param)*>
         where
-            C: TransparentContext<T>,
-            T: IsNot<$type_name>,
+            C: $crate::context::TransparentContext<T>,
+            T: syllogism::IsNot<$type_name>,
         {
             fn get(&mut self) -> &mut T {
                 self.child_context.get()
@@ -154,7 +193,17 @@ where
     }
 }
 
-/// A macro that generates a type with the given name.
+/// `wrap_context!($wrapper_type, $type_name, $(,$type_param)*);`
+/// generates a type with the name `$wrapper_type` that adds an already-existing type
+/// `$type_name` to a "child_context".
+///
+/// The generated type looks as follows:
+/// ```ignore
+/// pub struct $wrapper_name<'a, 'c, C $(,$type_param)*> {
+///      aspect: &'a mut $type_name,
+///      child_context: &'c mut C,
+///  }
+/// ```
 /// The generated type implements `TransparentContext<$type_name>` by
 /// returning the field `aspect` and `TransparentContext<T>` for "any other"
 /// type `T` for which the child context implements `Transparentcontext<T>`
@@ -168,10 +217,32 @@ where
 /// ```ignore
 /// fn new(aspect: &'a mut $type_name, child_context: &'c mut C) -> Self;
 /// ```
+/// ## Examples
+/// ```
+/// # #[macro_use] extern crate rsynth;
+/// struct MyContextAspect {
+///     // ...
+/// }
+///
+/// wrap_context!(MyContext, MyContextAspect);
+/// ```
+///
+/// If the type has type parameters, these must be added at the end:
+///
+/// ```
+/// # #[macro_use] extern crate rsynth;
+/// struct MyContextAspect<T1, T2> {
+/// # t1: T1, t2: T2
+///     // ...
+/// }
+///
+/// wrap_context!(MyContext, MyContextAspect<T1, T2>, T1, T2);
+/// ```
 #[cfg(not(feature = "stable"))]
 #[macro_export]
 macro_rules! wrap_context {
-    ($type_name:ty, $wrapper_name:ident) => {
-        type $wrapper_name<'a, 'c, C> = $crate::context::ContextWrapper<'a, 'c, $type_name, C>;
+    ($wrapper_name:ident, $type_name:ty $(,$type_param:ident)*) => {
+        type $wrapper_name<'a, 'c, C $(,$type_param)*>
+            = $crate::context::ContextWrapper<'a, 'c, $type_name, C>;
     };
 }

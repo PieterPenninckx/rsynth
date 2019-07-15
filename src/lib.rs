@@ -81,6 +81,7 @@ pub mod dev_utilities;
 pub mod backend;
 #[macro_use]
 pub mod context;
+pub mod envelope;
 pub mod event;
 pub mod middleware;
 pub mod note;

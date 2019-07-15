@@ -108,10 +108,14 @@
 //! ```
 //!
 //! You can solve this problem in two ways, depending on the type that
-//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate.
-//! Additionally, we advise to provide also support using specialization:
+//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate
+//! and will be described below.
+//! Additionally, we advise to provide support using specialization in addition to the techniques
+//! from the [`syllogism`] crate. This allows you to ensure that your middleware still works when
+//! we would switch from the [`syllogism`] crate to using specializationg, once that gets
+//! stabilized.
 //!
-//! In the `Cargo.toml` file:
+//! In order to support specialization, you can edit tthe `Cargo.toml` file as follows:
 //! ```toml
 //! [features]
 //! default=["stable"]
@@ -122,13 +126,16 @@
 //! syllogism-macro = {version = "0.1", optional = true}
 //! ```
 //!
-//! In your source code:
+//! In order to support specilization, you can change your source code as follows:
 //! ```
+//! // In the root module:
 //! #![cfg_attr(not(feature = "stable"), feature(specialization))]
+//!
 //! # use rsynth::event::EventHandler;
 //! # struct MyMiddleware<P> {
 //! #     child: P
 //! # }
+//! // Near the definition of `MyMiddleware`
 //! #[cfg(not(feature = "stable"))]
 //! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
 //! where // ...
@@ -149,7 +156,7 @@
 //! }
 //! ```
 //!
-//! ### Specializing for events with a concrete type
+//! ### Specializing for events with a concrete type using the `syllogism` crate
 //!
 //! If the event type for which you want to specialize is a concrete type,
 //! you can use the [`IsNot`] trait from the [`syllogism`] crate to distinguish the generic
@@ -166,6 +173,9 @@
 //! }
 //! # struct SpecialEventType {}
 //!
+//! // If you are also supporting specialization as described above,
+//! // this should be behind the `#[cfg(feature = "stable")]` attribute.
+//!
 //! // The generic event types
 //! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
 //! where P: EventHandler<E, C> , E: IsNot<SpecialEventType> {
@@ -173,6 +183,9 @@
 //!         self.child.handle_event(event, context);
 //!     }
 //! }
+//!
+//! // If you are also supporting specialization as described above,
+//! // this should be behind the `#[cfg(feature = "stable")]` attribute.
 //!
 //! // The special event type
 //! impl<P, C> EventHandler<SpecialEventType, C> for MyMiddleware<P>
@@ -184,7 +197,7 @@
 //! ```
 //!
 //!
-//! ### Specializing for events of a type parameter
+//! ### Specializing for events of a type parameter using the `syllogism` crate
 //!
 //! If the event type for which you want to specialize is a type parameter,
 //! you cannot use the `IsNot` trait because the compiler cannot know that
@@ -205,6 +218,8 @@
 //! #   fn specialize(self) -> Distinction<SpecialEventType, Self> { Distinction::Special(self) }
 //! # }
 //!
+//! // If you are also supporting specialization as described above,
+//! // this should be behind the `#[cfg(feature = "stable")]` attribute.
 //! impl<E, P, C> EventHandler<E, C> for MyMiddleware<P>
 //! where P: EventHandler<E, C> , E: Specialize<SpecialEventType> {
 //!     fn handle_event(&mut self, event: E, context: &mut C) {
@@ -234,8 +249,8 @@
 //! Writing events
 //! ==============
 //!
-//! Copy
-//! ----
+//! Implement `Copy` if possible
+//! ----------------------------
 //!
 //! If possible, implement the `Copy` trait for the event,
 //! so that the `Polyphonic` middleware can dispatch this event to all the voices.

@@ -1,7 +1,5 @@
 use asprim::AsPrim;
 use num_traits::Float;
-#[cfg(feature = "stable")]
-use syllogism::IsNot;
 
 use crate::context::TransparentContext;
 use crate::event::EventHandler;
@@ -23,7 +21,7 @@ impl FrameCounter {
     }
 }
 
-wrap_context!(FrameCounter, FrameCounterContext);
+wrap_context!(FrameCounterContext, FrameCounter);
 
 pub trait WithFrameCounter {
     fn frame_counter(&mut self) -> &mut FrameCounter;

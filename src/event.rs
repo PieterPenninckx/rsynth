@@ -28,6 +28,10 @@ impl<'a> SysExEvent<'a> {
     pub fn new(data: &'a [u8]) -> Self {
         Self { data }
     }
+    /// Get the data from the `SysExEvent`
+    pub fn data(&self) -> &'a [u8] {
+        self.data
+    }
 }
 
 /// A raw midi event.
@@ -48,6 +52,7 @@ impl RawMidiEvent {
 }
 
 /// `Timed<E>` adds timing to an event.
+#[derive(PartialEq, Eq, Debug)]
 pub struct Timed<E> {
     /// The offset (in frames) of the event.
     /// E.g. when `time_in_frames` is 6, this means that
@@ -58,6 +63,15 @@ pub struct Timed<E> {
     pub time_in_frames: u32,
     /// The underlying event.
     pub event: E,
+}
+
+impl<E> Timed<E> {
+    pub fn new(time_in_frames: u32, event: E) -> Self {
+        Self {
+            time_in_frames,
+            event,
+        }
+    }
 }
 
 impl<E> Clone for Timed<E>
