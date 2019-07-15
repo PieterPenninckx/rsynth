@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ZeroInit","Set all output values to 0 before calling `render_buffer` on the \"child\"."]]});

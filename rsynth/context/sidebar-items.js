@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["TransparentContext","Same as the `BorrowMut` trait from `std`, but without the default impls."]]});

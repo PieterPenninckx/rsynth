@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["transparent",""],["vecstorage","`VecStorage` and `VecStorageMut` Struct to be able to re-use the storage of a vector for borrowing values with different lifetimes."]]});

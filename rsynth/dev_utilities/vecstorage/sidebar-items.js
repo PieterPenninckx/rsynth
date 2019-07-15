@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["VecGuard","This can be used as a vector of references."],["VecGuardMut","This can be used as a vector of references."],["VecStorage","Re-usable memory for creating a vector of references."],["VecStorageMut","Re-usable memory for creating a vector of references."]]});

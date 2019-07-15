@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["staircase_envelope",""]],"struct":[["EnvelopeIteratorItem",""]],"trait":[["Envelope","Defines the behaviour of an envelope. An envelope allows to get an iterator. The returned iterator allows to iterator over the frames, starting from the current position, and for each frame, returns the envelope value at that frame."]]});

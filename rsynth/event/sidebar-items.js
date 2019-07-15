@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["RawMidiEvent","A raw midi event."],["SysExEvent","A System Exclusive (\"SysEx\") event."],["Timed","`Timed<E>` adds timing to an event."]],"trait":[["EventHandler","The trait that plugins should implement in order to handle the given type of events."]]});
