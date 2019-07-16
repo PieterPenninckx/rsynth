@@ -23,40 +23,14 @@
 //! to implement a backend-specific trait on top of the `Plugin` trait. See the
 //! documentation of each back-end for more information.
 //!
-//! # Middleware
-//! You can add features, such as polyphony, to your plug-in by using middleware.
-//! Typically, suppose `M` is middleware and your plugin `P` implement the `Plugin` trait and
-//! any other backend-specific trait, then `M<P>` also implements the `Plugin` trait
-//! and the backend-specific traits `P` implements.
-//! Similar for the `EventHandler` trait: when your plugin `P` implements `EventHandler<E>`,
-//! then `M<P>` typically does the same.
-//!
-//! Currently, supported middleware is
-//!
-//! * [`Polyphony`]
-//! * [`ZeroInit`]
-//!
-//! # Context
-//! Context can be used to access data that is not stored in your plugin, but
-//! e.g. stored by the host or some middleware.
-//! The context is passed to every call to [`render_buffer`] in the [`Plugin`] trait and
-//! to every call to [`handle_event`] in the [`EventHandler`] trait.
-//!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
-//! [`Polyphony`]: ./middleware/polyphony/index.html
-//! [`ZeroInit`]: ./middleware/zero_init/index.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
 //! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
 //! [`SysExEvent`]: ./event/struct.SysExEvent.html
 //! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer
 //! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event
-
-#![cfg_attr(
-    not(feature = "stable"),
-    feature(specialization, overlapping_marker_traits)
-)]
 
 #[macro_use]
 extern crate log;
@@ -70,17 +44,9 @@ extern crate jack;
 #[cfg(feature = "vst-backend")]
 extern crate vst;
 
-#[cfg(feature = "stable")]
-#[macro_use]
-extern crate syllogism;
-#[cfg(feature = "stable")]
-extern crate syllogism_macro;
-
 #[macro_use]
 pub mod dev_utilities;
 pub mod backend;
-#[macro_use]
-pub mod context;
 pub mod envelope;
 pub mod event;
 pub mod middleware;
@@ -190,28 +156,10 @@ use num_traits::Float;
 // ------
 // Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
 // than one MIDI-port).
-//
-// Context
-// -------
-// Sometimes, plugins will want to e.g. share some data (e.g. samples) by all voices.
-// In order to allow this, there is a `context` parameter (of generic type) to the
-// `handle_events` and the `render_buffer` methods.
-// We will typically want to use this context for many things and there are different parties
-// involved:
-// * The plugin and parameter-smoothing middleware may want to access the envelopes in the context
-// * The voices may want to access shared data (e.g. samples)
-// * the back-end and the plugin may want to use the context for some communication
-// Because these involved parties potentially are defined in different crates, we want to have a
-// mechanism to "add fields to a struct defined elsewhere".
-// This is not possible of course, but we can define traits like `WithParameters`, `WithSamples`,
-// `WithHost` etc, compose structs and use blanket impls to make it all work. This sounds very
-// handwavy, but you can have a look at the source code in `middleware/frame_counter.rs` for
-// examples.
 
 /// The trait that all plugins need to implement.
-/// The parameter `C` corresponds to the [context] of the plugin.
-///
-/// [context]: ./context/index.html
+/// The parameter `C` corresponds to the context of the plugin.
+/// TODO: think about the context in more detail.
 pub trait Plugin<C> {
     /// The name of the plugin.
     const NAME: &'static str;

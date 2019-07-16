@@ -355,12 +355,3 @@ macro_rules! vst_init {
         plugin_main!(VstWrapperWrapper);
     }
 }
-
-// Not yet needed because we do not yet have Vst-specific types.
-/*
-#[cfg(feature = "stable")]
-impl_specialization!(
-    trait NotInCrateRsynthFeatureVst;
-    macro macro_for_rsynth_feature_vst;
-);
-*/

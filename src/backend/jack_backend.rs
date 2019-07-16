@@ -169,6 +169,7 @@ where
     }
 }
 
+// TODO: zero-initialize if needed.
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
@@ -225,12 +226,3 @@ where
         }
     }
 }
-
-// Not yet needed because we do not yet have Jack-specific types.
-/*
-#[cfg(feature = "stable")]
-impl_specialization!(
-    trait NotInCrateRsynthFeatureJack;
-    macro macro_for_rsynth_feature_jack;
-);
-*/

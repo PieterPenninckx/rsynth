@@ -54,7 +54,6 @@ use test_synth::*;
 
 #[cfg(feature = "vst-backend")]
 use rsynth::backend::vst_backend::VstPlugin;
-use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 use rsynth::{
     event::{RawMidiEvent, Timed},
     output_mode::{Additive, OutputMode},
@@ -75,7 +74,8 @@ where
 #[rustfmt::skip::macros(vst_init)]
 #[cfg(feature = "vst-backend")]
 vst_init!(
-    fn init() -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
+    fn init(
+    ) -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
         initialize_logging();
 
         let mut voices = Vec::new();

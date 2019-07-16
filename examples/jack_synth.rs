@@ -68,8 +68,6 @@ use rsynth::event::{RawMidiEvent, Timed};
 #[allow(unused_imports)]
 use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
 #[allow(unused_imports)]
-use rsynth::middleware::zero_init::ZeroInit;
-#[allow(unused_imports)]
 use rsynth::output_mode::Additive;
 
 #[cfg(feature = "jack-backend")]
@@ -81,8 +79,7 @@ fn main() {
         voices.push(Sound::<Additive>::default());
     }
     let polyphony = Polyphonic::<_, _, Timed<RawMidiEvent>>::new(SimpleVoiceStealer::new(), voices);
-    let zero_initialized = ZeroInit::new(polyphony);
-    run(zero_initialized);
+    run(polyphony);
 }
 
 #[cfg(not(feature = "jack-backend"))]

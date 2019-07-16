@@ -91,7 +91,6 @@ Features that are likely to be realized:
 
 - Add a back-end for testing
 - Add middleware to split the audio-buffer so that timed events are at sample `0`
-- Add support for envelopes
 
 Features that are likely going to be postponed for a long time, depending on the capacity of the
 team and other issues (unless somebody joins to help with these)
@@ -102,25 +101,6 @@ In the long term, rsynth can be split into multiple crates for maximum reusabili
 and for license clarity (e.g. when one back-end requires a different license).
 We're currently keeping everything together because it's easier to coordinate breaking changes
 over the various components in this way.
-
-# Testing
-
-We're currently using the [syllogism](https://crates.io/crates/syllogism) crate as a workaround
-for the lack of specialization in Rust, but you can also test whether it still works when using the
-`specialization` feature using a feature flag with nightly rust.
-
-For this reason, it's advised to run the tests twice: one with stable Rust, using the 
-`syllogism` crate:
-
-```bash
-cargo test --features jack-backend,vst-backend
-```
-
-and once using nightly rust, without the `syllogism` crate and with the `specialization` feature:
-
-```bash
-cargo +nightly test --no-default-features --features jack-backend,vst-backend
-```
 
 # Contributing
 
