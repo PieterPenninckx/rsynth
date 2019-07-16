@@ -63,7 +63,7 @@ use rsynth::{
 use vst::plugin::Category;
 
 #[cfg(feature = "vst-backend")]
-impl<M> VstPlugin for Sound<M>
+impl<M> VstPlugin for Noise<M>
 where
     M: OutputMode,
 {

@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "stable"), feature(specialization))]
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EnvelopeIteratorItem<T> {
     pub item: T,

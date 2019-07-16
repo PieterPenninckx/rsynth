@@ -157,46 +157,65 @@ use num_traits::Float;
 // Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
 // than one MIDI-port).
 
-/// The trait that all plugins need to implement.
-/// The parameter `C` corresponds to the context of the plugin.
-/// TODO: think about the context in more detail.
-pub trait Plugin<C> {
-    /// The name of the plugin.
-    const NAME: &'static str;
-
-    /// The maximum number of audio inputs.
+/// Set the maximum number of inputs and the maximum number of outputs.
+/// Also defines how sample rate changes are handled.
+// TODO: Find a better name for this trait.
+pub trait AudioRendererMeta {
+    /// The maximum number of inputs supported.
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize;
 
     /// The maximum number of audio outputs.
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize;
 
-    /// The name of the audio input with the given index.
-    /// Note: you may not provide an empty string to the Jack backend.
-    fn audio_input_name(index: usize) -> String;
-
-    /// The name of the audio output with the given index.
-    /// Note: you may not provide an empty string to the Jack backend.
-    fn audio_output_name(index: usize) -> String;
-
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
     /// any other.
+    ///
+    /// # Parameters
+    /// `sample_rate`: The new sample rate in frames per second (Hz).
+    /// Common sample rates are 44100 Hz (CD quality)
     fn set_sample_rate(&mut self, sample_rate: f64);
+}
 
-    /// This function is the core of the plugin.
-    /// It is called repeatedly for subsequent buffers.
-    /// The length of `inputs` is guaranteed to be smaller than or equal to
-    /// `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
-    /// The length of `outputs` is guaranteed to be smaller than or equal to
-    /// `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
-    /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
-    /// are all guaranteed to equal to each other.
-    /// This shared length can however be different for subsequent calls to `render_buffer`.
-    //Right now, the `render_buffer` function is generic over floats. How do we specialize
-    //  if we want to use SIMD?
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
-    where
-        F: Float + AsPrim;
+/// This function is the core of the plugin.
+/// It is called repeatedly for subsequent buffers.
+/// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
+/// are all guaranteed to equal to each other.
+/// This shared length can however be different for subsequent calls to `render_buffer`.
+pub trait AudioRenderer<F>: AudioRendererMeta {
+    /// This method called repeatedly for subsequent buffers.
+    /// You may assume that the number of inputs (`inputs.len()`) is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
+    /// You may assume that the number of outputs (`outputs.len()`) is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
+    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]);
+}
+
+/// Similar to `AudioRenderer`, but with an additional `context` parameter.
+pub trait ContextualAudioRenderer<F, Context>: AudioRendererMeta {
+    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut Context);
+}
+
+/// The trait that all plugins need to implement.
+pub trait Plugin: AudioRendererMeta {
+    /// The name of the plugin.
+    const NAME: &'static str;
+
+    /// The name of the audio input with the given index.
+    /// `index` must be strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_INPUTS`
+    ///
+    /// # Note
+    /// When using the Jack backend, you may not provide an empty string.
+    fn audio_input_name(index: usize) -> String {
+        format!("audio in {}", index)
+    }
+
+    /// The name of the audio output with the given index.
+    /// `index` must be strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`
+    ///
+    /// # Note
+    /// When using the Jack backend, you may not provide an empty string.
+    fn audio_output_name(index: usize) -> String {
+        format!("audio out {}", index)
+    }
 }
 
 /// Utilities to handle both polyphonic and monophonic plugins.

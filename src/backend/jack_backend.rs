@@ -10,9 +10,10 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
 use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use crate::event::{ContextualEventHandler, SysExEvent};
 use crate::{
     event::{EventHandler, RawMidiEvent, Timed},
-    Plugin,
+    AudioRendererMeta, ContextualAudioRenderer, Plugin,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
@@ -24,7 +25,7 @@ impl<'c> HostInterface for &'c Client {}
 
 fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    for<'c> P: Plugin<&'c Client>,
+    P: Plugin,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -47,7 +48,7 @@ where
 
 fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
 where
-    for<'c> P: Plugin<&'c Client>,
+    P: Plugin,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -79,7 +80,10 @@ struct JackProcessHandler<P> {
 
 impl<P> JackProcessHandler<P>
 where
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c> P: Plugin
+        + ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");

@@ -66,8 +66,6 @@ use rsynth::backend::jack_backend::run;
 #[allow(unused_imports)]
 use rsynth::event::{RawMidiEvent, Timed};
 #[allow(unused_imports)]
-use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
-#[allow(unused_imports)]
 use rsynth::output_mode::Additive;
 
 #[cfg(feature = "jack-backend")]
@@ -76,7 +74,7 @@ fn main() {
 
     let mut voices = Vec::new();
     for _ in 0..6 {
-        voices.push(Sound::<Additive>::default());
+        voices.push(Noise::<Additive>::default());
     }
     let polyphony = Polyphonic::<_, _, Timed<RawMidiEvent>>::new(SimpleVoiceStealer::new(), voices);
     run(polyphony);

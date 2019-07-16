@@ -1,4 +1,4 @@
-use crate::event::{EventHandler, RawMidiEvent, Timed};
+use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent, Timed};
 use asprim::AsPrim;
 use num_traits::Float;
 
@@ -17,8 +17,18 @@ pub trait PolyphonicEvent<Identifier>: Copy {
     fn event_type(&self) -> PolyphonicEventType<Identifier>;
 }
 
+impl<Event, Identifier> PolyphonicEvent<Identifier> for Timed<Event>
+where
+    Event: PolyphonicEvent<Identifier>,
+{
+    fn event_type(&self) -> PolyphonicEventType<Identifier> {
+        self.event.event_type()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ToneIdentifier {
-    tone: u8,
+    pub tone: u8,
 }
 
 use crate::event::raw_midi_event_event_types::*;
@@ -37,15 +47,6 @@ impl PolyphonicEvent<ToneIdentifier> for RawMidiEvent {
             }),
             _ => PolyphonicEventType::Broadcast,
         }
-    }
-}
-
-impl<Event, Identifier> PolyphonicEvent<Identifier> for Timed<Event>
-where
-    Event: PolyphonicEvent<Identifier>,
-{
-    fn event_type(&self) -> PolyphonicEventType<Identifier> {
-        self.event.event_type()
     }
 }
 
@@ -109,15 +110,38 @@ pub trait VoiceStealer {
             }
         }
     }
+
+    fn dispatch_contextual_event<Event, V, Context>(
+        &mut self,
+        event: Event,
+        voices: &mut [V],
+        context: &mut Context,
+    ) where
+        V: Voice<Self::State> + ContextualEventHandler<Event, Context>,
+        Event: PolyphonicEvent<Self::VoiceIdentifier>,
+    {
+        let assignment = self.assign_event(event, voices);
+        match assignment {
+            VoiceAssignment::None => {}
+            VoiceAssignment::Some(index) => {
+                voices[index].handle_event(event, context);
+            }
+            VoiceAssignment::All => {
+                for voice in voices {
+                    voice.handle_event(event, context);
+                }
+            }
+        }
+    }
 }
 
-mod voice_stealer {
+pub mod voice_stealer {
     use super::{PolyphonicEvent, PolyphonicEventType, Voice, VoiceAssignment};
     use crate::middleware::polyphony::VoiceStealer;
     use std::marker::PhantomData;
 
     #[derive(Clone, Copy, PartialEq, Eq)]
-    enum BasicState<VoiceIdentifier>
+    pub enum BasicState<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
@@ -125,7 +149,7 @@ mod voice_stealer {
         Active(VoiceIdentifier),
     }
 
-    struct AssignFirstIdleVoice<VoiceIdentifier>
+    pub struct AssignFirstIdleVoice<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
@@ -136,7 +160,7 @@ mod voice_stealer {
     where
         VoiceIdentifier: Copy + Eq,
     {
-        fn new() -> Self {
+        pub fn new() -> Self {
             Self {
                 _phantom_voice_identifier: PhantomData,
             }
