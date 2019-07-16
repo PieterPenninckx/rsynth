@@ -1,6 +1,4 @@
 use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent, Timed};
-use asprim::AsPrim;
-use num_traits::Float;
 
 pub trait Voice<State> {
     fn state(&self) -> State;
@@ -136,7 +134,7 @@ pub trait VoiceStealer {
 }
 
 pub mod voice_stealer {
-    use super::{PolyphonicEvent, PolyphonicEventType, Voice, VoiceAssignment};
+    use super::Voice;
     use crate::middleware::polyphony::VoiceStealer;
     use std::marker::PhantomData;
 

@@ -63,10 +63,7 @@ use rsynth::{
 use vst::plugin::Category;
 
 #[cfg(feature = "vst-backend")]
-impl<M> VstPlugin for Noise<M>
-where
-    M: OutputMode,
-{
+impl VstPlugin for NoisePlayer {
     const PLUGIN_ID: i32 = 123;
     const CATEGORY: Category = Category::Synth;
 }
@@ -74,15 +71,7 @@ where
 #[rustfmt::skip::macros(vst_init)]
 #[cfg(feature = "vst-backend")]
 vst_init!(
-    fn init(
-    ) -> Polyphonic<Sound<Additive>, SimpleVoiceStealer<Sound<Additive>>, Timed<RawMidiEvent>> {
-        initialize_logging();
-
-        let mut voices = Vec::new();
-        for _ in 0..6 {
-            voices.push(Sound::default());
-        }
-        let p = Polyphonic::new(SimpleVoiceStealer::new(), voices);
-        return p;
+    fn init() -> NoisePlayer {
+        NoisePlayer::new()
     }
 );

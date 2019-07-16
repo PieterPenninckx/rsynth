@@ -141,8 +141,10 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    P: Plugin + Send,
+    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope, client);
@@ -177,8 +179,10 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
-    P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    P: Plugin + Send,
+    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 

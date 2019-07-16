@@ -13,12 +13,9 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
-use crate::dev_utilities::{
-    transparent::Transparent,
-    vecstorage::{VecStorage, VecStorageMut},
-};
-use crate::event::{EventHandler, RawMidiEvent, SysExEvent, Timed};
-use crate::Plugin;
+use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
+use crate::{ContextualAudioRenderer, Plugin};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -34,15 +31,6 @@ pub trait VstPlugin {
     const CATEGORY: Category;
 }
 
-impl<T> VstPlugin for T
-where
-    T: Transparent,
-    <T as Transparent>::Inner: VstPlugin,
-{
-    const PLUGIN_ID: i32 = T::Inner::PLUGIN_ID;
-    const CATEGORY: Category = T::Inner::CATEGORY;
-}
-
 /// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
 pub struct VstPluginWrapper<P> {
     plugin: P,
@@ -55,8 +43,12 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: Plugin<HostCallback> + VstPlugin + EventHandler<Timed<RawMidiEvent>, HostCallback>,
-    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>,
+    P: Plugin
+        + VstPlugin
+        + ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>
+        + ContextualAudioRenderer<f32, HostCallback>
+        + ContextualAudioRenderer<f64, HostCallback>,
+    for<'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, HostCallback>,
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -101,7 +93,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -120,7 +112,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f64>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
