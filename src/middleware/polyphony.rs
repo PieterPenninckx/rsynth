@@ -25,24 +25,27 @@ where
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct ToneIdentifier {
-    pub tone: u8,
-}
+pub struct ToneIdentifier(pub u8);
 
 use crate::event::raw_midi_event_event_types::*;
 
 impl PolyphonicEvent<ToneIdentifier> for RawMidiEvent {
     fn event_type(&self) -> PolyphonicEventType<ToneIdentifier> {
         match self.data()[0] & 0xF0 {
-            RAW_MIDI_EVENT_NOTE_OFF => PolyphonicEventType::ReleaseVoice(ToneIdentifier {
-                tone: self.data()[1],
-            }),
-            RAW_MIDI_EVENT_NOTE_ON => PolyphonicEventType::AssignNewVoice(ToneIdentifier {
-                tone: self.data()[1],
-            }),
-            RAW_MIDI_EVENT_NOTE_AFTERTOUCH => PolyphonicEventType::VoiceSpecific(ToneIdentifier {
-                tone: self.data()[1],
-            }),
+            RAW_MIDI_EVENT_NOTE_OFF => {
+                PolyphonicEventType::ReleaseVoice(ToneIdentifier(self.data()[1]))
+            }
+            RAW_MIDI_EVENT_NOTE_ON => {
+                if self.data()[2] == 0 {
+                    // Velocity 0 is considered the same as note off.
+                    PolyphonicEventType::ReleaseVoice(ToneIdentifier(self.data()[1]))
+                } else {
+                    PolyphonicEventType::AssignNewVoice(ToneIdentifier(self.data()[1]))
+                }
+            }
+            RAW_MIDI_EVENT_NOTE_AFTERTOUCH => {
+                PolyphonicEventType::VoiceSpecific(ToneIdentifier(self.data()[1]))
+            }
             _ => PolyphonicEventType::Broadcast,
         }
     }

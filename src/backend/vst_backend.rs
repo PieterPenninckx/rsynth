@@ -166,7 +166,13 @@ where
     }
 }
 
-impl HostInterface for HostCallback {}
+impl HostInterface for HostCallback {
+    fn output_initialized(&self) -> bool {
+        // TODO: Some hosts do initialize the output to zero.
+        // TODO: Return true for these hosts.
+        false
+    }
+}
 
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
