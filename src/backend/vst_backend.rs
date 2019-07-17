@@ -13,12 +13,9 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
-use crate::dev_utilities::{
-    transparent::Transparent,
-    vecstorage::{VecStorage, VecStorageMut},
-};
-use crate::event::{EventHandler, RawMidiEvent, SysExEvent, Timed};
-use crate::Plugin;
+use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
+use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
+use crate::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -28,19 +25,11 @@ use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
 
-/// A VST plugin should implement this trait in addition to the `Plugin` trait.
-pub trait VstPlugin {
+/// A VST plugin should implement this trait in addition to some other traits.
+// TODO: document which other traits.
+pub trait VstPluginMeta: CommonPluginMeta + AudioRendererMeta {
     const PLUGIN_ID: i32;
     const CATEGORY: Category;
-}
-
-impl<T> VstPlugin for T
-where
-    T: Transparent,
-    <T as Transparent>::Inner: VstPlugin,
-{
-    const PLUGIN_ID: i32 = T::Inner::PLUGIN_ID;
-    const CATEGORY: Category = T::Inner::CATEGORY;
 }
 
 /// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
@@ -55,8 +44,12 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: Plugin<HostCallback> + VstPlugin + EventHandler<Timed<RawMidiEvent>, HostCallback>,
-    for<'a> P: EventHandler<Timed<SysExEvent<'a>>, HostCallback>,
+    P: CommonAudioPortMeta
+        + VstPluginMeta
+        + ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>
+        + ContextualAudioRenderer<f32, HostCallback>
+        + ContextualAudioRenderer<f64, HostCallback>,
+    for<'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, HostCallback>,
 {
     pub fn get_info(&self) -> Info {
         trace!("get_info");
@@ -101,7 +94,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f32>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -120,7 +113,7 @@ where
         }
 
         self.plugin
-            .render_buffer::<f64>(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
@@ -191,20 +184,23 @@ impl HostInterface for HostCallback {}
 /// }
 ///
 /// use rsynth::{
-///     Plugin,
+///     CommonAudioPortMeta,
+///     CommonPluginMeta,
 ///     event::{
-///         EventHandler,
+///         ContextualEventHandler,
 ///         Timed,
 ///         RawMidiEvent,
 ///         SysExEvent
 ///     },
 ///     backend::{
 ///         HostInterface,
-///         vst_backend::VstPlugin
-///     }
+///         vst_backend::VstPluginMeta
+///     },
+///     ContextualAudioRenderer,
+///     AudioRendererMeta
 /// };
 /// use vst::plugin::Category;
-/// impl VstPlugin for MyPlugin {
+/// impl VstPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const PLUGIN_ID: i32 = 123;
 /// #    const CATEGORY: Category = Category::Synth;
@@ -213,15 +209,20 @@ impl HostInterface for HostCallback {}
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<H> Plugin<H> for MyPlugin
-/// where
-///     H: HostInterface,
-/// {
+/// impl AudioRendererMeta for MyPlugin {
+///      // Implementation omitted for brevity.
+/// #     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
+/// #     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 0;
+/// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
+/// }
+///
+/// impl CommonPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
-/// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
-/// #    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
-/// #
+/// }
+/// impl CommonAudioPortMeta for MyPlugin
+/// {
+///     // Implementation omitted for brevity.
 /// #    fn audio_input_name(index: usize) -> String {
 /// #        unimplemented!()
 /// #    }
@@ -230,24 +231,29 @@ impl HostInterface for HostCallback {}
 /// #        unimplemented!()
 /// #    }
 /// #
-/// #    fn set_sample_rate(&mut self, _sample_rate: f64) {
-/// #    }
 /// #
-/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
-/// #        where F: Float + AsPrim
+/// }
+///
+/// impl<F, H> ContextualAudioRenderer<F, H> for MyPlugin
+/// where
+///     F: Float + AsPrim,
+///     H: HostInterface,
+/// {
+///     // Implementation omitted for brevity.
+/// #    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
 /// #    {
 /// #        unimplemented!()
 /// #    }
 /// }
 ///
-/// impl<H> EventHandler<Timed<RawMidiEvent>, H> for MyPlugin
+/// impl<H> ContextualEventHandler<Timed<RawMidiEvent>, H> for MyPlugin
 /// where
 ///     H: HostInterface,
 /// {
 /// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
-/// impl<'a, H> EventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
+/// impl<'a, H> ContextualEventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
 /// where
 ///     H: HostInterface,
 /// {
@@ -355,12 +361,3 @@ macro_rules! vst_init {
         plugin_main!(VstWrapperWrapper);
     }
 }
-
-// Not yet needed because we do not yet have Vst-specific types.
-/*
-#[cfg(feature = "stable")]
-impl_specialization!(
-    trait NotInCrateRsynthFeatureVst;
-    macro macro_for_rsynth_feature_vst;
-);
-*/

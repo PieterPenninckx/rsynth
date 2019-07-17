@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "stable"), feature(specialization))]
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EnvelopeIteratorItem<T> {
     pub item: T,
@@ -12,7 +10,7 @@ pub struct EnvelopeIteratorItem<T> {
 /// the current position, and for each frame, returns the envelope value at that frame.
 // Note about the lifetime: ideally, we would use higher-kinded-types for this,
 // but right now, that's not yet supported in Rust, so we do it this way.
-pub trait Envelope<'a, T>: Clone {
+pub trait Envelope<'a, T> {
     /// The type of the iterator.
     type Iter: Iterator<Item = EnvelopeIteratorItem<T>>;
     type EventType;

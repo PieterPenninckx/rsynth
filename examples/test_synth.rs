@@ -4,84 +4,144 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::HostInterface;
-use rsynth::event::{EventHandler, RawMidiEvent, SysExEvent, Timed};
-use rsynth::middleware::polyphony::Voice;
-use rsynth::output_mode::OutputMode;
-use rsynth::Plugin;
-use std::env;
-use std::fs::File;
+use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
+use rsynth::middleware::polyphony::{
+    voice_stealer::{AssignFirstIdleVoice, BasicState},
+    ToneIdentifier, Voice, VoiceStealer,
+};
+use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 
-use simplelog::*;
+use rsynth::event::raw_midi_event_event_types::*;
 
-// The total number of samples to pre-calculate
+// The total number of samples to pre-calculate.
 // This is like recording a sample of white noise and then
 // using it as an oscillator.  It saves on CPU overhead by
 // preventing us from having to use a random function each sample.
 static SAMPLE_SIZE: usize = 65536;
-static AMPLIFY_MULTIPLIER: f32 = 0.2;
+static NUMBER_OF_VOICES: usize = 6;
+static AMPLIFY_MULTIPLIER: f32 = 1.0 / NUMBER_OF_VOICES as f32;
 
-#[derive(Clone)]
-pub struct Sound<M>
-where
-    M: OutputMode,
-{
+// This struct defines the data that we will need to play one "noise"
+pub struct Noise {
+    // Random data of the noise.
     white_noise: Vec<f32>,
-    sample_count: usize,
+    // At which sample in the noise we are.
     position: usize,
-    velocity: u8,
-    is_playing: bool,
-    mode: M,
+    // The amplitude.
+    amplitude: f32,
+    // This is used to know if this is currently playing and if so, what note.
+    state: BasicState<ToneIdentifier>,
 }
 
-impl<M> Default for Sound<M>
-where
-    M: OutputMode,
-{
-    fn default() -> Self {
-        // You can use the `log` crate for debugging purposes.
-        trace!("default()");
-
+impl Noise {
+    fn new(sample_size: usize) -> Self {
         let mut rng = thread_rng();
         let samples: Vec<f32> = rng
             .gen_iter::<f32>()
-            .take(SAMPLE_SIZE)
+            .take(sample_size)
+            .map(|r| {
+                // The random generator generates noise between 0 and 1,
+                // we map it to the range -1 to 1.
+                2.0 * r - 1.0
+            })
             .collect::<Vec<f32>>();
-        Sound {
-            sample_count: samples.len(),
+        Noise {
             white_noise: samples,
             position: 0,
-            velocity: 0,
-            is_playing: false,
-            mode: M::default(),
+            amplitude: 0.0,
+            state: BasicState::Idle,
+        }
+    }
+
+    // Here, we use one implementation over all floating point types.
+    // If you want to use SIMD optimization, you can have separate implementations
+    // for `f32` and `f64`.
+    fn render_audio_buffer<F>(&mut self, outputs: &mut [&mut [F]])
+    where
+        F: AsPrim + Float,
+    {
+        if self.state == BasicState::Idle {
+            return;
+        }
+        assert_eq!(2, outputs.len());
+        // for every output
+        for output in outputs {
+            // for each value in the buffer
+            for sample in output.iter_mut() {
+                // We "add" to the output.
+                // In this way, various noises can be heard together.
+                *sample =
+                    *sample + self.white_noise[self.position].as_::<F>() * self.amplitude.as_();
+                // Increment the position of our sound sample.
+                // We loop this easily by using modulo.
+                self.position = (self.position + 1) % self.white_noise.len();
+            }
         }
     }
 }
 
-/// The DSP stuff goes here
-impl<M, H> Plugin<H> for Sound<M>
-where
-    M: OutputMode,
-    H: HostInterface,
-{
-    // This is the name of our plugin.
-    const NAME: &'static str = "RSynth Example";
+// This enables using Sound in a polyphonic context.
+impl Voice<BasicState<ToneIdentifier>> for Noise {
+    fn state(&self) -> BasicState<ToneIdentifier> {
+        self.state
+    }
+}
 
+impl EventHandler<Timed<RawMidiEvent>> for Noise {
+    fn handle_event(&mut self, timed: Timed<RawMidiEvent>) {
+        let state_and_chanel = timed.event.data()[0];
+
+        // We are digging into the details of midi-messages here.
+        // Alternatively, you could use the `wmidi` crate.
+        if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_ON {
+            self.amplitude = timed.event.data()[2] as f32 / 127.0 * AMPLIFY_MULTIPLIER;
+            self.state = BasicState::Active(ToneIdentifier {
+                tone: timed.event.data()[1],
+            })
+        }
+        if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_OFF {
+            self.amplitude = 0.0;
+            self.state = BasicState::Idle;
+        }
+    }
+}
+
+pub struct NoisePlayer {
+    voices: Vec<Noise>,
+    dispatcher: AssignFirstIdleVoice<ToneIdentifier>,
+}
+
+impl NoisePlayer {
+    pub fn new() -> Self {
+        let mut voices = Vec::new();
+        for _ in 0..NUMBER_OF_VOICES {
+            voices.push(Noise::new(SAMPLE_SIZE));
+        }
+        Self {
+            voices: voices,
+            dispatcher: AssignFirstIdleVoice::new(),
+        }
+    }
+}
+
+impl AudioRendererMeta for NoisePlayer {
     // We have no audio inputs:
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
-
     // We expect stereo output:
     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
 
-    fn audio_input_name(index: usize) -> String {
-        trace!("audio_input_name(index = {})", index);
-
-        // Because we have specified that our plugin has no audio input,
-        // the `audio_input_name` function should not be called by the host.
-        // So we can just return an empty string here.
-        "".to_string()
+    fn set_sample_rate(&mut self, sample_rate: f64) {
+        trace!("set_sample_rate(sample_rate={})", sample_rate);
+        // We are not doing anything with this right now.
     }
+}
 
+impl CommonPluginMeta for NoisePlayer {
+    // This is the name of our plugin.
+    const NAME: &'static str = "RSynth Example";
+}
+
+impl CommonAudioPortMeta for NoisePlayer {
     fn audio_output_name(index: usize) -> String {
         trace!("audio_output_name(index = {})", index);
         match index {
@@ -97,134 +157,33 @@ where
             }
         }
     }
+}
 
-    fn set_sample_rate(&mut self, sample_rate: f64) {
-        trace!("set_sample_rate(sample_rate={})", sample_rate);
-        // We are not doing anything with this right now.
-    }
-
-    #[allow(unused_variables)]
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], _context: &mut H)
-    where
-        F: Float + AsPrim,
-    {
-        assert_eq!(2, outputs.len());
-        // for every output
-        for output in outputs {
-            // for each value in buffer
-            for (i, sample) in output.iter_mut().enumerate() {
-                // Increment the position of our sound sample.
-                // We loop this easily by using modulo.
-                self.position = (self.position + 1) % self.sample_count;
-
-                // Our random function only generates from 0 - 1.  We can make
-                // it distribute equally by multiplying by 2 and subtracting by 1.
-                let r = 2f32 * (self.white_noise[self.position]) - 1f32;
-
-                let value: F = ((r * AMPLIFY_MULTIPLIER) * (self.velocity as f32 / 127f32)).as_();
-
-                // Set our output buffer
-                // This works both in a monophonic context and a polyphonic context.
-                M::set(sample, value);
-            }
+#[allow(unused_variables)]
+impl<F, Context> ContextualAudioRenderer<F, Context> for NoisePlayer
+where
+    F: AsPrim + Float,
+{
+    fn render_buffer(
+        &mut self,
+        _inputs: &[&[F]],
+        outputs: &mut [&mut [F]],
+        _context: &mut Context,
+    ) {
+        for noise in self.voices.iter_mut() {
+            noise.render_audio_buffer(outputs);
         }
     }
 }
 
-impl<M, C> EventHandler<Timed<RawMidiEvent>, C> for Sound<M>
-where
-    M: OutputMode,
-{
-    fn handle_event(&mut self, timed: Timed<RawMidiEvent>, _context: &mut C) {
-        trace!("handle_event(event: ...)"); // TODO: Should events implement Debug?
-
-        // We currently ignore the `time_in_frames` field.
-        // There are some vague plans to add middleware that makes it easier
-        // to make sample-accurate plugins.
-        // As a developer, we are simply waiting for that, so right
-        // now it's not sample-accurate.
-        let state_and_chanel = timed.event.data()[0];
-
-        // We are digging into the details of midi-messages here.
-        // There are some vague plans to make this easier in the future
-        // as well. For now, let's do some bits masking:
-        if state_and_chanel & 0xF0 == 0x90 {
-            self.is_playing = true;
-            self.velocity = timed.event.data()[2];
-        }
-        if state_and_chanel & 0xF0 == 0x80 {
-            self.velocity = 0;
-            self.is_playing = false;
-        }
+impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlayer {
+    fn handle_event(&mut self, event: Timed<RawMidiEvent>, _context: &mut Context) {
+        self.dispatcher.dispatch_event(event, &mut self.voices)
     }
 }
 
-impl<'a, M, C> EventHandler<Timed<SysExEvent<'a>>, C> for Sound<M>
-where
-    M: OutputMode,
-{
-    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, context: &mut C) {
+impl<'a, Context> ContextualEventHandler<Timed<SysExEvent<'a>>, Context> for NoisePlayer {
+    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, _context: &mut Context) {
         // We don't do anything with SysEx events.
-    }
-}
-
-// This enables using Sound in a polyphonic context.
-impl<M> Voice for Sound<M>
-where
-    M: OutputMode,
-{
-    fn is_playing(&self) -> bool {
-        self.is_playing
-    }
-}
-
-// Initialize the logging.
-pub fn initialize_logging() {
-    let mut unrecognized_log_level = None;
-    let log_level = match env::var("RSYNTH_LOG_LEVEL") {
-        Err(_) => LevelFilter::Error,
-        Ok(s) => match s.as_ref() {
-            "off" => LevelFilter::Off,
-            "error" => LevelFilter::Error,
-            "warning" => LevelFilter::Warn,
-            "info" => LevelFilter::Info,
-            "debug" => LevelFilter::Debug,
-            "trace" => LevelFilter::Trace,
-            &_ => {
-                unrecognized_log_level = Some(s.clone());
-                LevelFilter::Error
-            }
-        },
-    };
-    let log_file = match env::var("RSYNTH_LOG_FILE") {
-        Err(env::VarError::NotPresent) => {
-            return;
-        }
-        Err(env::VarError::NotUnicode(os_string)) => {
-            match File::create(os_string) {
-                Ok(f) => f,
-                Err(_) => {
-                    // There is not much that we can do here.
-                    // We even cannot log this :-(
-                    // TODO: Use better error handling.
-                    return;
-                }
-            }
-        }
-        Ok(s) => {
-            match File::create(s) {
-                Ok(f) => f,
-                Err(_) => {
-                    // There is not much that we can do here.
-                    // We even cannot log this :-(
-                    // TODO: Use better error handling.
-                    return;
-                }
-            }
-        }
-    };
-    WriteLogger::init(log_level, Config::default(), log_file);
-    if let Some(unrecognized) = unrecognized_log_level {
-        error!("`{}` is an unrecognized log level. Falling back to log level 'error'. Recognized log levels are: 'off', 'error', 'warning', 'info', 'debug' and 'trace'.", unrecognized);
     }
 }

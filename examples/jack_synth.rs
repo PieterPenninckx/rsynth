@@ -56,33 +56,16 @@ extern crate asprim;
 extern crate num_traits;
 extern crate rand;
 extern crate rsynth;
-extern crate simplelog;
 
 mod test_synth;
 use test_synth::*;
 
 #[cfg(feature = "jack-backend")]
 use rsynth::backend::jack_backend::run;
-#[allow(unused_imports)]
-use rsynth::event::{RawMidiEvent, Timed};
-#[allow(unused_imports)]
-use rsynth::middleware::polyphony::{Polyphonic, SimpleVoiceStealer};
-#[allow(unused_imports)]
-use rsynth::middleware::zero_init::ZeroInit;
-#[allow(unused_imports)]
-use rsynth::output_mode::Additive;
 
 #[cfg(feature = "jack-backend")]
 fn main() {
-    initialize_logging();
-
-    let mut voices = Vec::new();
-    for _ in 0..6 {
-        voices.push(Sound::<Additive>::default());
-    }
-    let polyphony = Polyphonic::<_, _, Timed<RawMidiEvent>>::new(SimpleVoiceStealer::new(), voices);
-    let zero_initialized = ZeroInit::new(polyphony);
-    run(zero_initialized);
+    run(NoisePlayer::new());
 }
 
 #[cfg(not(feature = "jack-backend"))]

@@ -1,20 +1,16 @@
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
-#[cfg(feature = "stable")]
-use crate::dev_utilities::compatibility::*;
-#[cfg(feature = "stable")]
-use syllogism::{Distinction, Specialize};
-#[cfg(feature = "stable")]
-use syllogism_macro::impl_specialization;
+pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
 ///
 /// The type parameter `E` corresponds to the type of the event.
-/// The type parameter `C` corresponds to the [context] of the plugin.
-///
-/// [context]: ../context/index.html
-pub trait EventHandler<E, C> {
-    fn handle_event(&mut self, event: E, context: &mut C);
+pub trait EventHandler<E> {
+    fn handle_event(&mut self, event: E);
+}
+
+pub trait ContextualEventHandler<E, Context> {
+    fn handle_event(&mut self, event: E, context: &mut Context);
 }
 
 /// A System Exclusive ("SysEx") event.
@@ -49,6 +45,18 @@ impl RawMidiEvent {
     pub fn data(&self) -> &[u8; 3] {
         &self.data
     }
+}
+
+pub mod raw_midi_event_event_types {
+    pub const RAW_MIDI_EVENT_EVENT_TYPE_MASK: u8 = 0xF0;
+    pub const RAW_MIDI_EVENT_NOTE_OFF: u8 = 0x80;
+    pub const RAW_MIDI_EVENT_NOTE_ON: u8 = 0x90;
+    pub const RAW_MIDI_EVENT_NOTE_AFTERTOUCH: u8 = 0xA0;
+    pub const RAW_MIDI_EVENT_CONTROLLER: u8 = 0xB0;
+    pub const RAW_MIDI_EVENT_PROGRAM_CHANGE: u8 = 0xC0;
+    pub const RAW_MIDI_EVENT_CHANNEL_AFTERTOUCH: u8 = 0xD0;
+    pub const RAW_MIDI_EVENT_PITCH_BEND: u8 = 0xE0;
+    pub const RAW_MIDI_EVENT_META: u8 = 0xF0;
 }
 
 /// `Timed<E>` adds timing to an event.
@@ -87,36 +95,3 @@ where
 }
 
 impl<E> Copy for Timed<E> where E: Copy {}
-
-#[cfg(feature = "stable")]
-impl<E, T> Specialize<Timed<T>> for Timed<E>
-where
-    E: Specialize<T>,
-{
-    fn specialize(self) -> Distinction<Timed<T>, Self> {
-        let Timed {
-            time_in_frames,
-            event,
-        } = self;
-        match event.specialize() {
-            Distinction::Generic(g) => Distinction::Generic(Timed {
-                time_in_frames,
-                event: g,
-            }),
-            Distinction::Special(s) => Distinction::Special(Timed {
-                time_in_frames,
-                event: s,
-            }),
-        }
-    }
-}
-
-#[cfg(feature = "stable")]
-impl_specialization!(
-    trait NotInCrateRsynth;
-    macro macro_for_rsynth;
-
-    type SysExEvent<'a>;
-    type RawMidiEvent;
-    type Timed<E>;
-);

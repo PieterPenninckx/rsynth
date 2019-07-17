@@ -8,11 +8,11 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use crate::backend::HostInterface;
-use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use crate::{
-    event::{EventHandler, RawMidiEvent, Timed},
-    Plugin,
+    backend::HostInterface,
+    dev_utilities::vecstorage::{VecStorage, VecStorageMut},
+    event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
+    AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
@@ -24,7 +24,7 @@ impl<'c> HostInterface for &'c Client {}
 
 fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    for<'c> P: Plugin<&'c Client>,
+    P: CommonAudioPortMeta,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -47,7 +47,7 @@ where
 
 fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
 where
-    for<'c> P: Plugin<&'c Client>,
+    P: CommonAudioPortMeta,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -79,7 +79,10 @@ struct JackProcessHandler<P> {
 
 impl<P> JackProcessHandler<P>
 where
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c> P: CommonAudioPortMeta
+        + ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
@@ -137,8 +140,10 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    P: CommonAudioPortMeta + Send,
+    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.handle_events(process_scope, client);
@@ -169,11 +174,14 @@ where
     }
 }
 
+// TODO: zero-initialize if needed.
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
-    P: Send,
-    for<'c> P: Plugin<&'c Client> + EventHandler<Timed<RawMidiEvent>, &'c Client>,
+    P: CommonAudioPortMeta + CommonPluginMeta + Send,
+    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
+        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
+    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 
@@ -225,12 +233,3 @@ where
         }
     }
 }
-
-// Not yet needed because we do not yet have Jack-specific types.
-/*
-#[cfg(feature = "stable")]
-impl_specialization!(
-    trait NotInCrateRsynthFeatureJack;
-    macro macro_for_rsynth_feature_jack;
-);
-*/

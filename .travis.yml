@@ -4,24 +4,20 @@ addons:
     packages:
       - libjack-dev
 matrix:
+  allow_failures:
+    - rust: nightly
   include: 
     - name: "Test nightly"
       rust: nightly
-      env: FEATURES="--no-default-features --features jack-backend,vst-backend" RUSTUP="" FMT=""
+      env: RUSTUP="" FMT=""
     - name: "Test beta"
       rust: beta
-      env: FEATURES="--features jack-backend,vst-backend" RUSTUP="" FMT=""
+      env: RUSTUP="" FMT=""
     - name: "Test stable"
       rust: stable
-      env: FEATURES="--features jack-backend,vst-backend" RUSTUP="rustup component add rustfmt" FMT="cargo fmt --all -- --check"
+      env: RUSTUP="rustup component add rustfmt" FMT="cargo fmt --all -- --check"
 before_script:
   - $RUSTUP
   - $FMT
 script:
-  - cargo test --verbose $FEATURES
-after_success: |
-    cargo rustdoc --features jack-backend,vst-backend \
-    && echo '<meta http-equiv=refresh content=0;url=rsynth/index.html>' > target/doc/index.html && \
-    sudo pip install ghp-import && \
-    ghp-import -n target/doc && \
-    git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+  - cargo test --verbose --features jack-backend,vst-backend
