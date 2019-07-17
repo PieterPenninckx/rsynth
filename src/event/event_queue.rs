@@ -226,7 +226,7 @@ fn eventqueue_forget_before() {
         ],
     };
     queue.forget_before(7);
-    assert_eq!(queue.queue, vec![Timed::new(0, 49), Timed::new(1, 64),]);
+    assert_eq!(queue.queue, vec![Timed::new(7, 49), Timed::new(8, 64),]);
 }
 
 #[test]

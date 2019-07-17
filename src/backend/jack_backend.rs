@@ -8,11 +8,10 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use crate::backend::HostInterface;
-use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
-use crate::event::{ContextualEventHandler, SysExEvent};
 use crate::{
-    event::{EventHandler, RawMidiEvent, Timed},
+    backend::HostInterface,
+    dev_utilities::vecstorage::{VecStorage, VecStorageMut},
+    event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
     AudioRendererMeta, ContextualAudioRenderer, Plugin,
 };
 use core::cmp;

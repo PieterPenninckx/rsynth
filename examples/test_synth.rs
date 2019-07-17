@@ -4,18 +4,14 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::backend::HostInterface;
 use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
 use rsynth::middleware::polyphony::{
     voice_stealer::{AssignFirstIdleVoice, BasicState},
     ToneIdentifier, Voice, VoiceStealer,
 };
 use rsynth::{AudioRendererMeta, ContextualAudioRenderer, Plugin};
-use std::env;
-use std::fs::File;
 
 use rsynth::event::raw_midi_event_event_types::*;
-use simplelog::*;
 
 // The total number of samples to pre-calculate
 // This is like recording a sample of white noise and then
@@ -57,7 +53,10 @@ impl Noise {
         }
     }
 
-    fn render_audio_buffer(&mut self, outputs: &mut [&mut [f32]]) {
+    fn render_audio_buffer<F>(&mut self, outputs: &mut [&mut [F]])
+    where
+        F: AsPrim + Float,
+    {
         if self.state == BasicState::Idle {
             return;
         }
@@ -68,7 +67,8 @@ impl Noise {
             for sample in output.iter_mut() {
                 // We "add" to the output.
                 // In this way, various noises can be heard together.
-                *sample += self.white_noise[self.position] * self.amplitude;
+                *sample =
+                    *sample + self.white_noise[self.position].as_::<F>() * self.amplitude.as_();
                 // Increment the position of our sound sample.
                 // We loop this easily by using modulo.
                 self.position = (self.position + 1) % self.white_noise.len();
@@ -111,7 +111,7 @@ pub struct NoisePlayer {
 impl NoisePlayer {
     pub fn new() -> Self {
         let mut voices = Vec::new();
-        for i in 0..NUMBER_OF_VOICES {
+        for _ in 0..NUMBER_OF_VOICES {
             voices.push(Noise::new(SAMPLE_SIZE));
         }
         Self {
@@ -155,11 +155,14 @@ impl Plugin for NoisePlayer {
 }
 
 #[allow(unused_variables)]
-impl<Context> ContextualAudioRenderer<f32, Context> for NoisePlayer {
+impl<F, Context> ContextualAudioRenderer<F, Context> for NoisePlayer
+where
+    F: AsPrim + Float,
+{
     fn render_buffer(
         &mut self,
-        _inputs: &[&[f32]],
-        outputs: &mut [&mut [f32]],
+        _inputs: &[&[F]],
+        outputs: &mut [&mut [F]],
         _context: &mut Context,
     ) {
         for noise in self.voices.iter_mut() {

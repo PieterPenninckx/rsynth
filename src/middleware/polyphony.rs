@@ -185,7 +185,7 @@ pub mod voice_stealer {
                 .position(|voice| voice.state() == BasicState::Active(identifier))
         }
 
-        fn find_idle_voice<V>(&mut self, identifier: VoiceIdentifier, voices: &mut [V]) -> usize
+        fn find_idle_voice<V>(&mut self, _identifier: VoiceIdentifier, voices: &mut [V]) -> usize
         where
             V: Voice<Self::State>,
         {

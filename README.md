@@ -16,63 +16,16 @@ Rsynth has the following components:
   * ...
 
 # Documentation
-[Documentation](https://resamplr.github.io/rsynth)
+
+The documentation can be found
+* [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
+* [on GitHub pages](https://pieterpenninckx.github.io/rsynth) for an irregularly updated documentation of the master branch
+* on your local machine after running `cargo rustdoc --features jack-backend,vst-backend` for the most up-to-date documentation 
 
 # Examples
 There are full examples in 
-[the examples folder in the source code](https://github.com/resamplr/rsynth/tree/master/examples).
+[the examples folder in the source code](https://github.com/PieterPenninckx/rsynth/tree/master/examples).
 
-Below we give a simplified example that illustrates the main features.
-```rust
-struct MyPlugin {
-    // ...
-}
-
-impl<C, H> Plugin<C> for MyPlugin
-where
-    C: WithHost<H>,
-    H: HostInterface
-{
-    // For brevity, we omit some methods that describe the plugin (plugin name etc.)
-
-    fn set_sample_rate(&mut self, sample_rate: f64) {
-        // ...
-    }
-
-    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C)
-    where
-        F: Float + AsPrim,
-    {
-        // This is the core of the plugin. Here you do the actual sound rendering.
-        // `inputs` is a slice of input buffers. 
-        // `outputs` is a slice of output buffers.
-        // An input buffer is just a slice of floats (f32 or f64),
-        // an output buffer is just a mutable slice of floats.
-        // `context` contains some data that is computed outside of the `MyPlugin` struct.
-        // In this case, because it implements `WithHost`, we can access the host as follows:
-        let host = context.host();
-    }
-}
-
-impl<C> EventHandler<Timed<RawMidiEvent>, C> for MyPlugin
-{
-    fn handle_event(&mut self, timed: Timed<RawMidiEvent>, context: &mut C) {
-        // Here we can handle the event.
-    }
-}
-```
-
-This plugin can then be used in the main function as follows:
-```rust
-fn main() {
-    let my_plugin = MyPlugin{ /* ... */ };
-    // Use the `ZeroInit` middleware:
-    let zero_initialized = ZeroInit::new(my_plugin);
-    // this may be wrapped further in other middleware.
-    
-    jack_backend::run(zero_initialized);
-}
-```
 
 # Current State
 
@@ -90,7 +43,6 @@ needed) and you can volunteer to test the feature before it is merged.
 Features that are likely to be realized:
 
 - Add a back-end for testing
-- Add middleware to split the audio-buffer so that timed events are at sample `0`
 
 Features that are likely going to be postponed for a long time, depending on the capacity of the
 team and other issues (unless somebody joins to help with these)
@@ -112,6 +64,19 @@ In this way, we can coordinate development.
 Issues labeled with "good first issue" should not conflict too much with other changes
 that are in flight, but better check before you start working on one.
 
+Pull requests should be opened against the `master` branch.
+
+## Testing
+
+In order to run all tests, run the following:
+```
+cargo test --features jack-backend,vst-backend
+```
+
+If you have trouble running this locally because you do not have jack-related libraries installed,
+no worries: you can still open a pull request; this will automatically trigger a CI build that runs
+all tests for you.
+
 ## Code formatting
 Please use `cargo fmt` to format your code before opening a pull request.
 
@@ -121,7 +86,7 @@ _Tip_: you can auto-format your code on save in your IDE:
 
 # Sponsorship
 
-rsynth is helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
+Alexander Lozada's contributions to rsynth are helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
 
 # License 
 

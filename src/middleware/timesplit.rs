@@ -1,5 +1,5 @@
 use crate::event::event_queue::EventQueue;
-use crate::event::{EventHandler, Timed};
+use crate::event::Timed;
 use asprim::AsPrim;
 use num_traits::Float;
 

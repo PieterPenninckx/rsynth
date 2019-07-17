@@ -19,29 +19,6 @@
 //! [`VecStorage` and `VecStorageMut`], which you can pre-allocate and re-use for every
 //! call to `render_buffer` with different lifetimes of the slices.
 //!
-//! Writing a custom trait for a backend
-//! ------------------------------------
-//!
-//! When the backend needs a special trait to be implemented by the plugin,
-//! ideally all middleware should "pass trough" this trait. The middleware
-//! does this by implementing the [`Transparent`] trait. The backend needs
-//! to be able to "look trough" the middleware. This can be achieved by using
-//! a blanket impl as follows:
-//! ```
-//! use rsynth::dev_utilities::transparent::Transparent;
-//! trait MyCustomTrait {
-//!     // ...
-//! }
-//!
-//! impl<T> MyCustomTrait for T
-//! where
-//!    T: Transparent,
-//!    <T as Transparent>::Inner: MyCustomTrait,
-//! {
-//!     // ...
-//! }
-//! ```
-//!
 //! Writing custom events
 //! ---------------------
 //!

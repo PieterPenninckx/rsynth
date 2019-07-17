@@ -182,10 +182,9 @@ impl HostInterface for HostCallback {}
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::{
-///     Plugin,
+/// use rsynth::{Plugin,
 ///     event::{
-///         EventHandler,
+///         ContextualEventHandler,
 ///         Timed,
 ///         RawMidiEvent,
 ///         SysExEvent
@@ -193,7 +192,9 @@ impl HostInterface for HostCallback {}
 ///     backend::{
 ///         HostInterface,
 ///         vst_backend::VstPlugin
-///     }
+///     },
+///     ContextualAudioRenderer,
+///     AudioRendererMeta
 /// };
 /// use vst::plugin::Category;
 /// impl VstPlugin for MyPlugin {
@@ -205,14 +206,17 @@ impl HostInterface for HostCallback {}
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl<H> Plugin<H> for MyPlugin
-/// where
-///     H: HostInterface,
+/// impl AudioRendererMeta for MyPlugin {
+///      // Implementation omitted for brevity.
+/// #     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
+/// #     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 0;
+/// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
+/// }
+///
+/// impl Plugin for MyPlugin
 /// {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
-/// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 1;
-/// #    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
 /// #
 /// #    fn audio_input_name(index: usize) -> String {
 /// #        unimplemented!()
@@ -222,24 +226,29 @@ impl HostInterface for HostCallback {}
 /// #        unimplemented!()
 /// #    }
 /// #
-/// #    fn set_sample_rate(&mut self, _sample_rate: f64) {
-/// #    }
 /// #
-/// #    fn render_buffer<F>(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
-/// #        where F: Float + AsPrim
+/// }
+///
+/// impl<F, H> ContextualAudioRenderer<F, H> for MyPlugin
+/// where
+///     F: Float + AsPrim,
+///     H: HostInterface,
+/// {
+///     // Implementation omitted for brevity.
+/// #    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
 /// #    {
 /// #        unimplemented!()
 /// #    }
 /// }
 ///
-/// impl<H> EventHandler<Timed<RawMidiEvent>, H> for MyPlugin
+/// impl<H> ContextualEventHandler<Timed<RawMidiEvent>, H> for MyPlugin
 /// where
 ///     H: HostInterface,
 /// {
 /// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
-/// impl<'a, H> EventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
+/// impl<'a, H> ContextualEventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
 /// where
 ///     H: HostInterface,
 /// {

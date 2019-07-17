@@ -45,7 +45,6 @@ extern crate log;
 extern crate asprim;
 extern crate num_traits;
 extern crate rand;
-extern crate simplelog;
 #[macro_use]
 extern crate rsynth;
 
@@ -54,10 +53,6 @@ use test_synth::*;
 
 #[cfg(feature = "vst-backend")]
 use rsynth::backend::vst_backend::VstPlugin;
-use rsynth::{
-    event::{RawMidiEvent, Timed},
-    output_mode::{Additive, OutputMode},
-};
 
 #[cfg(feature = "vst-backend")]
 use vst::plugin::Category;

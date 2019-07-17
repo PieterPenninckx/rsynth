@@ -52,15 +52,12 @@ pub mod event;
 pub mod middleware;
 pub mod note;
 
-use asprim::AsPrim;
-use num_traits::Float;
-
 // Some notes about the design
 // ===========================
 //
 // No `Default`
 // ------------
-// `Plugin` doesn't need to implement the `Default` trait.
+// The `Default` trait is not required.
 // Implementing `Default` is sometimes not possible with `#[derive(Default)]` and it feels
 // awkward to implement setup (e.g. reading config files) in the `default()` method.
 // For `rust-vst`, an extra macro wraps the setup in a `Default` implementation, so that at least it
@@ -70,11 +67,11 @@ use num_traits::Float;
 //
 // Not object safe
 // ---------------
-// The `Plugin` trait is not object safe. In practice, this is not a problem for using `rust-vst`
+// Many of the traits are not object safe. In practice, this is not a problem for using `rust-vst`
 // because an extra macro wraps it.
 //
-// Separate EventHandler trait
-// ---------------------------------
+// Separate `EventHandler` trait
+// -----------------------------
 // There is a separate trait for event handling:
 // ```
 // trait EventHandler<E> {
@@ -83,6 +80,7 @@ use num_traits::Float;
 // ```
 // In this way, other crates can define their own event types.
 //
+//
 // Associated constants for plugin meta-data
 // -----------------------------------------
 // The idea behind this is that it cannot change during the execution of the application.
@@ -90,6 +88,21 @@ use num_traits::Float;
 // read from a config file.
 // We're leaving this as it is for now until we have a better understanding of the requirements
 // for the meta-data (e.g. when we add support for LV2).
+//
+// Separate `AudioRenderer` and `ContextualAudioRenderer` traits
+// -------------------------------------------------------------
+// These methods were originally together with some meta-data in the `Plugin` trait,
+// but we have split this off so that backends can have special meta-data, without
+// interfering with the rendering.
+//
+// Generic trait instead of generic method
+// ---------------------------------------
+// The `AudioRenderer` and `ContextualAudioRenderer` traits are generic over the floating
+// point type, instead of having a method that is generic over _all_ float types.
+// In practice, backends only require renderers over f32 and/or f64, not over _all_ floating
+// point types. So in practice, for instance the vst backend can require
+// `AudioRenderer<f32>` and `AudioRenderer<f64>`. These can be implemented separately,
+// allowing for SIMD optimization, or together in one generic impl block.
 //
 // Separate method for `set_sample_rate`
 // -------------------------------------
@@ -102,11 +115,6 @@ use num_traits::Float;
 // Decisions behind `render_buffer`
 // -------------------------------
 // `render_buffer` is at the core and some design decisions made it the way it is now.
-//
-// ### Generic over floating-point type
-// This was in doomy's original design and we have kept it because it's handy in practice.
-// It's probably problematic to allow for SIMD, so this will probably be changed when we have
-// a more clear understanding of how portable SIMD is going to look like in stable Rust.
 //
 // ### Push-based (instead of pull-based)
 // The `render_buffer` gets the buffers it needs as parameters instead of getting a queue from which
