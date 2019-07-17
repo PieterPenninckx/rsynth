@@ -9,11 +9,11 @@ use rsynth::middleware::polyphony::{
     voice_stealer::{AssignFirstIdleVoice, BasicState},
     ToneIdentifier, Voice, VoiceStealer,
 };
-use rsynth::{AudioRendererMeta, ContextualAudioRenderer, Plugin};
+use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 
 use rsynth::event::raw_midi_event_event_types::*;
 
-// The total number of samples to pre-calculate
+// The total number of samples to pre-calculate.
 // This is like recording a sample of white noise and then
 // using it as an oscillator.  It saves on CPU overhead by
 // preventing us from having to use a random function each sample.
@@ -53,6 +53,9 @@ impl Noise {
         }
     }
 
+    // Here, we use one implementation over all floating point types.
+    // If you want to use SIMD optimization, you can have separate implementations
+    // for `f32` and `f64`.
     fn render_audio_buffer<F>(&mut self, outputs: &mut [&mut [F]])
     where
         F: AsPrim + Float,
@@ -133,10 +136,12 @@ impl AudioRendererMeta for NoisePlayer {
     }
 }
 
-impl Plugin for NoisePlayer {
+impl CommonPluginMeta for NoisePlayer {
     // This is the name of our plugin.
     const NAME: &'static str = "RSynth Example";
+}
 
+impl CommonAudioPortMeta for NoisePlayer {
     fn audio_output_name(index: usize) -> String {
         trace!("audio_output_name(index = {})", index);
         match index {

@@ -52,13 +52,13 @@ mod test_synth;
 use test_synth::*;
 
 #[cfg(feature = "vst-backend")]
-use rsynth::backend::vst_backend::VstPlugin;
+use rsynth::backend::vst_backend::VstPluginMeta;
 
 #[cfg(feature = "vst-backend")]
 use vst::plugin::Category;
 
 #[cfg(feature = "vst-backend")]
-impl VstPlugin for NoisePlayer {
+impl VstPluginMeta for NoisePlayer {
     const PLUGIN_ID: i32 = 123;
     const CATEGORY: Category = Category::Synth;
 }

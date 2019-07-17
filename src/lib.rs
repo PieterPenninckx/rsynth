@@ -1,17 +1,7 @@
 //! # Rsynth
-//! The `rsynth` crate makes it easier to write software synthesizers.
-//!
-//! # The `Plugin` trait
-//! The functionality of the plugin that is common to all back-ends is defined
-//! by the [`Plugin`] trait. It defines some meta-data about the plugin and contains
-//! the methods for rendering the audio.
-//!
-//! # The `EventHandler` trait
-//! Plugins also implement `EventHandler` for each event type that they support.
-//! Currently supported events are:
-//!
-//! * [`RawMidiEvent`]
-//! * [`SysExEvent`]
+//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.
+//! Rsynth is well suited as a bootstrap for common audio plugin generators.
+//! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
 //!
 //! # Back-ends
 //! `rsynth` currently supports two back-ends:
@@ -19,9 +9,38 @@
 //! * [`jack`]
 //! * [`vst`]
 //!
-//! In order to support a specific back-end, plugins may additionally need
-//! to implement a backend-specific trait on top of the `Plugin` trait. See the
-//! documentation of each back-end for more information.
+//! See the documentation of each back-end for more information.
+//!
+//! # Rendering audio
+//! Audio can be rendered with the `ContextualAudioRenderer` trait that is generic over the floating
+//! point type (`f32` or `f64`). There is an additional parameter `context` that is used by the
+//! host or environment to pass extra data.
+//!
+//! The plugin or application can internally also use the `AudioRenderer` trait, which is similar
+//! to the `ContextualAudioRenderer` trait, but does not have a `context` parameter.
+//!
+//! # Meta-data
+//! There are a number of traits that define some meta-data
+//!
+//! * `CommonAudioPortMeta`
+//!     * Names of the audio in and out ports
+//! * `CommonPluginMeta`
+//!     * Name of the plugin or application
+//!
+//! # Handling events
+//! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
+//! for each event type that they support.
+//! Currently supported events are:
+//!
+//! * [`RawMidiEvent`]
+//! * [`SysExEvent`]
+//!
+//! # Utilities
+//! Utilities are are types that you can include to perform several common tasks for the
+//! plugin or application:
+//!
+//! * polyphony: managing of different voices
+//! * timesplitting: split the audio buffer at the events
 //!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
@@ -35,8 +54,6 @@
 #[macro_use]
 extern crate log;
 extern crate asprim;
-extern crate core;
-extern crate num;
 extern crate num_traits;
 
 #[cfg(feature = "jack-backend")]
@@ -45,19 +62,22 @@ extern crate jack;
 extern crate vst;
 
 #[macro_use]
+extern crate doc_comment;
+
+#[macro_use]
 pub mod dev_utilities;
 pub mod backend;
 pub mod envelope;
 pub mod event;
 pub mod middleware;
-pub mod note;
 
-// Some notes about the design
-// ===========================
+doctest!("../README.md");
+
+// Notes about the design
+// ======================
 //
-// No `Default`
-// ------------
-// The `Default` trait is not required.
+// The `Default` trait is not required
+// -----------------------------------
 // Implementing `Default` is sometimes not possible with `#[derive(Default)]` and it feels
 // awkward to implement setup (e.g. reading config files) in the `default()` method.
 // For `rust-vst`, an extra macro wraps the setup in a `Default` implementation, so that at least it
@@ -78,7 +98,7 @@ pub mod note;
 //      fn handle_event(&mut self, event: E);
 // }
 // ```
-// In this way, other crates can define their own event types.
+// In this way, third party crates that define backends can define their own event types.
 //
 //
 // Associated constants for plugin meta-data
@@ -165,7 +185,7 @@ pub mod note;
 // Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
 // than one MIDI-port).
 
-/// Set the maximum number of inputs and the maximum number of outputs.
+/// Define the maximum number of inputs and the maximum number of outputs.
 /// Also defines how sample rate changes are handled.
 // TODO: Find a better name for this trait.
 pub trait AudioRendererMeta {
@@ -181,89 +201,67 @@ pub trait AudioRendererMeta {
     ///
     /// # Parameters
     /// `sample_rate`: The new sample rate in frames per second (Hz).
-    /// Common sample rates are 44100 Hz (CD quality)
+    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, commonly used for video
+    /// production.
     fn set_sample_rate(&mut self, sample_rate: f64);
 }
 
-/// This function is the core of the plugin.
-/// It is called repeatedly for subsequent buffers.
+/// Defines how audio is rendered.
+///
 /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
 /// are all guaranteed to equal to each other.
 /// This shared length can however be different for subsequent calls to `render_buffer`.
+///
+/// The type parameter `F` refers to the floating point type.
+/// It is typically `f32` or `f64`.
 pub trait AudioRenderer<F>: AudioRendererMeta {
     /// This method called repeatedly for subsequent buffers.
-    /// You may assume that the number of inputs (`inputs.len()`) is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
-    /// You may assume that the number of outputs (`outputs.len()`) is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
+    ///
+    /// You may assume that the number of inputs (`inputs.len()`)
+    /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
+    /// You may assume that the number of outputs (`outputs.len()`)
+    /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]);
 }
 
-/// Similar to `AudioRenderer`, but with an additional `context` parameter.
+/// Defines how audio is rendered, similar to the `AudioRenderer` trait.
+/// The extra parameter `context` can be used by the backend to provide extra information.
+///
+/// See the documentation of `AudioRenderer` for more information.
+// TODO: Add link to that documentation.
 pub trait ContextualAudioRenderer<F, Context>: AudioRendererMeta {
+    /// This method called repeatedly for subsequent buffers.
+    ///
+    /// It is similar to the `render_buffer` from the `AudioRenderer` trait,
+    /// see its documentation for more information.
+    // TODO: Add link to that documentation.
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut Context);
 }
 
-/// The trait that all plugins need to implement.
-pub trait Plugin: AudioRendererMeta {
-    /// The name of the plugin.
+/// Provides common meta-data of the plugin or application to the host.
+/// This trait is common for all backends that need this info.
+pub trait CommonPluginMeta {
+    /// The name of the plugin or application.
     const NAME: &'static str;
+}
 
+/// Provides some meta-data of the audio-ports used by the plugin or application to the host.
+pub trait CommonAudioPortMeta: AudioRendererMeta {
     /// The name of the audio input with the given index.
-    /// `index` must be strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_INPUTS`
+    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_INPUTS`
     ///
     /// # Note
-    /// When using the Jack backend, you may not provide an empty string.
+    /// When using the Jack backend, this function should not return an empty string.
     fn audio_input_name(index: usize) -> String {
         format!("audio in {}", index)
     }
 
     /// The name of the audio output with the given index.
-    /// `index` must be strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`
+    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`
     ///
     /// # Note
-    /// When using the Jack backend, you may not provide an empty string.
+    /// When using the Jack backend, this function should not return an empty string.
     fn audio_output_name(index: usize) -> String {
         format!("audio out {}", index)
-    }
-}
-
-/// Utilities to handle both polyphonic and monophonic plugins.
-pub mod output_mode {
-    use num_traits::Float;
-
-    /// Defines a method to set an output sample.
-    pub trait OutputMode: Default {
-        fn set<F>(f: &mut F, value: F)
-        where
-            F: Float;
-    }
-
-    /// Output by adding the sample to what is already in the output.
-    /// Useful in a polyphonic context.
-    #[derive(Default)]
-    pub struct Additive {}
-
-    impl OutputMode for Additive {
-        #[inline(always)]
-        fn set<F>(f: &mut F, value: F)
-        where
-            F: Float,
-        {
-            *f = *f + value;
-        }
-    }
-
-    /// Output by replacing what is already in the output by the given value.
-    /// Useful in a monophonic context.
-    #[derive(Default)]
-    pub struct Substitution {}
-
-    impl OutputMode for Substitution {
-        #[inline(always)]
-        fn set<F>(f: &mut F, value: F)
-        where
-            F: Float,
-        {
-            *f = value;
-        }
     }
 }

@@ -69,7 +69,7 @@ Pull requests should be opened against the `master` branch.
 ## Testing
 
 In order to run all tests, run the following:
-```
+```bash
 cargo test --features jack-backend,vst-backend
 ```
 

@@ -12,7 +12,7 @@ use crate::{
     backend::HostInterface,
     dev_utilities::vecstorage::{VecStorage, VecStorageMut},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
-    AudioRendererMeta, ContextualAudioRenderer, Plugin,
+    AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
@@ -24,7 +24,7 @@ impl<'c> HostInterface for &'c Client {}
 
 fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
-    P: Plugin,
+    P: CommonAudioPortMeta,
 {
     let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
@@ -47,7 +47,7 @@ where
 
 fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
 where
-    P: Plugin,
+    P: CommonAudioPortMeta,
 {
     let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
     for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
@@ -79,7 +79,7 @@ struct JackProcessHandler<P> {
 
 impl<P> JackProcessHandler<P>
 where
-    for<'c> P: Plugin
+    for<'c> P: CommonAudioPortMeta
         + ContextualAudioRenderer<f32, &'c Client>
         + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
     for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
@@ -140,7 +140,7 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: Plugin + Send,
+    P: CommonAudioPortMeta + Send,
     for<'c> P: ContextualAudioRenderer<f32, &'c Client>
         + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
     for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
@@ -178,7 +178,7 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
-    P: Plugin + Send,
+    P: CommonAudioPortMeta + CommonPluginMeta + Send,
     for<'c> P: ContextualAudioRenderer<f32, &'c Client>
         + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
     for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,

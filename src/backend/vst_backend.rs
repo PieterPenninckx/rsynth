@@ -15,7 +15,7 @@
 use crate::backend::HostInterface;
 use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
-use crate::{ContextualAudioRenderer, Plugin};
+use crate::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 use core::cmp;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
@@ -25,8 +25,9 @@ use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
 use vst::plugin::Category;
 use vst::plugin::{HostCallback, Info};
 
-/// A VST plugin should implement this trait in addition to the `Plugin` trait.
-pub trait VstPlugin {
+/// A VST plugin should implement this trait in addition to some other traits.
+// TODO: document which other traits.
+pub trait VstPluginMeta: CommonPluginMeta + AudioRendererMeta {
     const PLUGIN_ID: i32;
     const CATEGORY: Category;
 }
@@ -43,8 +44,8 @@ pub struct VstPluginWrapper<P> {
 
 impl<P> VstPluginWrapper<P>
 where
-    P: Plugin
-        + VstPlugin
+    P: CommonAudioPortMeta
+        + VstPluginMeta
         + ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>
         + ContextualAudioRenderer<f32, HostCallback>
         + ContextualAudioRenderer<f64, HostCallback>,
@@ -182,7 +183,9 @@ impl HostInterface for HostCallback {}
 ///   // Define your fields here
 /// }
 ///
-/// use rsynth::{Plugin,
+/// use rsynth::{
+///     CommonAudioPortMeta,
+///     CommonPluginMeta,
 ///     event::{
 ///         ContextualEventHandler,
 ///         Timed,
@@ -191,13 +194,13 @@ impl HostInterface for HostCallback {}
 ///     },
 ///     backend::{
 ///         HostInterface,
-///         vst_backend::VstPlugin
+///         vst_backend::VstPluginMeta
 ///     },
 ///     ContextualAudioRenderer,
 ///     AudioRendererMeta
 /// };
 /// use vst::plugin::Category;
-/// impl VstPlugin for MyPlugin {
+/// impl VstPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const PLUGIN_ID: i32 = 123;
 /// #    const CATEGORY: Category = Category::Synth;
@@ -213,11 +216,13 @@ impl HostInterface for HostCallback {}
 /// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
 /// }
 ///
-/// impl Plugin for MyPlugin
-/// {
+/// impl CommonPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #    const NAME: &'static str = "Example";
-/// #
+/// }
+/// impl CommonAudioPortMeta for MyPlugin
+/// {
+///     // Implementation omitted for brevity.
 /// #    fn audio_input_name(index: usize) -> String {
 /// #        unimplemented!()
 /// #    }
