@@ -1,12 +1,5 @@
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
-#[cfg(feature = "stable")]
-use crate::dev_utilities::compatibility::*;
-#[cfg(feature = "stable")]
-use syllogism::{Distinction, Specialize};
-#[cfg(feature = "stable")]
-use syllogism_macro::impl_specialization;
-
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
