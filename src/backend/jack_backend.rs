@@ -12,7 +12,7 @@ use crate::{
     backend::HostInterface,
     dev_utilities::vecstorage::{VecStorage, VecStorageMut},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
-    AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
+    CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};

@@ -7,7 +7,7 @@ use rand::{thread_rng, Rng};
 use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
 use rsynth::middleware::polyphony::{
     voice_stealer::{AssignFirstIdleVoice, BasicState},
-    PolyphonicEvent, ToneIdentifier, Voice, VoiceStealer,
+    ToneIdentifier, Voice, VoiceStealer,
 };
 use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 

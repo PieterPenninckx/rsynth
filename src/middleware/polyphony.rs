@@ -51,6 +51,7 @@ impl PolyphonicEvent<ToneIdentifier> for RawMidiEvent {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum VoiceAssignment {
     None,
     All,
