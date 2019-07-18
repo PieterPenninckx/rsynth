@@ -1,3 +1,2 @@
 //! Middleware like support for polyphony, ...
-pub mod polyphony;
 pub mod timesplit;

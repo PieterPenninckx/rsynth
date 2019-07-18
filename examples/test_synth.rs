@@ -5,7 +5,7 @@ use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
 use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
-use rsynth::middleware::polyphony::{
+use rsynth::utilities::polyphony::{
     voice_stealer::{AssignFirstIdleVoice, BasicState},
     ToneIdentifier, Voice, VoiceStealer,
 };

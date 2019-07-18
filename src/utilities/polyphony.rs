@@ -138,8 +138,7 @@ pub trait VoiceStealer {
 }
 
 pub mod voice_stealer {
-    use super::Voice;
-    use crate::middleware::polyphony::VoiceStealer;
+    use super::{Voice, VoiceStealer};
     use std::marker::PhantomData;
 
     #[derive(Clone, Copy, PartialEq, Eq)]
