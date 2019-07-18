@@ -95,9 +95,7 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
         // Alternatively, you could use the `wmidi` crate.
         if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_ON {
             self.amplitude = timed.event.data()[2] as f32 / 127.0 * AMPLIFY_MULTIPLIER;
-            self.state = BasicState::Active(ToneIdentifier {
-                tone: timed.event.data()[1],
-            })
+            self.state = BasicState::Active(ToneIdentifier(timed.event.data()[1]));
         }
         if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_OFF {
             self.amplitude = 0.0;

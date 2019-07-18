@@ -12,7 +12,7 @@ use crate::{
     backend::HostInterface,
     dev_utilities::vecstorage::{VecStorage, VecStorageMut},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
-    AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
+    CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
@@ -20,7 +20,11 @@ use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
 
-impl<'c> HostInterface for &'c Client {}
+impl<'c> HostInterface for &'c Client {
+    fn output_initialized(&self) -> bool {
+        false
+    }
+}
 
 fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
@@ -174,7 +178,6 @@ where
     }
 }
 
-// TODO: zero-initialize if needed.
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where

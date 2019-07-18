@@ -70,6 +70,7 @@ pub mod backend;
 pub mod envelope;
 pub mod event;
 pub mod middleware;
+pub mod utilities;
 
 doctest!("../README.md");
 
