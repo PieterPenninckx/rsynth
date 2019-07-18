@@ -138,27 +138,27 @@ pub trait VoiceStealer {
 }
 
 pub mod voice_stealer {
-    use super::Voice;
-    use crate::middleware::polyphony::VoiceStealer;
+    use super::{Voice, VoiceStealer};
     use std::marker::PhantomData;
 
     #[derive(Clone, Copy, PartialEq, Eq)]
-    pub enum BasicState<VoiceIdentifier>
+    pub enum SimpleVoiceState<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
         Idle,
+        Releasing(VoiceIdentifier),
         Active(VoiceIdentifier),
     }
 
-    pub struct AssignFirstIdleVoice<VoiceIdentifier>
+    pub struct SimpleVoiceStealer<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
         _phantom_voice_identifier: PhantomData<VoiceIdentifier>,
     }
 
-    impl<VoiceIdentifier> AssignFirstIdleVoice<VoiceIdentifier>
+    impl<VoiceIdentifier> SimpleVoiceStealer<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
@@ -169,11 +169,11 @@ pub mod voice_stealer {
         }
     }
 
-    impl<VoiceIdentifier> VoiceStealer for AssignFirstIdleVoice<VoiceIdentifier>
+    impl<VoiceIdentifier> VoiceStealer for SimpleVoiceStealer<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
-        type State = BasicState<VoiceIdentifier>;
+        type State = SimpleVoiceState<VoiceIdentifier>;
         type VoiceIdentifier = VoiceIdentifier;
 
         fn find_active_voice<V>(
@@ -186,17 +186,28 @@ pub mod voice_stealer {
         {
             voices
                 .iter()
-                .position(|voice| voice.state() == BasicState::Active(identifier))
+                .position(|voice| voice.state() == SimpleVoiceState::Active(identifier))
+            // TODO: what should we do when we receive an event for a voice that
+            // is already releasing?
         }
 
         fn find_idle_voice<V>(&mut self, _identifier: VoiceIdentifier, voices: &mut [V]) -> usize
         where
             V: Voice<Self::State>,
         {
-            voices
-                .iter()
-                .position(|voice| voice.state() == BasicState::Idle)
-                .unwrap_or(0)
+            let mut second_best = 0;
+            for (index, voice) in voices.iter().enumerate() {
+                match voice.state() {
+                    SimpleVoiceState::Idle => {
+                        return index;
+                    }
+                    SimpleVoiceState::Releasing(_) => {
+                        second_best = index;
+                    }
+                    SimpleVoiceState::Active(_) => {}
+                }
+            }
+            return second_best;
         }
     }
 }

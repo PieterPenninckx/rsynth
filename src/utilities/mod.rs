@@ -6,3 +6,5 @@ pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
         }
     }
 }
+
+pub mod polyphony;

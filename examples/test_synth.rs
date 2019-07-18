@@ -5,8 +5,8 @@ use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
 use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
-use rsynth::middleware::polyphony::{
-    voice_stealer::{AssignFirstIdleVoice, BasicState},
+use rsynth::utilities::polyphony::{
+    voice_stealer::{SimpleVoiceState, SimpleVoiceStealer},
     ToneIdentifier, Voice, VoiceStealer,
 };
 use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
@@ -30,7 +30,7 @@ pub struct Noise {
     // The amplitude.
     amplitude: f32,
     // This is used to know if this is currently playing and if so, what note.
-    state: BasicState<ToneIdentifier>,
+    state: SimpleVoiceState<ToneIdentifier>,
 }
 
 impl Noise {
@@ -49,7 +49,7 @@ impl Noise {
             white_noise: samples,
             position: 0,
             amplitude: 0.0,
-            state: BasicState::Idle,
+            state: SimpleVoiceState::Idle,
         }
     }
 
@@ -60,7 +60,7 @@ impl Noise {
     where
         F: AsPrim + Float,
     {
-        if self.state == BasicState::Idle {
+        if self.state == SimpleVoiceState::Idle {
             return;
         }
         assert_eq!(2, outputs.len());
@@ -81,8 +81,8 @@ impl Noise {
 }
 
 // This enables using Sound in a polyphonic context.
-impl Voice<BasicState<ToneIdentifier>> for Noise {
-    fn state(&self) -> BasicState<ToneIdentifier> {
+impl Voice<SimpleVoiceState<ToneIdentifier>> for Noise {
+    fn state(&self) -> SimpleVoiceState<ToneIdentifier> {
         self.state
     }
 }
@@ -95,18 +95,18 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
         // Alternatively, you could use the `wmidi` crate.
         if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_ON {
             self.amplitude = timed.event.data()[2] as f32 / 127.0 * AMPLIFY_MULTIPLIER;
-            self.state = BasicState::Active(ToneIdentifier(timed.event.data()[1]));
+            self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
         }
         if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_OFF {
             self.amplitude = 0.0;
-            self.state = BasicState::Idle;
+            self.state = SimpleVoiceState::Idle;
         }
     }
 }
 
 pub struct NoisePlayer {
     voices: Vec<Noise>,
-    dispatcher: AssignFirstIdleVoice<ToneIdentifier>,
+    dispatcher: SimpleVoiceStealer<ToneIdentifier>,
 }
 
 impl NoisePlayer {
@@ -117,7 +117,7 @@ impl NoisePlayer {
         }
         Self {
             voices: voices,
-            dispatcher: AssignFirstIdleVoice::new(),
+            dispatcher: SimpleVoiceStealer::new(),
         }
     }
 }
