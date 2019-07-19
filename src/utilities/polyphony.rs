@@ -29,6 +29,7 @@ where
     fn classify(&self, event: &Event) -> EventDispatchClass<Self::VoiceIdentifier>;
 }
 
+#[derive(Default)]
 pub struct RawMidiEventToneIdentifierDispatchClassifier;
 
 impl<Event> EventDispatchClassifier<Event> for RawMidiEventToneIdentifierDispatchClassifier
@@ -176,6 +177,18 @@ pub mod simple_event_dispatching {
         pub fn new(classifier: Classifier) -> Self {
             Self {
                 classifier,
+                _voice_phantom: PhantomData,
+            }
+        }
+    }
+
+    impl<Classifier, V> Default for SimpleEventDispatcher<Classifier, V>
+    where
+        Classifier: Default,
+    {
+        fn default() -> Self {
+            Self {
+                classifier: Classifier::default(),
                 _voice_phantom: PhantomData,
             }
         }

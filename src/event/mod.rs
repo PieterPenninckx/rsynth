@@ -49,6 +49,18 @@ impl RawMidiEvent {
     }
 }
 
+impl AsRef<Self> for RawMidiEvent {
+    fn as_ref(&self) -> &RawMidiEvent {
+        self
+    }
+}
+
+impl AsMut<Self> for RawMidiEvent {
+    fn as_mut(&mut self) -> &mut RawMidiEvent {
+        self
+    }
+}
+
 pub mod raw_midi_event_event_types {
     pub const RAW_MIDI_EVENT_EVENT_TYPE_MASK: u8 = 0xF0;
     pub const RAW_MIDI_EVENT_NOTE_OFF: u8 = 0x80;
