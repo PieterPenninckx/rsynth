@@ -1,5 +1,7 @@
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
+use std::convert::{AsMut, AsRef};
+
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -95,3 +97,15 @@ where
 }
 
 impl<E> Copy for Timed<E> where E: Copy {}
+
+impl<E> AsRef<E> for Timed<E> {
+    fn as_ref(&self) -> &E {
+        &self.event
+    }
+}
+
+impl<E> AsMut<E> for Timed<E> {
+    fn as_mut(&mut self) -> &mut E {
+        &mut self.event
+    }
+}

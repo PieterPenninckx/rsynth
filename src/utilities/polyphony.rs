@@ -1,69 +1,59 @@
-use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent, Timed};
+//! Polyphony consists of different steps:
+//!
+//! 1. Classify how the event should be dispatched.
+//!    How exactly it should be classified, is defined by the `EventDispatchClass` enum.
+//!    The dispatching itself is done by a type that implements the `EventDispatchClassifier` trait.
+//! 2. Next, a voice should be assigned to the event.
+//!    The `VoiceAssigner` trait defines this action.
+//! 3. Then, the event can be dispatched.
+//!    The `EventDispatcher` trait and the `ContextualEventDispatcher` trait define
+//!    methods for doing this.
+use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent};
 
-pub trait Voice<State> {
-    fn state(&self) -> State;
-}
-
-pub enum PolyphonicEventType<Identifier> {
+pub enum EventDispatchClass<Identifier> {
     Broadcast,
     AssignNewVoice(Identifier),
     VoiceSpecific(Identifier),
     ReleaseVoice(Identifier),
 }
 
-pub trait PolyphonicEvent<Identifier>: Copy {
-    fn event_type(&self) -> PolyphonicEventType<Identifier>;
-}
-
-pub trait VoiceIdentifier<Event>
-where
-    Self: Sized,
-{
-    fn event_type(event: &Event) -> PolyphonicEventType<Self>;
-}
-
-impl<T, Identifier> PolyphonicEvent<Identifier> for T
-where
-    T: Copy,
-    Identifier: VoiceIdentifier<T>,
-{
-    fn event_type(&self) -> PolyphonicEventType<Identifier> {
-        Identifier::event_type(&self)
-    }
-}
-
-impl<Event, Identifier> VoiceIdentifier<Timed<Event>> for Identifier
-where
-    Identifier: VoiceIdentifier<Event>,
-{
-    fn event_type(event: &Timed<Event>) -> PolyphonicEventType<Self> {
-        <Self as VoiceIdentifier<Event>>::event_type(&event.event)
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ToneIdentifier(pub u8);
 
-use crate::event::raw_midi_event_event_types::*;
+pub trait EventDispatchClassifier<Event>
+where
+    Event: Copy,
+{
+    type VoiceIdentifier: Eq + Copy;
 
-impl VoiceIdentifier<RawMidiEvent> for ToneIdentifier {
-    fn event_type(event: &RawMidiEvent) -> PolyphonicEventType<Self> {
-        match event.data()[0] & 0xF0 {
-            RAW_MIDI_EVENT_NOTE_OFF => {
-                PolyphonicEventType::ReleaseVoice(ToneIdentifier(event.data()[1]))
-            }
+    fn classify(&self, event: &Event) -> EventDispatchClass<Self::VoiceIdentifier>;
+}
+
+pub struct RawMidiEventToneIdentifierDispatchClassifier;
+
+impl<Event> EventDispatchClassifier<Event> for RawMidiEventToneIdentifierDispatchClassifier
+where
+    Event: AsRef<RawMidiEvent> + Copy,
+{
+    type VoiceIdentifier = ToneIdentifier;
+
+    fn classify(&self, event: &Event) -> EventDispatchClass<Self::VoiceIdentifier> {
+        let data = event.as_ref().data();
+        use crate::event::raw_midi_event_event_types::*;
+        match data[0] & 0xF0 {
+            RAW_MIDI_EVENT_NOTE_OFF => EventDispatchClass::ReleaseVoice(ToneIdentifier(data[1])),
             RAW_MIDI_EVENT_NOTE_ON => {
-                if event.data()[2] == 0 {
+                if data[2] == 0 {
                     // Velocity 0 is considered the same as note off.
-                    PolyphonicEventType::ReleaseVoice(ToneIdentifier(event.data()[1]))
+                    EventDispatchClass::ReleaseVoice(ToneIdentifier(data[1]))
                 } else {
-                    PolyphonicEventType::AssignNewVoice(ToneIdentifier(event.data()[1]))
+                    EventDispatchClass::AssignNewVoice(ToneIdentifier(data[1]))
                 }
             }
             RAW_MIDI_EVENT_NOTE_AFTERTOUCH => {
-                PolyphonicEventType::VoiceSpecific(ToneIdentifier(event.data()[1]))
+                EventDispatchClass::VoiceSpecific(ToneIdentifier(data[1]))
             }
-            _ => PolyphonicEventType::Broadcast,
+            _ => EventDispatchClass::Broadcast,
         }
     }
 }
@@ -75,49 +65,52 @@ pub enum VoiceAssignment {
     Some(usize),
 }
 
-pub trait VoiceStealer {
-    type State;
-    type VoiceIdentifier;
+pub trait Voice<State> {
+    fn state(&self) -> State;
+}
 
-    fn assign_event<Event, V>(&mut self, event: Event, voices: &mut [V]) -> VoiceAssignment
-    where
-        V: Voice<Self::State>,
-        Event: PolyphonicEvent<Self::VoiceIdentifier>,
-    {
-        match event.event_type() {
-            PolyphonicEventType::Broadcast => VoiceAssignment::All,
-            PolyphonicEventType::VoiceSpecific(identifier)
-            | PolyphonicEventType::ReleaseVoice(identifier) => {
+pub trait VoiceAssigner<Event>: EventDispatchClassifier<Event>
+where
+    Event: Copy,
+{
+    type Voice;
+
+    fn assign_event(&mut self, event: Event, voices: &mut [Self::Voice]) -> VoiceAssignment {
+        match self.classify(&event) {
+            EventDispatchClass::Broadcast => VoiceAssignment::All,
+            EventDispatchClass::VoiceSpecific(identifier)
+            | EventDispatchClass::ReleaseVoice(identifier) => {
                 match self.find_active_voice(identifier, voices) {
                     Some(index) => VoiceAssignment::Some(index),
                     None => VoiceAssignment::None,
                 }
             }
-            PolyphonicEventType::AssignNewVoice(identifier) => {
+            EventDispatchClass::AssignNewVoice(identifier) => {
                 VoiceAssignment::Some(self.find_idle_voice(identifier, voices))
             }
         }
     }
 
-    fn find_active_voice<V>(
+    fn find_active_voice(
         &mut self,
         identifier: Self::VoiceIdentifier,
-        voices: &mut [V],
-    ) -> Option<usize>
-    where
-        V: Voice<Self::State>;
+        voices: &mut [Self::Voice],
+    ) -> Option<usize>;
 
-    fn find_idle_voice<V>(&mut self, identifier: Self::VoiceIdentifier, voices: &mut [V]) -> usize
-    where
-        V: Voice<Self::State>;
+    fn find_idle_voice(
+        &mut self,
+        identifier: Self::VoiceIdentifier,
+        voices: &mut [Self::Voice],
+    ) -> usize;
+}
 
-    fn dispatch_event<Event, V>(&mut self, event: Event, voices: &mut [V])
-    where
-        V: Voice<Self::State> + EventHandler<Event>,
-        Event: PolyphonicEvent<Self::VoiceIdentifier>,
-    {
-        let assignment = self.assign_event(event, voices);
-        match assignment {
+pub trait EventDispatcher<Event>: VoiceAssigner<Event>
+where
+    Event: Copy,
+    Self::Voice: EventHandler<Event>,
+{
+    fn dispatch_event(&mut self, event: Event, voices: &mut [Self::Voice]) {
+        match self.assign_event(event, voices) {
             VoiceAssignment::None => {}
             VoiceAssignment::Some(index) => {
                 voices[index].handle_event(event);
@@ -129,18 +122,20 @@ pub trait VoiceStealer {
             }
         }
     }
+}
 
-    fn dispatch_contextual_event<Event, V, Context>(
+pub trait ContextualEventDispatcher<Event, Context>: VoiceAssigner<Event>
+where
+    Event: Copy,
+    Self::Voice: ContextualEventHandler<Event, Context>,
+{
+    fn dispatch_contextual_event(
         &mut self,
         event: Event,
-        voices: &mut [V],
+        voices: &mut [Self::Voice],
         context: &mut Context,
-    ) where
-        V: Voice<Self::State> + ContextualEventHandler<Event, Context>,
-        Event: PolyphonicEvent<Self::VoiceIdentifier>,
-    {
-        let assignment = self.assign_event(event, voices);
-        match assignment {
+    ) {
+        match self.assign_event(event, voices) {
             VoiceAssignment::None => {}
             VoiceAssignment::Some(index) => {
                 voices[index].handle_event(event, context);
@@ -154,8 +149,12 @@ pub trait VoiceStealer {
     }
 }
 
-pub mod voice_stealer {
-    use super::{Voice, VoiceStealer};
+pub mod simple_event_dispatching {
+    use super::{
+        ContextualEventDispatcher, EventDispatchClass, EventDispatchClassifier, EventDispatcher,
+        Voice, VoiceAssigner,
+    };
+    use crate::event::{ContextualEventHandler, EventHandler};
     use std::marker::PhantomData;
 
     #[derive(Clone, Copy, PartialEq, Eq)]
@@ -168,39 +167,46 @@ pub mod voice_stealer {
         Active(VoiceIdentifier),
     }
 
-    pub struct SimpleVoiceStealer<VoiceIdentifier>
-    where
-        VoiceIdentifier: Copy + Eq,
-    {
-        _phantom_voice_identifier: PhantomData<VoiceIdentifier>,
+    pub struct SimpleEventDispatcher<Classifier, V> {
+        classifier: Classifier,
+        _voice_phantom: PhantomData<V>,
     }
 
-    impl<VoiceIdentifier> SimpleVoiceStealer<VoiceIdentifier>
-    where
-        VoiceIdentifier: Copy + Eq,
-    {
-        pub fn new() -> Self {
+    impl<Classifier, V> SimpleEventDispatcher<Classifier, V> {
+        pub fn new(classifier: Classifier) -> Self {
             Self {
-                _phantom_voice_identifier: PhantomData,
+                classifier,
+                _voice_phantom: PhantomData,
             }
         }
     }
 
-    impl<VoiceIdentifier> VoiceStealer for SimpleVoiceStealer<VoiceIdentifier>
+    impl<Event, Classifier, Voice> EventDispatchClassifier<Event>
+        for SimpleEventDispatcher<Classifier, Voice>
     where
-        VoiceIdentifier: Copy + Eq,
+        Classifier: EventDispatchClassifier<Event>,
+        Event: Copy,
     {
-        type State = SimpleVoiceState<VoiceIdentifier>;
-        type VoiceIdentifier = VoiceIdentifier;
+        type VoiceIdentifier = Classifier::VoiceIdentifier;
 
-        fn find_active_voice<V>(
+        fn classify(&self, event: &Event) -> EventDispatchClass<Self::VoiceIdentifier> {
+            self.classifier.classify(event)
+        }
+    }
+
+    impl<Event, Classifier, V> VoiceAssigner<Event> for SimpleEventDispatcher<Classifier, V>
+    where
+        Classifier: EventDispatchClassifier<Event>,
+        V: Voice<SimpleVoiceState<Classifier::VoiceIdentifier>>,
+        Event: Copy,
+    {
+        type Voice = V;
+
+        fn find_active_voice(
             &mut self,
-            identifier: VoiceIdentifier,
-            voices: &mut [V],
-        ) -> Option<usize>
-        where
-            V: Voice<Self::State>,
-        {
+            identifier: Self::VoiceIdentifier,
+            voices: &mut [Self::Voice],
+        ) -> Option<usize> {
             voices
                 .iter()
                 .position(|voice| voice.state() == SimpleVoiceState::Active(identifier))
@@ -208,10 +214,11 @@ pub mod voice_stealer {
             // is already releasing?
         }
 
-        fn find_idle_voice<V>(&mut self, _identifier: VoiceIdentifier, voices: &mut [V]) -> usize
-        where
-            V: Voice<Self::State>,
-        {
+        fn find_idle_voice(
+            &mut self,
+            _identifier: Self::VoiceIdentifier,
+            voices: &mut [Self::Voice],
+        ) -> usize {
             let mut second_best = 0;
             for (index, voice) in voices.iter().enumerate() {
                 match voice.state() {
@@ -226,5 +233,23 @@ pub mod voice_stealer {
             }
             return second_best;
         }
+    }
+
+    impl<Event, Classifier, V, Context> ContextualEventDispatcher<Event, Context>
+        for SimpleEventDispatcher<Classifier, V>
+    where
+        Classifier: EventDispatchClassifier<Event>,
+        V: Voice<SimpleVoiceState<Classifier::VoiceIdentifier>>
+            + ContextualEventHandler<Event, Context>,
+        Event: Copy,
+    {
+    }
+
+    impl<Event, Classifier, V> EventDispatcher<Event> for SimpleEventDispatcher<Classifier, V>
+    where
+        Classifier: EventDispatchClassifier<Event>,
+        V: Voice<SimpleVoiceState<Classifier::VoiceIdentifier>> + EventHandler<Event>,
+        Event: Copy,
+    {
     }
 }

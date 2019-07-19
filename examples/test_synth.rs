@@ -6,8 +6,8 @@ use num_traits::Float;
 use rand::{thread_rng, Rng};
 use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
 use rsynth::utilities::polyphony::{
-    voice_stealer::{SimpleVoiceState, SimpleVoiceStealer},
-    ToneIdentifier, Voice, VoiceStealer,
+    simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
+    EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
 };
 use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 
@@ -106,7 +106,7 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
 
 pub struct NoisePlayer {
     voices: Vec<Noise>,
-    dispatcher: SimpleVoiceStealer<ToneIdentifier>,
+    dispatcher: SimpleEventDispatcher<RawMidiEventToneIdentifierDispatchClassifier, Noise>,
 }
 
 impl NoisePlayer {
@@ -117,7 +117,7 @@ impl NoisePlayer {
         }
         Self {
             voices: voices,
-            dispatcher: SimpleVoiceStealer::new(),
+            dispatcher: SimpleEventDispatcher::new(RawMidiEventToneIdentifierDispatchClassifier),
         }
     }
 }
