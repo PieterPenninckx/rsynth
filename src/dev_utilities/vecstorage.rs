@@ -85,176 +85,184 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 macro_rules! vec_storage {
-        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty, $VecStorageName:expr, $VecGuardName:expr) => {
+    ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty, $VecStorageName:expr, $VecGuardName:expr) => {
+        /// Re-usable memory for creating a vector of references.
+        ///
+        /// See the [module-level documentation] for more information.
+        ///
+        /// [module-level documentation]: ./index.html
+        #[derive(Debug)]
+        pub struct $VecStorage<$T>
+        where
+            $T: ?Sized,
+        {
+            // We use `usize` here, because `*mut &$T` requires a lifetime, which we
+            // cannot specify here.
+            // Note: because of this, $VecStorage implements `Send` and `Sync`.
+            ptr: usize,
+            capacity: usize,
+            // The borrow system already ensures that there cannot be two `VecGuard`'s of
+            // the same `VecStorage`, but when a `VecGuard` is "mem::forgotten", it cannot
+            // cleanup, so we use this field to ensure that no new `VecGuard` can be created
+            // if the previous one is "mem::forgotten".
+            is_locked: bool,
+            phantom: PhantomData<$T>,
+        }
 
-            /// Re-usable memory for creating a vector of references.
-            ///
-            /// See the [module-level documentation] for more information.
-            ///
-            /// [module-level documentation]: ./index.html
-            #[derive(Debug)]
-            pub struct $VecStorage<$T>
-            where
-                $T: ?Sized,
-            {
-                // We use `usize` here, because `*mut &$T` requires a lifetime, which we
-                // cannot specify here.
-                // Note: because of this, $VecStorage implements `Send` and `Sync`.
-                ptr: usize,
-                capacity: usize,
-                // The borrow system already ensures that there cannot be two `VecGuard`'s of
-                // the same `VecStorage`, but when a `VecGuard` is "mem::forgotten", it cannot
-                // cleanup, so we use this field to ensure that no new `VecGuard` can be created
-                // if the previous one is "mem::forgotten".
-                is_locked: bool,
-                phantom: PhantomData<$T>,
+        /// This can be used as a vector of references.
+        ///
+        /// See the [module-level documentation] for more information.
+        ///
+        /// [module-level documentation]: ./index.html
+        pub struct $VecGuard<'s, $b, $T>
+        where
+            $T: ?Sized,
+        {
+            storage: &'s mut $VecStorage<$T>,
+            borrow: Vec<$amp_b_T>,
+        }
+
+        impl<'s, $b, $T> Deref for $VecGuard<'s, 'b, $T>
+        where
+            $T: ?Sized,
+        {
+            type Target = Vec<$amp_b_T>;
+
+            fn deref(&self) -> &Vec<$amp_b_T> {
+                &self.borrow
+            }
+        }
+
+        impl<'s, $b, $T> DerefMut for $VecGuard<'s, $b, $T>
+        where
+            $T: ?Sized,
+        {
+            fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
+                &mut self.borrow
+            }
+        }
+
+        impl<'s, $b, $T> Drop for $VecGuard<'s, $b, $T>
+        where
+            $T: ?Sized,
+        {
+            fn drop(&mut self) {
+                self.borrow.clear();
+                self.storage.ptr = self.borrow.as_mut_ptr() as usize;
+                debug_assert_eq!(self.borrow.len(), 0);
+                self.storage.capacity = self.borrow.capacity();
+
+                // `drop` is always called recursively,
+                // see https://doc.rust-lang.org/nomicon/destructors.html
+                // So we have to manually drop `self.borrow`.
+                // We cannot simply "move out of borrowed content",
+                // so we swap it with another vector.
+                // Note: `Vec::new()` does not allocate.
+                let mut v = Vec::new();
+                mem::swap(&mut v, &mut self.borrow);
+                mem::forget(v);
+
+                self.storage.is_locked = false;
+            }
+        }
+
+        impl<$T> $VecStorage<$T>
+        where
+            $T: ?Sized,
+        {
+            pub fn with_capacity(capacity: usize) -> Self {
+                let mut vector: Vec<$amp_T> = Vec::with_capacity(capacity);
+                debug_assert_eq!(vector.len(), 0);
+                let result = Self {
+                    is_locked: false,
+                    ptr: vector.as_mut_ptr() as usize,
+                    capacity: vector.capacity(),
+                    phantom: PhantomData,
+                };
+                mem::forget(vector);
+                result
             }
 
-            /// This can be used as a vector of references.
-            ///
-            /// See the [module-level documentation] for more information.
-            ///
-            /// [module-level documentation]: ./index.html
-            pub struct $VecGuard<'s, $b, $T>
-            where
-                $T: ?Sized,
-            {
-                storage: &'s mut $VecStorage<$T>,
-                borrow: Vec<$amp_b_T>,
-            }
+            #[doc = "Creates a new "]
+            #[doc=$VecGuardName]
+            #[doc = "using the memory allocated by `self`. This `"]
+            #[doc=$VecGuardName]
+            #[doc = "` will automatically clear the vector when it goes out of scope."]
+            #[doc = "# Panics\n"]
+            #[doc = "Panics if `mem::forget()` was called on a `"]
+            #[doc=$VecGuardName]
+            #[doc = "` that was created previously on the same `"]
+            #[doc=$VecStorageName]
+            #[doc = "`."]
+            pub fn vec_guard<'s, $b>(&'s mut self) -> $VecGuard<'s, $b, $T> {
+                // If `mem::forget()` was called on the guard, then
+                // the `drop()` on the guard did not run and
+                // the ptr and the capacity of the underlying vector may not be
+                // correct anymore.
+                // It is then undefined behaviour to use `Vec::from_raw_parts`.
+                // Hence this check.
+                if self.is_locked {
+                    panic!(concat!(
+                        "`",
+                        $VecStorageName,
+                        "` has been locked. Probably `mem::forget()` was called on a `",
+                        $VecGuardName,
+                        "`"
+                    ))
+                }
+                self.is_locked = true;
 
-            impl<'s, $b, $T> Deref for $VecGuard<'s, 'b, $T>
-            where
-                $T: ?Sized,
-            {
-                type Target = Vec<$amp_b_T>;
-
-                fn deref(&self) -> &Vec<$amp_b_T> {
-                    &self.borrow
+                let vector;
+                #[allow(unused_unsafe)]
+                unsafe {
+                    vector = Vec::from_raw_parts(self.ptr as *mut $amp_T, 0, self.capacity)
+                }
+                $VecGuard {
+                    borrow: vector,
+                    storage: self,
                 }
             }
+        }
 
-            impl<'s, $b, $T> DerefMut for $VecGuard<'s, $b, $T>
-            where
-                $T: ?Sized,
-            {
-                fn deref_mut(&mut self) -> &mut Vec<$amp_b_T> {
-                    &mut self.borrow
-                }
-            }
-
-            impl<'s, $b, $T> Drop for $VecGuard<'s, $b, $T>
-            where
-                $T: ?Sized,
-            {
-                fn drop(&mut self) {
-                    self.borrow.clear();
-                    self.storage.ptr = self.borrow.as_mut_ptr() as usize;
-                    debug_assert_eq!(self.borrow.len(), 0);
-                    self.storage.capacity = self.borrow.capacity();
-
-                    // `drop` is always called recursively,
-                    // see https://doc.rust-lang.org/nomicon/destructors.html
-                    // So we have to manually drop `self.borrow`.
-                    // We cannot simply "move out of borrowed content",
-                    // so we swap it with another vector.
-                    // Note: `Vec::new()` does not allocate.
-                    let mut v = Vec::new();
-                    mem::swap(&mut v, &mut self.borrow);
-                    mem::forget(v);
-
-                    self.storage.is_locked = false;
-                }
-            }
-
-            impl<$T> $VecStorage<$T>
-            where
-                $T: ?Sized,
-            {
-                pub fn with_capacity(capacity: usize) -> Self {
-                    let mut vector: Vec<$amp_T> = Vec::with_capacity(capacity);
-                    debug_assert_eq!(vector.len(), 0);
-                    let result = Self {
-                        is_locked: false,
-                        ptr: vector.as_mut_ptr() as usize,
-                        capacity: vector.capacity(),
-                        phantom: PhantomData,
-                    };
-                    mem::forget(vector);
-                    result
-                }
-
-                #[doc="Creates a new "]
-                #[doc=$VecGuardName]
-                #[doc="using the memory allocated by `self`. This `"]
-                #[doc=$VecGuardName]
-                #[doc="` will automatically clear the vector when it goes out of scope."]
-                #[doc="# Panics\n"]
-                #[doc="Panics if `mem::forget()` was called on a `"]
-                #[doc=$VecGuardName]
-                #[doc="` that was created previously on the same `"]
-                #[doc=$VecStorageName]
-                #[doc="`."]
-                pub fn vec_guard<'s, $b>(&'s mut self) -> $VecGuard<'s, $b, $T> {
-                    // If `mem::forget()` was called on the guard, then
+        impl<$T> Drop for $VecStorage<$T>
+        where
+            $T: ?Sized,
+        {
+            fn drop(&mut self) {
+                if !self.is_locked {
+                    unsafe {
+                        mem::drop(Vec::from_raw_parts(
+                            self.ptr as *mut $amp_T,
+                            0,
+                            self.capacity,
+                        ));
+                    }
+                } else {
+                    // If `mem::forget()` was called on a guard, then
                     // the `drop()` on the guard did not run and
                     // the ptr and the capacity of the underlying vector may not be
                     // correct anymore.
-                    // It is then undefined behaviour to use `Vec::from_raw_parts`.
-                    // Hence this check.
-                    if self.is_locked {
-                        panic!(concat!(
-                            "`",
-                            $VecStorageName,
-                            "` has been locked. Probably `mem::forget()` was called on a `",
-                            $VecGuardName,
-                            "`"
-                        ))
-                    }
-                    self.is_locked = true;
-
-                    let vector;
-                    #[allow(unused_unsafe)]
-                    unsafe {
-                        vector = Vec::from_raw_parts(self.ptr as *mut $amp_T, 0, self.capacity)
-                    }
-                    $VecGuard {
-                        borrow: vector,
-                        storage: self,
-                    }
+                    // It is probably not a good idea to panic inside the `drop()` function,
+                    // so let's just leak some memory (`mem::forget()` was called after all.)
+                    // We do nothing in this `else` branch.
                 }
             }
+        }
+    };
 
-            impl<$T> Drop for $VecStorage<$T>
-            where
-                $T: ?Sized,
-            {
-                fn drop(&mut self) {
-                    if !self.is_locked {
-                        unsafe {
-                            mem::drop(Vec::from_raw_parts(
-                                self.ptr as *mut $amp_T,
-                                0,
-                                self.capacity,
-                            ));
-                        }
-                    } else {
-                        // If `mem::forget()` was called on a guard, then
-                        // the `drop()` on the guard did not run and
-                        // the ptr and the capacity of the underlying vector may not be
-                        // correct anymore.
-                        // It is probably not a good idea to panic inside the `drop()` function,
-                        // so let's just leak some memory (`mem::forget()` was called after all.)
-                        // We do nothing in this `else` branch.
-                    }
-                }
-            }
-        };
-
-        ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
-            vec_storage!($VecStorage, $T, $VecGuard, $b, $amp_b_T, $amp_T, stringify!($VecStorage), stringify!($VecGuard));
-        };
-    }
+    ($VecStorage:ident, $T:ident, $VecGuard:ident, $b:lifetime, $amp_b_T:ty, $amp_T:ty) => {
+        vec_storage!(
+            $VecStorage,
+            $T,
+            $VecGuard,
+            $b,
+            $amp_b_T,
+            $amp_T,
+            stringify!($VecStorage),
+            stringify!($VecGuard)
+        );
+    };
+}
 vec_storage!(VecStorage, T, VecGuard, 'b, &'b T, &T);
 vec_storage!(VecStorageMut, T, VecGuardMut, 'b, &'b mut T, &mut T);
 
