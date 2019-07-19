@@ -10,6 +10,7 @@ use rsynth::utilities::polyphony::{
     EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
 };
 use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
+use std::default::Default;
 
 use rsynth::event::raw_midi_event_event_types::*;
 
@@ -117,7 +118,7 @@ impl NoisePlayer {
         }
         Self {
             voices: voices,
-            dispatcher: SimpleEventDispatcher::new(RawMidiEventToneIdentifierDispatchClassifier),
+            dispatcher: SimpleEventDispatcher::default(),
         }
     }
 }
