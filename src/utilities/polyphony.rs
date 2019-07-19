@@ -15,12 +15,29 @@ pub trait PolyphonicEvent<Identifier>: Copy {
     fn event_type(&self) -> PolyphonicEventType<Identifier>;
 }
 
-impl<Event, Identifier> PolyphonicEvent<Identifier> for Timed<Event>
+pub trait VoiceIdentifier<Event>
 where
-    Event: PolyphonicEvent<Identifier>,
+    Self: Sized,
+{
+    fn event_type(event: &Event) -> PolyphonicEventType<Self>;
+}
+
+impl<T, Identifier> PolyphonicEvent<Identifier> for T
+where
+    T: Copy,
+    Identifier: VoiceIdentifier<T>,
 {
     fn event_type(&self) -> PolyphonicEventType<Identifier> {
-        self.event.event_type()
+        Identifier::event_type(&self)
+    }
+}
+
+impl<Event, Identifier> VoiceIdentifier<Timed<Event>> for Identifier
+where
+    Identifier: VoiceIdentifier<Event>,
+{
+    fn event_type(event: &Timed<Event>) -> PolyphonicEventType<Self> {
+        <Self as VoiceIdentifier<Event>>::event_type(&event.event)
     }
 }
 
@@ -29,22 +46,22 @@ pub struct ToneIdentifier(pub u8);
 
 use crate::event::raw_midi_event_event_types::*;
 
-impl PolyphonicEvent<ToneIdentifier> for RawMidiEvent {
-    fn event_type(&self) -> PolyphonicEventType<ToneIdentifier> {
-        match self.data()[0] & 0xF0 {
+impl VoiceIdentifier<RawMidiEvent> for ToneIdentifier {
+    fn event_type(event: &RawMidiEvent) -> PolyphonicEventType<Self> {
+        match event.data()[0] & 0xF0 {
             RAW_MIDI_EVENT_NOTE_OFF => {
-                PolyphonicEventType::ReleaseVoice(ToneIdentifier(self.data()[1]))
+                PolyphonicEventType::ReleaseVoice(ToneIdentifier(event.data()[1]))
             }
             RAW_MIDI_EVENT_NOTE_ON => {
-                if self.data()[2] == 0 {
+                if event.data()[2] == 0 {
                     // Velocity 0 is considered the same as note off.
-                    PolyphonicEventType::ReleaseVoice(ToneIdentifier(self.data()[1]))
+                    PolyphonicEventType::ReleaseVoice(ToneIdentifier(event.data()[1]))
                 } else {
-                    PolyphonicEventType::AssignNewVoice(ToneIdentifier(self.data()[1]))
+                    PolyphonicEventType::AssignNewVoice(ToneIdentifier(event.data()[1]))
                 }
             }
             RAW_MIDI_EVENT_NOTE_AFTERTOUCH => {
-                PolyphonicEventType::VoiceSpecific(ToneIdentifier(self.data()[1]))
+                PolyphonicEventType::VoiceSpecific(ToneIdentifier(event.data()[1]))
             }
             _ => PolyphonicEventType::Broadcast,
         }
