@@ -5,7 +5,7 @@
 // =========
 // You can compile this example with
 // ```
-// cargo build --release --examples --features vst-backend
+// cargo build --release --examples --features backend-vst
 // ```
 // This generates a library that you can find
 //
@@ -37,7 +37,7 @@
 // Note that these environment variables need to be visible to the host.
 // Note that the example is also logging to a file in the realtime thread, which may cause clipping.
 
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 #[macro_use]
 extern crate vst;
 #[macro_use]
@@ -51,20 +51,20 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 use rsynth::backend::vst_backend::VstPluginMeta;
 
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 use vst::plugin::Category;
 
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 impl VstPluginMeta for NoisePlayer {
     const PLUGIN_ID: i32 = 123;
     const CATEGORY: Category = Category::Synth;
 }
 
 #[rustfmt::skip::macros(vst_init)]
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 vst_init!(
     fn init() -> NoisePlayer {
         NoisePlayer::new()

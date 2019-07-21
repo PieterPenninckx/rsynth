@@ -20,7 +20,7 @@ Rsynth has the following components:
 The documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
 * [on GitHub pages](https://pieterpenninckx.github.io/rsynth) for an irregularly updated documentation of the master branch
-* on your local machine after running `cargo rustdoc --features jack-backend,vst-backend` for the most up-to-date documentation 
+* on your local machine after running `cargo rustdoc --features backend-jack,backend-vst` for the most up-to-date documentation 
 
 # Examples
 There are full examples in 
@@ -70,7 +70,7 @@ Pull requests should be opened against the `master` branch.
 
 In order to run all tests, run the following:
 ```bash
-cargo test --features jack-backend,vst-backend
+cargo test --features backend-jack,backend-vst
 ```
 
 If you have trouble running this locally because you do not have jack-related libraries installed,
@@ -90,4 +90,8 @@ Alexander Lozada's contributions to rsynth are helped by [Resamplr.com](https://
 
 # License 
 
-MIT/BSD-3 License
+The source code of `rsynth` is licensed under the MIT/BSD-3 License.
+
+Note that in order to use `rsynth` in combination with other crates (libraries), the combined work needs
+to comply with the license of that crate as well. In particular, the following optional dependencies may require your attention:
+* the `hound` crate (behind the `backend-file-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details

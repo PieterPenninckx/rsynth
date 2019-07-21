@@ -1,6 +1,6 @@
 //! Wrapper for the VST backend.
 //!
-//! Support is only enabled if you compile with the "vst-backend" feature, see
+//! Support is only enabled if you compile with the "backend-vst" feature, see
 //! [the cargo reference] for more information on setting cargo features.
 //!
 //! For an example, see `vst_synth.rs` in the `examples` folder.

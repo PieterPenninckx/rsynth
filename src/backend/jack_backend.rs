@@ -1,5 +1,5 @@
 //! Wrapper for the [JACK] backend.
-//! Support is only enabled if you compile with the "jack-backend" feature, see
+//! Support is only enabled if you compile with the "backend-jack" feature, see
 //! [the cargo reference] for more information on setting cargo features.
 //!
 //! For an example, see `jack_synth.rs` in the `examples` folder.

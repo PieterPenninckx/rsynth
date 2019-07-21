@@ -1,7 +1,9 @@
 //! Defines the different backends.
-#[cfg(feature = "jack-backend")]
+#[cfg(feature = "backend-file")]
+pub mod file_backend;
+#[cfg(feature = "backend-jack")]
 pub mod jack_backend;
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 pub mod vst_backend;
 
 /// Defines an interface for communicating with the host or server of the backend,

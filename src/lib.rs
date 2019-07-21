@@ -56,9 +56,11 @@ extern crate log;
 extern crate asprim;
 extern crate num_traits;
 
-#[cfg(feature = "jack-backend")]
+#[cfg(feature = "backend-file-hound")]
+extern crate hound;
+#[cfg(feature = "backend-jack")]
 extern crate jack;
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-vst")]
 extern crate vst;
 
 #[macro_use]
@@ -204,6 +206,8 @@ pub trait AudioRendererMeta {
     /// `sample_rate`: The new sample rate in frames per second (Hz).
     /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, commonly used for video
     /// production.
+    // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
+    // TODO: there are no fractional sample rates. Maybe change the data type into u32?
     fn set_sample_rate(&mut self, sample_rate: f64);
 }
 
