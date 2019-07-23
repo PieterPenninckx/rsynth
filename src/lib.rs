@@ -60,6 +60,8 @@ extern crate num_traits;
 extern crate hound;
 #[cfg(feature = "backend-jack")]
 extern crate jack;
+#[cfg(feature = "backend-file-hound")]
+extern crate sample;
 #[cfg(feature = "backend-vst")]
 extern crate vst;
 
