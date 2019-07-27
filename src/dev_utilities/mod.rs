@@ -43,4 +43,18 @@
 //!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! ["Writing events" below]: ./index.html#writing-events
+use num_traits::Zero;
+
 pub mod vecstorage;
+
+pub fn create_buffers<F: Zero>(number_of_channels: usize, buffer_size: usize) -> Vec<Vec<F>> {
+    let mut buffers = Vec::with_capacity(number_of_channels);
+    for _ in 0..number_of_channels {
+        let mut buffer = Vec::with_capacity(buffer_size);
+        for _ in 0..buffer_size {
+            buffer.push(F::zero());
+        }
+        buffers.push(buffer);
+    }
+    buffers
+}
