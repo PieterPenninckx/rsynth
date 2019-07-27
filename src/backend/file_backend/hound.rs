@@ -1,13 +1,13 @@
-use super::AudioReader;
-use hound::{Sample, WavReader, WavSamples};
-use sample::conv::FromSample;
-use std::io::Read;
+use super::{AudioReader, AudioWriter};
+use hound::{Sample, WavReader, WavSamples, WavWriter};
+use sample::conv::{FromSample, ToSample};
+use std::io::{Read, Seek, Write};
 
-pub trait HoundSampleReader<F> {
+trait HoundSampleReader<F> {
     fn read_sample(&mut self) -> Option<F>;
 }
 
-pub struct F32SampleReader<'wr, R: Read> {
+struct F32SampleReader<'wr, R: Read> {
     samples: WavSamples<'wr, R, f32>,
 }
 
@@ -24,7 +24,7 @@ where
     }
 }
 
-pub struct I32SampleReader<'wr, R: Read> {
+struct I32SampleReader<'wr, R: Read> {
     samples: WavSamples<'wr, R, i32>,
 }
 
@@ -41,7 +41,7 @@ where
     }
 }
 
-pub struct I16SampleReader<'wr, R: Read> {
+struct I16SampleReader<'wr, R: Read> {
     samples: WavSamples<'wr, R, i16>,
 }
 
@@ -139,5 +139,142 @@ where
             frame_index += 1;
         }
         return frame_index;
+    }
+}
+
+pub struct HoundAudioWriter<'ww, F>
+where
+    F: ToSample<f32> + ToSample<i32> + ToSample<i16>,
+{
+    hound_sample_writer: Box<dyn HoundSampleWriter<F> + 'ww>,
+    number_of_channels: usize,
+    sample_rate: f64,
+}
+
+impl<'ww, F> HoundAudioWriter<'ww, F>
+where
+    F: ToSample<f32> + ToSample<i32> + ToSample<i16>,
+{
+    fn hound_sample_writer<W: Write + Seek>(
+        writer: &'ww mut WavWriter<W>,
+    ) -> Box<dyn HoundSampleWriter<F> + 'ww> {
+        let spec = writer.spec();
+        match spec.sample_format {
+            hound::SampleFormat::Float => match spec.bits_per_sample {
+                32 => Box::new(F32SampleWriter { writer }),
+                _ => {
+                    // TODO: better error handling.
+                    panic!("Of all the float type, only 32 bits floats are supported.");
+                }
+            },
+            hound::SampleFormat::Int => match spec.bits_per_sample {
+                32 => Box::new(I32SampleWriter { writer }),
+                16 => Box::new(I16SampleWriter { writer }),
+                _ => {
+                    // TODO: better error handling.
+                    panic!("Of all the int types, only 16 bit and 32 bit integers are supported.");
+                }
+            },
+        }
+    }
+
+    pub fn new<W: Write + Seek>(writer: &'ww mut WavWriter<W>) -> Self {
+        let spec = writer.spec();
+        let hound_sample_writer = Self::hound_sample_writer(writer);
+        Self {
+            hound_sample_writer,
+            number_of_channels: spec.channels as usize,
+            sample_rate: spec.sample_rate as f64,
+        }
+    }
+}
+
+impl<'ww, F> AudioWriter<F> for HoundAudioWriter<'ww, F>
+where
+    F: ToSample<f32> + ToSample<i32> + ToSample<i16> + Copy,
+{
+    fn write_buffer(&mut self, inputs: &[&[F]]) {
+        assert_eq!(inputs.len(), self.number_of_channels);
+        assert!(self.number_of_channels > 0);
+        let length = inputs[0].len();
+        for input in inputs.iter() {
+            assert_eq!(inputs.len(), length);
+        }
+
+        let mut frame_index = 0;
+        while frame_index < length {
+            for input in inputs.iter() {
+                self.hound_sample_writer.write_sample(input[frame_index]);
+            }
+            frame_index += 1;
+        }
+        self.hound_sample_writer.flush();
+    }
+}
+
+trait HoundSampleWriter<F> {
+    fn write_sample(&mut self, sample: F);
+    fn flush(&mut self);
+}
+
+struct F32SampleWriter<'ww, W>
+where
+    W: Write + Seek,
+{
+    writer: &'ww mut WavWriter<W>,
+}
+
+impl<'ww, F, W> HoundSampleWriter<F> for F32SampleWriter<'ww, W>
+where
+    F: ToSample<f32>,
+    W: Write + Seek,
+{
+    fn write_sample(&mut self, sample: F) {
+        self.writer.write_sample::<f32>(sample.to_sample_());
+    }
+    fn flush(&mut self) {
+        self.writer.flush();
+    }
+}
+
+struct I32SampleWriter<'ww, W>
+where
+    W: Write + Seek,
+{
+    writer: &'ww mut WavWriter<W>,
+}
+
+impl<'ww, F, W> HoundSampleWriter<F> for I32SampleWriter<'ww, W>
+where
+    F: ToSample<i32>,
+    W: Write + Seek,
+{
+    fn write_sample(&mut self, sample: F) {
+        self.writer.write_sample::<i32>(sample.to_sample_());
+    }
+
+    fn flush(&mut self) {
+        self.writer.flush();
+    }
+}
+
+struct I16SampleWriter<'ww, W>
+where
+    W: Write + Seek,
+{
+    writer: &'ww mut WavWriter<W>,
+}
+
+impl<'ww, F, W> HoundSampleWriter<F> for I16SampleWriter<'ww, W>
+where
+    F: ToSample<i16>,
+    W: Write + Seek,
+{
+    fn write_sample(&mut self, sample: F) {
+        self.writer.write_sample::<i16>(sample.to_sample_());
+    }
+
+    fn flush(&mut self) {
+        self.writer.flush();
     }
 }

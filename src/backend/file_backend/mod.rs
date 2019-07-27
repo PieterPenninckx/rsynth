@@ -14,6 +14,7 @@ pub trait AudioReader<F> {
 }
 
 pub trait AudioWriter<F> {
+    // TODO: This does not foresee error handling in any way ...
     fn write_buffer(&mut self, buffer: &[&[F]]);
 }
 
