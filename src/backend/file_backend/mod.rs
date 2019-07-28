@@ -1,5 +1,6 @@
 use crate::dev_utilities::create_buffers;
-use crate::event::{RawMidiEvent, Timed};
+use crate::event::event_queue::EventQueue;
+use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
 use std::marker::PhantomData;
@@ -46,42 +47,48 @@ where
     _phantom: PhantomData<F>,
 }
 
-impl<F, AudioIn, AudioOut, MidiIn, MidiOut> FileBackend<F, AudioIn, AudioOut, MidiIn, MidiOut>
-where
+pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
+    mut plugin: R,
+    buffer_size: usize,
+    audio_in: AudioIn,
+    audio_out: AudioOut,
+    event_queue_capacity: usize,
+    mut midi_in: MidiIn,
+    mut midi_out: MidiOut,
+) where
     AudioIn: AudioReader<F>,
     AudioOut: AudioReader<F>,
-    MidiIn: MidiReader,
+    MidiIn: MidiReader, // TODO: relative timing makes more sense.
     MidiOut: MidiWriter,
     F: Zero,
+    R: AudioRenderer<F> + EventHandler<Timed<RawMidiEvent>>,
 {
-    pub fn new(audio_in: AudioIn, audio_out: AudioOut, midi_in: MidiIn, midi_out: MidiOut) -> Self {
-        Self {
-            audio_in,
-            audio_out,
-            midi_in,
-            midi_out,
-            _phantom: PhantomData,
+    assert!(buffer_size > 0);
+    let number_of_channels = audio_in.number_of_channels();
+
+    assert!(number_of_channels > 0);
+    let input_buffers = create_buffers(number_of_channels, buffer_size);
+    let mut output_buffers = create_buffers(number_of_channels, buffer_size);
+
+    let mut event_queue = EventQueue::new(event_queue_capacity);
+
+    while let Some(event) = midi_in.read_event() {
+        let time = event.time_in_frames;
+        event_queue.queue_event(event);
+        if time as usize > buffer_size {
+            break;
         }
     }
 
-    pub fn run<R>(&mut self, mut plugin: R, buffer_size: usize)
-    where
-        R: AudioRenderer<F>,
-    {
-        assert!(buffer_size > 0);
-        let number_of_channels = self.audio_in.number_of_channels();
-
-        assert!(number_of_channels > 0);
-        let input_buffers = create_buffers(number_of_channels, buffer_size);
-        let mut output_buffers = create_buffers(number_of_channels, buffer_size);
-
-        loop {
-            let input: Vec<&[F]> = input_buffers.iter().map(|b| b.as_slice()).collect();
-            let mut output: Vec<&mut [F]> = output_buffers
-                .iter_mut()
-                .map(|b| b.as_mut_slice())
-                .collect();
-            plugin.render_buffer(input.as_slice(), output.as_mut_slice());
+    loop {
+        let input: Vec<&[F]> = input_buffers.iter().map(|b| b.as_slice()).collect();
+        let mut output: Vec<&mut [F]> = output_buffers
+            .iter_mut()
+            .map(|b| b.as_mut_slice())
+            .collect();
+        for event_index in 0..event_queue.len() {
+            plugin.handle_event(event_queue[event_index]);
         }
+        plugin.render_buffer(input.as_slice(), output.as_mut_slice());
     }
 }

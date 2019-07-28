@@ -127,6 +127,8 @@ impl<T> EventQueue<T> {
     }
 }
 
+// TODO: Add an iterator over the events.
+
 #[test]
 fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_comes_first() {
     let initial_buffer = vec![
