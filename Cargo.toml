@@ -12,6 +12,7 @@ backend-jack = ["jack"]
 backend-vst = ["vst"]
 backend-file-all = ["backend-file-hound"]
 backend-file-hound = ["hound", "backend-file", "sample"]
+backend-file-rimd = ["rimd", "backend-file"]
 backend-file = []
 
 [dependencies]
@@ -23,6 +24,7 @@ jack = {version = "0.6.0", optional = true}
 vst = {version = "0.1.0", optional = true}
 hound = {version = "3.4.0", optional = true}
 sample = {version = "0.10.0", optional = true}
+rimd = {git = "https://github.com/RustAudio/rimd.git", optional = true}
 
 [dev-dependencies]
 rand = "0.3"

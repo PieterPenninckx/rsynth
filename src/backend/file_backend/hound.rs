@@ -9,7 +9,7 @@ where
 {
     hound_sample_reader: Box<dyn HoundSampleReader<F> + 'wr>,
     number_of_channels: usize,
-    sample_rate: f64,
+    frames_per_second: u32,
 }
 
 pub enum HoundAudioError {
@@ -54,11 +54,10 @@ where
         let spec = reader.spec();
 
         let number_of_channels = spec.channels as usize;
-        let sample_rate = spec.sample_rate as f64;
         let hound_sample_reader = Self::reader(reader)?;
         Ok(Self {
             number_of_channels,
-            sample_rate,
+            frames_per_second: spec.sample_rate,
             hound_sample_reader,
         })
     }
@@ -70,6 +69,10 @@ where
 {
     fn number_of_channels(&self) -> usize {
         self.number_of_channels
+    }
+
+    fn frames_per_second(&self) -> u32 {
+        self.frames_per_second
     }
 
     fn fill_buffer(&mut self, outputs: &mut [&mut [F]]) -> usize {

@@ -1,5 +1,6 @@
 use super::{AudioReader, AudioWriter, MidiReader, MidiWriter};
-use crate::event::{RawMidiEvent, Timed};
+use crate::backend::file_backend::DeltaEvent;
+use crate::event::RawMidiEvent;
 use std::marker::PhantomData;
 
 pub struct Dummy<F> {
@@ -19,6 +20,10 @@ impl<F> AudioReader<F> for Dummy<F> {
         0
     }
 
+    fn frames_per_second(&self) -> u32 {
+        44100
+    }
+
     fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> usize {
         0
     }
@@ -29,7 +34,7 @@ impl<F> AudioWriter<F> for Dummy<F> {
 }
 
 impl<F> MidiReader for Dummy<F> {
-    fn read_event(&mut self) -> Option<Timed<RawMidiEvent>> {
+    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         None
     }
 }

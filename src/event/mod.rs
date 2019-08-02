@@ -76,7 +76,9 @@ pub mod raw_midi_event_event_types {
 /// `Timed<E>` adds timing to an event.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Timed<E> {
-    /// The offset (in frames) of the event.
+    /// The offset (in frames) of the event relative to the start of
+    /// the audio buffer.
+    ///
     /// E.g. when `time_in_frames` is 6, this means that
     /// the event happens on the sixth frame of the buffer in the call to
     /// the [`render_buffer`] method of the `Plugin` trait.

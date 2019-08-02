@@ -1,5 +1,4 @@
 use crate::dev_utilities::create_buffers;
-use crate::event::event_queue::EventQueue;
 use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
@@ -8,9 +7,15 @@ use std::marker::PhantomData;
 pub mod dummy;
 #[cfg(feature = "backend-file-hound")]
 pub mod hound;
+#[cfg(feature = "backend-file-rimd")]
+pub mod rimd;
 
 pub trait AudioReader<F> {
     fn number_of_channels(&self) -> usize;
+    fn frames_per_second(&self) -> u32;
+    fn frames_per_microsecond(&self) -> f64 {
+        (self.frames_per_second() as f64) * (MICROSECONDS_PER_SECOND as f64)
+    }
 
     /// Fill the buffers. Return the number of frames that have been written.
     /// If it is `<` the number of frames in the input, now more frames can be expected.
@@ -23,14 +28,19 @@ pub trait AudioWriter<F> {
     fn write_buffer(&mut self, buffer: &[&[F]]);
 }
 
+pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
+
+pub struct DeltaEvent<E> {
+    microseconds_since_previous_event: f64,
+    event: E,
+}
+
 pub trait MidiReader {
-    /// Time is delta relative to the previous event.
-    fn read_event(&mut self) -> Option<Timed<RawMidiEvent>>;
+    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>>;
 }
 
 pub trait MidiWriter {
-    /// Time is delta relative to the previous event.
-    fn write_event(&mut self, event: Timed<RawMidiEvent>);
+    fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
 }
 
 pub struct FileBackend<F, AudioIn, AudioOut, MidiIn, MidiOut>
@@ -47,48 +57,86 @@ where
     _phantom: PhantomData<F>,
 }
 
+fn buffers_as_slice<'a, F>(buffers: &'a Vec<Vec<F>>, slice_len: usize) -> Vec<&'a [F]> {
+    buffers.iter().map(|b| &b[0..slice_len]).collect()
+}
+
+fn buffers_as_mut_slice<'a, F>(buffers: &'a mut Vec<Vec<F>>, slice_len: usize) -> Vec<&'a mut [F]> {
+    buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
+}
+
 pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     mut plugin: R,
-    buffer_size: usize,
-    audio_in: AudioIn,
-    audio_out: AudioOut,
-    event_queue_capacity: usize,
+    buffer_size_in_frames: usize,
+    mut audio_in: AudioIn,
+    mut audio_out: AudioOut,
     mut midi_in: MidiIn,
     mut midi_out: MidiOut,
 ) where
     AudioIn: AudioReader<F>,
-    AudioOut: AudioReader<F>,
+    AudioOut: AudioWriter<F>,
     MidiIn: MidiReader, // TODO: relative timing makes more sense.
     MidiOut: MidiWriter,
     F: Zero,
     R: AudioRenderer<F> + EventHandler<Timed<RawMidiEvent>>,
 {
-    assert!(buffer_size > 0);
+    assert!(buffer_size_in_frames > 0);
+
     let number_of_channels = audio_in.number_of_channels();
-
     assert!(number_of_channels > 0);
-    let input_buffers = create_buffers(number_of_channels, buffer_size);
-    let mut output_buffers = create_buffers(number_of_channels, buffer_size);
 
-    let mut event_queue = EventQueue::new(event_queue_capacity);
+    let frames_per_second = audio_in.frames_per_second();
+    assert!(frames_per_second > 0);
 
-    while let Some(event) = midi_in.read_event() {
-        let time = event.time_in_frames;
-        event_queue.queue_event(event);
-        if time as usize > buffer_size {
-            break;
-        }
-    }
+    let mut input_buffers = create_buffers(number_of_channels, buffer_size_in_frames);
+    let mut output_buffers = create_buffers(number_of_channels, buffer_size_in_frames);
+
+    let mut spare_event = None;
+    let mut last_time_in_microseconds = 0.0;
+
+    let frames_per_microsecond = audio_in.frames_per_microsecond();
+    let buffer_size_in_microseconds = buffer_size_in_frames as f64 / frames_per_microsecond;
 
     loop {
-        let input: Vec<&[F]> = input_buffers.iter().map(|b| b.as_slice()).collect();
-        let mut output: Vec<&mut [F]> = output_buffers
-            .iter_mut()
-            .map(|b| b.as_mut_slice())
-            .collect();
-        for event_index in 0..event_queue.len() {
-            plugin.handle_event(event_queue[event_index]);
+        // Read audio.
+        let frames_read = audio_in.fill_buffer(&mut buffers_as_mut_slice(
+            &mut input_buffers,
+            buffer_size_in_frames,
+        ));
+        assert!(frames_read <= buffer_size_in_frames);
+        if frames_read == 0 {
+            break;
         }
-        plugin.render_buffer(input.as_slice(), output.as_mut_slice());
+
+        // Handle events
+        if let Some(leftover) = spare_event.take() {
+            plugin.handle_event(Timed {
+                time_in_frames: (frames_per_microsecond / last_time_in_microseconds) as u32,
+                event: leftover,
+            });
+        }
+        while let Some(event) = midi_in.read_event() {
+            last_time_in_microseconds += event.microseconds_since_previous_event;
+            if last_time_in_microseconds < buffer_size_in_microseconds {
+                plugin.handle_event(Timed {
+                    time_in_frames: (frames_per_microsecond / last_time_in_microseconds) as u32,
+                    event: event.event,
+                });
+            } else {
+                spare_event = Some(event.event);
+            }
+        }
+        last_time_in_microseconds -= buffer_size_in_microseconds;
+
+        plugin.render_buffer(
+            &buffers_as_slice(&input_buffers, frames_read),
+            &mut buffers_as_mut_slice(&mut output_buffers, frames_read),
+        );
+
+        audio_out.write_buffer(&buffers_as_slice(&output_buffers, frames_read));
+
+        if frames_read < buffer_size_in_frames {
+            break;
+        }
     }
 }
