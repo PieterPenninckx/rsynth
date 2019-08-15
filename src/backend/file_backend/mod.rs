@@ -7,14 +7,15 @@ use std::marker::PhantomData;
 pub mod dummy;
 #[cfg(feature = "backend-file-hound")]
 pub mod hound;
+pub mod memory;
 #[cfg(feature = "backend-file-rimd")]
-pub mod rimd;
+pub mod rimd; // TODO: choose better naming.
 
 pub trait AudioReader<F> {
     fn number_of_channels(&self) -> usize;
-    fn frames_per_second(&self) -> u32;
-    fn frames_per_microsecond(&self) -> f64 {
-        (self.frames_per_second() as f64) * (MICROSECONDS_PER_SECOND as f64)
+    fn frames_per_second(&self) -> u64;
+    fn frames_per_microsecond(&self) -> u64 {
+        self.frames_per_second() * MICROSECONDS_PER_SECOND
     }
 
     /// Fill the buffers. Return the number of frames that have been written.
@@ -31,7 +32,7 @@ pub trait AudioWriter<F> {
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
 
 pub struct DeltaEvent<E> {
-    microseconds_since_previous_event: f64,
+    microseconds_since_previous_event: u64,
     event: E,
 }
 
@@ -75,12 +76,13 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
 ) where
     AudioIn: AudioReader<F>,
     AudioOut: AudioWriter<F>,
-    MidiIn: MidiReader, // TODO: relative timing makes more sense.
+    MidiIn: MidiReader,
     MidiOut: MidiWriter,
     F: Zero,
     R: AudioRenderer<F> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
+    assert!(buffer_size_in_frames < u32::max_value() as usize);
 
     let number_of_channels = audio_in.number_of_channels();
     assert!(number_of_channels > 0);
@@ -92,10 +94,10 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     let mut output_buffers = create_buffers(number_of_channels, buffer_size_in_frames);
 
     let mut spare_event = None;
-    let mut last_time_in_microseconds = 0.0;
+    let mut last_time_in_frames = 0;
+    let mut last_event_time_in_microseconds = 0;
 
     let frames_per_microsecond = audio_in.frames_per_microsecond();
-    let buffer_size_in_microseconds = buffer_size_in_frames as f64 / frames_per_microsecond;
 
     loop {
         // Read audio.
@@ -111,22 +113,25 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
         // Handle events
         if let Some(leftover) = spare_event.take() {
             plugin.handle_event(Timed {
-                time_in_frames: (frames_per_microsecond / last_time_in_microseconds) as u32,
+                time_in_frames: (last_event_time_in_microseconds / frames_per_microsecond
+                    - last_time_in_frames) as u32,
                 event: leftover,
             });
         }
         while let Some(event) = midi_in.read_event() {
-            last_time_in_microseconds += event.microseconds_since_previous_event;
-            if last_time_in_microseconds < buffer_size_in_microseconds {
+            last_event_time_in_microseconds += event.microseconds_since_previous_event;
+            let time_in_frames =
+                last_event_time_in_microseconds / frames_per_microsecond - last_time_in_frames;
+            if time_in_frames < buffer_size_in_frames as u64 {
                 plugin.handle_event(Timed {
-                    time_in_frames: (frames_per_microsecond / last_time_in_microseconds) as u32,
+                    time_in_frames: time_in_frames as u32,
                     event: event.event,
                 });
             } else {
                 spare_event = Some(event.event);
+                break;
             }
         }
-        last_time_in_microseconds -= buffer_size_in_microseconds;
 
         plugin.render_buffer(
             &buffers_as_slice(&input_buffers, frames_read),
@@ -138,5 +143,7 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
         if frames_read < buffer_size_in_frames {
             break;
         }
+
+        last_time_in_frames += buffer_size_in_frames as u64;
     }
 }

@@ -20,7 +20,7 @@ impl<F> AudioReader<F> for Dummy<F> {
         0
     }
 
-    fn frames_per_second(&self) -> u32 {
+    fn frames_per_second(&self) -> u64 {
         44100
     }
 
