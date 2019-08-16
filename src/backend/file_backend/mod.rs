@@ -203,7 +203,7 @@ mod tests {
     mod run {
         use crate::backend::file_backend::dummy::Dummy;
         use crate::backend::file_backend::memory::AudioBuffer;
-        use crate::dev_utilities::TestPlugin;
+        use crate::dev_utilities::{chunk, TestPlugin};
         use crate::event::EventHandler;
         use crate::{AudioRenderer, AudioRendererMeta};
 
@@ -221,23 +221,16 @@ mod tests {
 
         #[test]
         fn copies_input_buffer_to_output_buffer() {
-            let input_buffer = AudioBuffer::from_channels(vec![
-                vec![1, 2, 3, 4, 5, 6, 7],
-                vec![8, 9, 10, 11, 12, 13, 14],
-            ]);
+            let buffer_size = 2;
+            let input_data = vec![vec![1, 2, 3, 4, 5, 6, 7], vec![8, 9, 10, 11, 12, 13, 14]];
+            let output_data = vec![
+                vec![-1, -2, -3, -4, -5, -6, -7],
+                vec![-8, -9, -10, -11, -12, -13, -14],
+            ];
+            let input_buffer = AudioBuffer::from_channels(input_data.clone());
             let mut test_plugin = TestPlugin::new(
-                vec![
-                    vec![vec![1, 2], vec![8, 9]],
-                    vec![vec![3, 4], vec![10, 11]],
-                    vec![vec![5, 6], vec![12, 13]],
-                    vec![vec![7], vec![14]],
-                ],
-                vec![
-                    vec![vec![-1, -2], vec![-8, -9]],
-                    vec![vec![-3, -4], vec![-10, -11]],
-                    vec![vec![-5, -6], vec![-12, -13]],
-                    vec![vec![-7], vec![-14]],
-                ],
+                chunk(input_data.clone(), buffer_size),
+                chunk(output_data.clone(), buffer_size),
                 vec![vec![], vec![], vec![], vec![]],
                 DummyMeta,
             );
@@ -251,8 +244,8 @@ mod tests {
                 Dummy::<f32>::new(),
             );
             let channels = output_buffer.channels();
-            assert_eq!(channels[0], vec![-1, -2, -3, -4, -5, -6, -7]);
-            assert_eq!(channels[1], vec![-8, -9, -10, -11, -12, -13, -14]);
+            assert_eq!(channels[0], output_data[0]);
+            assert_eq!(channels[1], output_data[1]);
         }
     }
 }

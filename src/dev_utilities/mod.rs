@@ -47,6 +47,7 @@ use crate::event::EventHandler;
 use crate::{AudioRenderer, AudioRendererMeta};
 use num_traits::Zero;
 use std::fmt::{Debug, Display};
+use std::mem;
 
 pub mod vecstorage;
 
@@ -72,6 +73,77 @@ pub fn slicify_mut<'a, T>(vec: &'a mut Vec<Vec<T>>) -> Vec<&mut [T]> {
     vec.iter_mut()
         .map(|element| element.as_mut_slice())
         .collect()
+}
+
+/// Chunk buffers.
+///
+/// `channels` is a vector of channels, where each channel is a vector of samples.
+/// This function returns a vector of chunks, where each chunk is a vector, holding for
+/// each channel a vector of samples.
+/// So
+/// `[[1, 2, 3], [4, 5, 6]]` becomes `[[[1, 2], [4, 5]], [[3], [6]]]`.
+pub fn chunk<T>(mut channels: Vec<Vec<T>>, chunk_size: usize) -> Vec<Vec<Vec<T>>> {
+    assert!(chunk_size > 0);
+
+    if channels.is_empty() {
+        return Vec::new();
+    }
+    let number_of_samples = channels[0].len();
+    assert!(channels
+        .iter()
+        .all(|channel| channel.len() == number_of_samples));
+
+    let result_len = number_of_samples / chunk_size
+        + if number_of_samples % chunk_size == 0 {
+            0
+        } else {
+            1
+        };
+
+    let mut result = Vec::with_capacity(result_len);
+    for _ in 0..result_len {
+        result.push(Vec::new());
+    }
+
+    for mut channel in channels.drain(..) {
+        let mut chunk_index = 0;
+        let mut chunk = Vec::new();
+        for sample in channel.drain(..) {
+            chunk.push(sample);
+            if chunk.len() == chunk_size {
+                result[chunk_index].push(mem::replace(&mut chunk, Vec::new()));
+                chunk_index += 1;
+            }
+        }
+        if !chunk.is_empty() {
+            result[chunk_index].push(chunk);
+        }
+    }
+    result
+}
+
+#[test]
+fn chunk_works_with_dividing_input_length() {
+    let input = vec![vec![0, 1, 2, 3], vec![5, 6, 7, 8]];
+    let observed = chunk(input, 2);
+    assert_eq!(
+        observed,
+        vec![vec![vec![0, 1], vec![5, 6]], vec![vec![2, 3], vec![7, 8]]]
+    )
+}
+
+#[test]
+fn chunk_works_with_non_dividing_input_length() {
+    let input = vec![vec![0, 1, 2, 3, 4], vec![5, 6, 7, 8, 9]];
+    let observed = chunk(input, 2);
+    assert_eq!(
+        observed,
+        vec![
+            vec![vec![0, 1], vec![5, 6]],
+            vec![vec![2, 3], vec![7, 8]],
+            vec![vec![4], vec![9]]
+        ]
+    )
 }
 
 /// A plugin useful for writing automated tests.
