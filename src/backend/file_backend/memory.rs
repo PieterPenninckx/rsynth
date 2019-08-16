@@ -1,7 +1,9 @@
 use super::AudioReader;
+use crate::backend::file_backend::AudioWriter;
 
+// TODO: Find a better name.
 pub struct AudioBuffer<F> {
-    // Is not empty.
+    // Invariant: channels is not empty.
     channels: Vec<Vec<F>>,
 }
 
@@ -26,14 +28,22 @@ impl<F> AudioBuffer<F> {
 
         Self { channels }
     }
-    
+
     pub fn reader<'b>(&'b self, frames_per_second: u64) -> AudioBufferReader<'b, F> {
         assert!(frames_per_second > 0);
         AudioBufferReader {
             frames_per_second,
             frame: 0,
-            buffer: self
+            buffer: self,
         }
+    }
+
+    pub fn writer<'b>(&'b mut self) -> AudioBufferWriter<'b, F> {
+        AudioBufferWriter { buffer: self }
+    }
+
+    pub fn channels(&self) -> &Vec<Vec<F>> {
+        &self.channels
     }
 }
 
@@ -61,11 +71,10 @@ where
         let buffer_size = output[0].len();
         let remainder = self.buffer.channels[0].len() - self.frame;
         let frames_to_copy = std::cmp::min(buffer_size, remainder);
-        for (channel_index, output_channel) in output.iter_mut().enumerate() {
+        for (output_channel, input_channel) in output.iter_mut().zip(self.buffer.channels.iter()) {
             assert_eq!(buffer_size, output_channel.len());
-            output_channel[0..frames_to_copy].copy_from_slice(
-                &self.buffer.channels[channel_index][self.frame..self.frame + frames_to_copy],
-            );
+            output_channel[0..frames_to_copy]
+                .copy_from_slice(&input_channel[self.frame..self.frame + frames_to_copy]);
         }
         self.frame += frames_to_copy;
         return frames_to_copy;
@@ -75,35 +84,77 @@ where
 #[cfg(test)]
 mod AudioBufferReaderTests {
     mod fill_buffer {
+        use super::super::super::AudioReader;
+        use super::super::{AudioBuffer, AudioBufferReader};
+        use crate::dev_utilities::{create_buffers, slicify_mut};
+
         #[test]
         fn works_as_expected() {
-            use super::super::{AudioBuffer, AudioBufferReader};
-            use super::super::super::AudioReader;
-            
             let data = vec![
                 vec![1, 2, 3, 4, 5],
                 vec![6, 7, 8, 9, 10],
-                vec![11, 12, 13, 14, 15]
+                vec![11, 12, 13, 14, 15],
             ];
             let audio_buffer = AudioBuffer::from_channels(data);
             let mut reader = audio_buffer.reader(16);
-            let mut cha1 = vec![0, 0];
-            let mut cha2 = vec![0, 0];
-            let mut cha3 = vec![0, 0];
-            let mut buffers = vec!(cha1.as_mut(), cha2.as_mut(), cha3.as_mut());
-            assert_eq!(2, reader.fill_buffer(&mut buffers));
-            assert_eq!(buffers[0], &vec![1, 2][..]);
-            assert_eq!(buffers[1], &vec![6, 7][..]);
-            assert_eq!(buffers[2], &vec![11, 12][..]);
-            assert_eq!(2, reader.fill_buffer(&mut buffers));
-            assert_eq!(buffers[0], &vec![3, 4][..]);
-            assert_eq!(buffers[1], &vec![8, 9][..]);
-            assert_eq!(buffers[2], &vec![13, 14][..]);
-            assert_eq!(1, reader.fill_buffer(&mut buffers));
-            assert_eq!(buffers[0], &vec![5, 4][..]);
-            assert_eq!(buffers[1], &vec![10, 9][..]);
-            assert_eq!(buffers[2], &vec![15, 14][..]);
+            let mut output_buffer = create_buffers(3, 2);
+            let mut buffers = slicify_mut(&mut output_buffer);
+            assert_eq!(2, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(buffers[0], vec![1, 2].as_slice());
+            assert_eq!(buffers[1], vec![6, 7].as_slice());
+            assert_eq!(buffers[2], vec![11, 12].as_slice());
+            assert_eq!(2, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(buffers[0], vec![3, 4].as_slice());
+            assert_eq!(buffers[1], vec![8, 9].as_slice());
+            assert_eq!(buffers[2], vec![13, 14].as_slice());
+            assert_eq!(1, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(buffers[0], vec![5, 4].as_slice());
+            assert_eq!(buffers[1], vec![10, 9].as_slice());
+            assert_eq!(buffers[2], vec![15, 14].as_slice());
         }
     }
 }
 
+pub struct AudioBufferWriter<'b, F> {
+    buffer: &'b mut AudioBuffer<F>,
+}
+
+impl<'b, F> AudioWriter<F> for AudioBufferWriter<'b, F>
+where
+    F: Copy,
+{
+    fn write_buffer(&mut self, buffer: &[&[F]]) {
+        assert_eq!(self.buffer.channels.len(), buffer.len());
+        assert!(buffer.len() > 0);
+        let len = buffer[0].len();
+        for channel in buffer.iter() {
+            assert_eq!(len, channel.len());
+        }
+        for (output_channel, input_channel) in self.buffer.channels.iter_mut().zip(buffer.iter()) {
+            output_channel.extend_from_slice(input_channel);
+        }
+    }
+}
+
+#[cfg(test)]
+mod AudioBufferWriterTests {
+    mod write_buffer {
+        use super::super::super::AudioWriter;
+        use super::super::{AudioBuffer, AudioBufferWriter};
+        use crate::dev_utilities::slicify;
+
+        #[test]
+        fn works_as_expected() {
+            let mut audio_buffer = AudioBuffer::new(3);
+            {
+                let mut writer = audio_buffer.writer();
+
+                let input = vec![vec![1, 2], vec![3, 4], vec![5, 6]];
+                writer.write_buffer(slicify(&input).as_ref());
+            }
+            assert_eq!(audio_buffer.channels[0], vec![1, 2]);
+            assert_eq!(audio_buffer.channels[1], vec![3, 4]);
+            assert_eq!(audio_buffer.channels[2], vec![5, 6]);
+        }
+    }
+}

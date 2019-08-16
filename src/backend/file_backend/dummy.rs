@@ -33,8 +33,13 @@ impl<F> AudioWriter<F> for Dummy<F> {
     fn write_buffer(&mut self, buffer: &[&[F]]) {}
 }
 
+// TODO: Not really useful because `F` is not used.
 impl<F> MidiReader for Dummy<F> {
     fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         None
     }
+}
+
+impl<F> MidiWriter for Dummy<F> {
+    fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {}
 }

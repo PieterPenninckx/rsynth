@@ -43,7 +43,10 @@
 //!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! ["Writing events" below]: ./index.html#writing-events
+use crate::event::EventHandler;
+use crate::{AudioRenderer, AudioRendererMeta};
 use num_traits::Zero;
+use std::fmt::{Debug, Display};
 
 pub mod vecstorage;
 
@@ -57,4 +60,153 @@ pub fn create_buffers<F: Zero>(number_of_channels: usize, buffer_size: usize) ->
         buffers.push(buffer);
     }
     buffers
+}
+
+// TODO: find a better name for this function.
+pub fn slicify<'a, T>(vec: &'a Vec<Vec<T>>) -> Vec<&[T]> {
+    vec.iter().map(|element| element.as_slice()).collect()
+}
+
+// TODO: find a better name for this function.
+pub fn slicify_mut<'a, T>(vec: &'a mut Vec<Vec<T>>) -> Vec<&mut [T]> {
+    vec.iter_mut()
+        .map(|element| element.as_mut_slice())
+        .collect()
+}
+
+/// A plugin useful for writing automated tests.
+pub struct TestPlugin<F, E, M: AudioRendererMeta> {
+    expected_inputs: Vec<Vec<Vec<F>>>,
+    provided_outputs: Vec<Vec<Vec<F>>>,
+    expected_events: Vec<Vec<E>>,
+    meta: M,
+    buffer_index: usize,
+    event_index: usize,
+}
+
+impl<F, E, M: AudioRendererMeta> TestPlugin<F, E, M> {
+    pub fn new(
+        expected_inputs: Vec<Vec<Vec<F>>>,
+        provided_outputs: Vec<Vec<Vec<F>>>,
+        expected_events: Vec<Vec<E>>,
+        meta: M,
+    ) -> Self {
+        assert_eq!(expected_inputs.len(), provided_outputs.len());
+        assert_eq!(expected_events.len(), expected_inputs.len());
+        TestPlugin {
+            expected_inputs,
+            provided_outputs,
+            expected_events,
+            meta,
+            buffer_index: 0,
+            event_index: 0,
+        }
+    }
+}
+
+impl<F, E, M> AudioRendererMeta for TestPlugin<F, E, M>
+where
+    M: AudioRendererMeta,
+{
+    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = M::MAX_NUMBER_OF_AUDIO_INPUTS;
+    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = M::MAX_NUMBER_OF_AUDIO_OUTPUTS;
+
+    fn set_sample_rate(&mut self, sample_rate: f64) {
+        self.meta.set_sample_rate(sample_rate);
+    }
+}
+
+impl<F, E, M> AudioRenderer<F> for TestPlugin<F, E, M>
+where
+    M: AudioRendererMeta,
+    F: PartialEq + Display + Debug + Copy,
+{
+    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]) {
+        assert!(
+            self.buffer_index < self.expected_inputs.len(),
+            "`render_buffer` called more often than expected: expected only {} times",
+            self.expected_inputs.len()
+        );
+        let expected_input_channels = &self.expected_inputs[self.buffer_index];
+        assert_eq!(inputs.len(), expected_input_channels.len());
+        for (input_channel_index, input_channel) in inputs.iter().enumerate() {
+            let expected_input_channel = &expected_input_channels[input_channel_index];
+            assert_eq!(
+                input_channel.len(),
+                expected_input_channel.len(),
+                "mismatch in input channel #{} in buffer #{}: \
+                 expected input channel with length {}, but got one with length {}",
+                input_channel_index,
+                self.buffer_index,
+                input_channel.len(),
+                expected_input_channel.len()
+            );
+            for (sample_index, sample) in input_channel.iter().enumerate() {
+                assert_eq!(
+                    *sample,
+                    expected_input_channel[sample_index],
+                    "mismatch in input sample with index #{} in channel #{} in buffer #{}: \
+                     expected {} but got {}",
+                    sample_index,
+                    input_channel_index,
+                    self.buffer_index,
+                    expected_input_channel[sample_index],
+                    sample
+                );
+            }
+        }
+
+        let expected_output_channels = &self.provided_outputs[self.buffer_index];
+        assert_eq!(outputs.len(), expected_output_channels.len());
+        for (output_channel_index, output_channel) in outputs.iter_mut().enumerate() {
+            let expected_output_channel = &expected_output_channels[output_channel_index];
+            assert_eq!(
+                output_channel.len(),
+                expected_output_channel.len(),
+                "mismatch in output channel #{} in buffer #{}: \
+                 expected one with length {}, but got one with length {}",
+                output_channel_index,
+                self.buffer_index,
+                expected_output_channel.len(),
+                output_channel.len()
+            );
+            output_channel.copy_from_slice(expected_output_channel);
+        }
+        self.buffer_index += 1;
+        self.event_index = 0;
+    }
+}
+
+impl<F, E, M> EventHandler<E> for TestPlugin<F, E, M>
+where
+    M: AudioRendererMeta,
+    E: PartialEq + Display + Debug,
+{
+    fn handle_event(&mut self, event: E) {
+        assert!(
+            self.buffer_index < self.expected_events.len(),
+            "`handle_event` is called after {} calls to `render_buffer`; this is unexpected",
+            self.expected_events.len()
+        );
+        let expected_events_for_this_buffer = &self.expected_events[self.event_index];
+        assert!(
+            self.event_index < expected_events_for_this_buffer.len(),
+            "`handle_events` is called more than {0} times after {1} calls to `render_buffer`;\
+             only {0} times are expected because we expect only \
+             {0} events for the subsequent buffer",
+            expected_events_for_this_buffer.len(),
+            self.buffer_index + 1
+        );
+        assert_eq!(
+            event,
+            expected_events_for_this_buffer[self.event_index],
+            "mismatch for event #{} after {} calls to `render_buffer`: \
+             expected {} but got {}.",
+            self.event_index,
+            self.buffer_index + 1,
+            expected_events_for_this_buffer[self.event_index],
+            event
+        );
+        self.event_index += 1;
+    }
 }

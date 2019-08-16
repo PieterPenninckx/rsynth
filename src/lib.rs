@@ -215,19 +215,19 @@ pub trait AudioRendererMeta {
 
 /// Defines how audio is rendered.
 ///
-/// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
-/// are all guaranteed to equal to each other.
-/// This shared length can however be different for subsequent calls to `render_buffer`.
-///
 /// The type parameter `F` refers to the floating point type.
 /// It is typically `f32` or `f64`.
 pub trait AudioRenderer<F>: AudioRendererMeta {
-    /// This method called repeatedly for subsequent buffers.
+    /// This method is called repeatedly for subsequent buffers.
     ///
     /// You may assume that the number of inputs (`inputs.len()`)
     /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
     /// You may assume that the number of outputs (`outputs.len()`)
     /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
+    ///
+    /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
+    /// are all guaranteed to equal to each other.
+    /// This shared length can however be different for subsequent calls to `render_buffer`.
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]);
 }
 

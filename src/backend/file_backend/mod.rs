@@ -147,3 +147,112 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
         last_time_in_frames += buffer_size_in_frames as u64;
     }
 }
+
+#[cfg(test)]
+struct TestReader<'b, F> {
+    inner: memory::AudioBufferReader<'b, F>,
+    expected_channels: usize,
+    expected_buffer_sizes: Vec<usize>,
+    number_of_calls_to_fill_buffer: usize,
+}
+
+#[cfg(test)]
+impl<'b, F> TestReader<'b, F> {
+    fn new(
+        reader: memory::AudioBufferReader<'b, F>,
+        expected_channels: usize,
+        expected_buffer_sizes: Vec<usize>,
+    ) -> Self {
+        Self {
+            inner: reader,
+            expected_channels,
+            expected_buffer_sizes,
+            number_of_calls_to_fill_buffer: 0,
+        }
+    }
+}
+
+#[cfg(test)]
+impl<'b, F> AudioReader<F> for TestReader<'b, F>
+where
+    F: Copy,
+{
+    fn number_of_channels(&self) -> usize {
+        self.inner.number_of_channels()
+    }
+
+    fn frames_per_second(&self) -> u64 {
+        self.inner.frames_per_second()
+    }
+
+    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> usize {
+        assert_eq!(output.len(), self.expected_channels);
+        for channel in output.iter() {
+            assert_eq!(
+                self.expected_buffer_sizes[self.number_of_calls_to_fill_buffer],
+                channel.len()
+            )
+        }
+        self.number_of_calls_to_fill_buffer += 1;
+        self.inner.fill_buffer(output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    mod run {
+        use crate::backend::file_backend::dummy::Dummy;
+        use crate::backend::file_backend::memory::AudioBuffer;
+        use crate::dev_utilities::TestPlugin;
+        use crate::event::EventHandler;
+        use crate::{AudioRenderer, AudioRendererMeta};
+
+        struct DummyMeta;
+
+        const expected_sample_rate: f64 = 1234.0;
+        impl AudioRendererMeta for DummyMeta {
+            const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 2;
+            const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
+
+            fn set_sample_rate(&mut self, sample_rate: f64) {
+                assert_eq!(sample_rate, expected_sample_rate);
+            }
+        }
+
+        #[test]
+        fn copies_input_buffer_to_output_buffer() {
+            let input_buffer = AudioBuffer::from_channels(vec![
+                vec![1, 2, 3, 4, 5, 6, 7],
+                vec![8, 9, 10, 11, 12, 13, 14],
+            ]);
+            let mut test_plugin = TestPlugin::new(
+                vec![
+                    vec![vec![1, 2], vec![8, 9]],
+                    vec![vec![3, 4], vec![10, 11]],
+                    vec![vec![5, 6], vec![12, 13]],
+                    vec![vec![7], vec![14]],
+                ],
+                vec![
+                    vec![vec![-1, -2], vec![-8, -9]],
+                    vec![vec![-3, -4], vec![-10, -11]],
+                    vec![vec![-5, -6], vec![-12, -13]],
+                    vec![vec![-7], vec![-14]],
+                ],
+                vec![vec![], vec![], vec![], vec![]],
+                DummyMeta,
+            );
+            let mut output_buffer = AudioBuffer::new(2);
+            super::super::run(
+                test_plugin,
+                2,
+                input_buffer.reader(expected_sample_rate as u64),
+                output_buffer.writer(),
+                Dummy::<f32>::new(),
+                Dummy::<f32>::new(),
+            );
+            let channels = output_buffer.channels();
+            assert_eq!(channels[0], vec![-1, -2, -3, -4, -5, -6, -7]);
+            assert_eq!(channels[1], vec![-8, -9, -10, -11, -12, -13, -14]);
+        }
+    }
+}
