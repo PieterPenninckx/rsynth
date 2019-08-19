@@ -3,19 +3,19 @@ use crate::backend::file_backend::DeltaEvent;
 use crate::event::RawMidiEvent;
 use std::marker::PhantomData;
 
-pub struct Dummy<F> {
+pub struct AudioDummy<F> {
     _phantom: PhantomData<F>,
 }
 
-impl<F> Dummy<F> {
+impl<F> AudioDummy<F> {
     pub fn new() -> Self {
-        Dummy {
+        AudioDummy {
             _phantom: PhantomData,
         }
     }
 }
 
-impl<F> AudioReader<F> for Dummy<F> {
+impl<F> AudioReader<F> for AudioDummy<F> {
     fn number_of_channels(&self) -> usize {
         0
     }
@@ -29,17 +29,24 @@ impl<F> AudioReader<F> for Dummy<F> {
     }
 }
 
-impl<F> AudioWriter<F> for Dummy<F> {
+impl<F> AudioWriter<F> for AudioDummy<F> {
     fn write_buffer(&mut self, buffer: &[&[F]]) {}
 }
 
-// TODO: Not really useful because `F` is not used.
-impl<F> MidiReader for Dummy<F> {
+pub struct MidiDummy {}
+
+impl MidiDummy {
+    pub fn new() -> Self {
+        MidiDummy {}
+    }
+}
+
+impl MidiReader for MidiDummy {
     fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         None
     }
 }
 
-impl<F> MidiWriter for Dummy<F> {
+impl MidiWriter for MidiDummy {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {}
 }

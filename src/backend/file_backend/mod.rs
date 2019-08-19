@@ -2,6 +2,7 @@ use crate::dev_utilities::create_buffers;
 use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 pub mod dummy;
@@ -198,10 +199,49 @@ where
     }
 }
 
+pub struct TestWriter<'w, T, F>
+where
+    T: AudioWriter<F>,
+{
+    inner: &'w mut T,
+    expected_chunks: Vec<Vec<Vec<F>>>,
+    chunk_index: usize,
+}
+
+impl<'w, T, F> TestWriter<'w, T, F>
+where
+    T: AudioWriter<F>,
+{
+    pub fn new(writer: &'w mut T, expected_chunks: Vec<Vec<Vec<F>>>) -> Self {
+        Self {
+            inner: writer,
+            expected_chunks,
+            chunk_index: 0,
+        }
+    }
+}
+
+impl<'w, T, F> AudioWriter<F> for TestWriter<'w, T, F>
+where
+    T: AudioWriter<F>,
+    F: Debug + PartialEq,
+{
+    fn write_buffer(&mut self, chunk: &[&[F]]) {
+        assert!(self.chunk_index < self.expected_chunks.len());
+        let expected_chunk = &self.expected_chunks[self.chunk_index];
+        for (buffer, expected_buffer) in chunk.iter().zip(expected_chunk.iter()) {
+            assert_eq!(buffer, &expected_buffer.as_slice());
+        }
+        self.inner.write_buffer(chunk);
+        self.chunk_index += 1;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     mod run {
-        use crate::backend::file_backend::dummy::Dummy;
+        use super::super::{TestReader, TestWriter};
+        use crate::backend::file_backend::dummy::{AudioDummy, MidiDummy};
         use crate::backend::file_backend::memory::AudioBuffer;
         use crate::dev_utilities::{chunk, TestPlugin};
         use crate::event::EventHandler;
@@ -228,7 +268,7 @@ mod tests {
                 vec![-8, -9, -10, -11, -12, -13, -14],
             ];
             let input_buffer = AudioBuffer::from_channels(input_data.clone());
-            let mut test_plugin = TestPlugin::new(
+            let test_plugin = TestPlugin::new(
                 chunk(input_data.clone(), buffer_size),
                 chunk(output_data.clone(), buffer_size),
                 vec![vec![], vec![], vec![], vec![]],
@@ -238,10 +278,17 @@ mod tests {
             super::super::run(
                 test_plugin,
                 2,
-                input_buffer.reader(expected_sample_rate as u64),
-                output_buffer.writer(),
-                Dummy::<f32>::new(),
-                Dummy::<f32>::new(),
+                TestReader::new(
+                    input_buffer.reader(expected_sample_rate as u64),
+                    2,
+                    vec![buffer_size; 4],
+                ),
+                TestWriter::new(
+                    &mut output_buffer.writer(),
+                    chunk(output_data.clone(), buffer_size),
+                ),
+                MidiDummy::new(),
+                MidiDummy::new(),
             );
             let channels = output_buffer.channels();
             assert_eq!(channels[0], output_data[0]);
