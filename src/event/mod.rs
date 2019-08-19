@@ -1,7 +1,7 @@
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
 use std::convert::{AsMut, AsRef};
-use std::fmt::{Display, Error, Formatter};
+use std::fmt::{Debug, Error, Formatter};
 
 pub mod event_queue;
 
@@ -17,22 +17,18 @@ pub trait ContextualEventHandler<E, Context> {
 }
 
 /// A System Exclusive ("SysEx") event.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SysExEvent<'a> {
     data: &'a [u8],
 }
 
-impl<'a> Display for SysExEvent<'a> {
+impl<'a> Debug for SysExEvent<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "SysExEvent(data: ")?;
-        for i in 0..self.data.len() {
-            write!(f, "{:X} ", self.data[i])?;
-            if i > 16 {
-                write!(f, "… (total length: {})", self.data.len())?;
-                break;
-            }
+        write!(f, "SysExEvent{{data (length: {:?}): &[", self.data.len())?;
+        for byte in self.data {
+            write!(f, "{:X} ", byte)?;
         }
-        write!(f, ")")
+        write!(f, "]}}")
     }
 }
 
@@ -48,12 +44,12 @@ impl<'a> SysExEvent<'a> {
 }
 
 /// A raw midi event.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RawMidiEvent {
     data: [u8; 3],
 }
 
-impl Display for RawMidiEvent {
+impl Debug for RawMidiEvent {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(
             f,
@@ -120,19 +116,6 @@ impl<E> Timed<E> {
             time_in_frames,
             event,
         }
-    }
-}
-
-impl<E> Display for Timed<E>
-where
-    E: Display,
-{
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(
-            f,
-            "Timed(time in frames: {}, event: {})",
-            self.time_in_frames, self.event
-        )
     }
 }
 

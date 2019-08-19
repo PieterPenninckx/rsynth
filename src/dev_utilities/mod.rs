@@ -46,7 +46,7 @@
 use crate::event::EventHandler;
 use crate::{AudioRenderer, AudioRendererMeta};
 use num_traits::Zero;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::mem;
 
 pub mod vecstorage;
@@ -191,7 +191,7 @@ where
 impl<F, E, M> AudioRenderer<F> for TestPlugin<F, E, M>
 where
     M: AudioRendererMeta,
-    F: PartialEq + Display + Debug + Copy,
+    F: PartialEq + Debug + Copy,
 {
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]) {
         assert!(
@@ -218,7 +218,7 @@ where
                     *sample,
                     expected_input_channel[sample_index],
                     "mismatch in input sample with index #{} in channel #{} in buffer #{}: \
-                     expected {} but got {}",
+                     expected {:?} but got {:?}",
                     sample_index,
                     input_channel_index,
                     self.buffer_index,
@@ -252,7 +252,7 @@ where
 impl<F, E, M> EventHandler<E> for TestPlugin<F, E, M>
 where
     M: AudioRendererMeta,
-    E: PartialEq + Display + Debug,
+    E: PartialEq + Debug,
 {
     fn handle_event(&mut self, event: E) {
         assert!(
@@ -273,7 +273,7 @@ where
             event,
             expected_events_for_this_buffer[self.event_index],
             "mismatch for event #{} after {} calls to `render_buffer`: \
-             expected {} but got {}.",
+             expected {:?} but got {:?}.",
             self.event_index,
             self.buffer_index + 1,
             expected_events_for_this_buffer[self.event_index],
