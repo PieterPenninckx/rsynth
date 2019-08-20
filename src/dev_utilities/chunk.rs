@@ -177,7 +177,7 @@ fn chunk_works_with_dividing_input_length() {
 
 #[test]
 fn chunk_works_with_non_dividing_input_length() {
-    let input = audio_buffer![[0, 1, 2, 3], [5, 6, 7, 8]];
+    let input = audio_buffer![[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]];
     let observed = input.split(2);
     assert_eq!(
         observed,

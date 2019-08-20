@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter};
-use hound::{Sample, WavReader, WavSamples, WavWriter};
+use hound::{WavReader, WavSamples, WavWriter};
 use sample::conv::{FromSample, ToSample};
 use std::io::{Read, Seek, Write};
 

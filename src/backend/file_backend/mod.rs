@@ -3,7 +3,6 @@ use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 
 pub mod dummy;
 #[cfg(feature = "backend-file-hound")]
@@ -182,7 +181,7 @@ where
     T: AudioWriter<F>,
 {
     inner: &'w mut T,
-    expected_chunks: Vec<Vec<Vec<F>>>,
+    expected_chunks: Vec<AudioBuffer<F>>,
     chunk_index: usize,
 }
 
@@ -190,7 +189,7 @@ impl<'w, T, F> TestWriter<'w, T, F>
 where
     T: AudioWriter<F>,
 {
-    pub fn new(writer: &'w mut T, expected_chunks: Vec<Vec<Vec<F>>>) -> Self {
+    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioBuffer<F>>) -> Self {
         Self {
             inner: writer,
             expected_chunks,
@@ -207,9 +206,7 @@ where
     fn write_buffer(&mut self, chunk: &[&[F]]) {
         assert!(self.chunk_index < self.expected_chunks.len());
         let expected_chunk = &self.expected_chunks[self.chunk_index];
-        for (buffer, expected_buffer) in chunk.iter().zip(expected_chunk.iter()) {
-            assert_eq!(buffer, &expected_buffer.as_slice());
-        }
+        assert_eq!(chunk, expected_chunk.as_slices().as_slice());
         self.inner.write_buffer(chunk);
         self.chunk_index += 1;
     }

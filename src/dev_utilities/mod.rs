@@ -46,9 +46,7 @@
 use crate::dev_utilities::chunk::AudioBuffer;
 use crate::event::EventHandler;
 use crate::{AudioRenderer, AudioRendererMeta};
-use num_traits::Zero;
 use std::fmt::Debug;
-use std::mem;
 
 #[macro_use]
 pub mod chunk;
@@ -107,7 +105,7 @@ where
             "`render_buffer` called more often than expected: expected only {} times",
             self.expected_inputs.len()
         );
-        let expected_input_channels = &self.expected_inputs[self.buffer_index];
+        let expected_input_channels = &self.expected_inputs[self.buffer_index].channels();
         assert_eq!(inputs.len(), expected_input_channels.len());
         for (input_channel_index, input_channel) in inputs.iter().enumerate() {
             let expected_input_channel = &expected_input_channels[input_channel_index];
@@ -136,7 +134,7 @@ where
             }
         }
 
-        let expected_output_channels = &self.provided_outputs[self.buffer_index];
+        let expected_output_channels = &self.provided_outputs[self.buffer_index].channels();
         assert_eq!(outputs.len(), expected_output_channels.len());
         for (output_channel_index, output_channel) in outputs.iter_mut().enumerate() {
             let expected_output_channel = &expected_output_channels[output_channel_index];
