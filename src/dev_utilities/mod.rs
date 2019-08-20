@@ -43,7 +43,7 @@
 //!
 //! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! ["Writing events" below]: ./index.html#writing-events
-use crate::dev_utilities::chunk::AudioBuffer;
+use crate::dev_utilities::chunk::AudioChunk;
 use crate::event::EventHandler;
 use crate::{AudioRenderer, AudioRendererMeta};
 use std::fmt::Debug;
@@ -54,8 +54,8 @@ pub mod vecstorage;
 
 /// A plugin useful for writing automated tests.
 pub struct TestPlugin<F, E, M: AudioRendererMeta> {
-    expected_inputs: Vec<AudioBuffer<F>>,
-    provided_outputs: Vec<AudioBuffer<F>>,
+    expected_inputs: Vec<AudioChunk<F>>,
+    provided_outputs: Vec<AudioChunk<F>>,
     expected_events: Vec<Vec<E>>,
     meta: M,
     buffer_index: usize,
@@ -64,8 +64,8 @@ pub struct TestPlugin<F, E, M: AudioRendererMeta> {
 
 impl<F, E, M: AudioRendererMeta> TestPlugin<F, E, M> {
     pub fn new(
-        expected_inputs: Vec<AudioBuffer<F>>,
-        provided_outputs: Vec<AudioBuffer<F>>,
+        expected_inputs: Vec<AudioChunk<F>>,
+        provided_outputs: Vec<AudioChunk<F>>,
         expected_events: Vec<Vec<E>>,
         meta: M,
     ) -> Self {

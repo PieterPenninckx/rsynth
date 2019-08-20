@@ -2,20 +2,20 @@ use num_traits::Zero;
 use std::mem;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct AudioBuffer<F> {
+pub struct AudioChunk<F> {
     // Invariant: channels is not empty.
     channels: Vec<Vec<F>>,
 }
 
-impl<F> AudioBuffer<F> {
-    pub fn zero(number_of_channels: usize, buffer_size: usize) -> Self
+impl<F> AudioChunk<F> {
+    pub fn zero(number_of_channels: usize, number_of_frames: usize) -> Self
     where
         F: Zero,
     {
         let mut buffers = Vec::with_capacity(number_of_channels);
         for _ in 0..number_of_channels {
-            let mut buffer = Vec::with_capacity(buffer_size);
-            for _ in 0..buffer_size {
+            let mut buffer = Vec::with_capacity(number_of_frames);
+            for _ in 0..number_of_frames {
                 buffer.push(F::zero());
             }
             buffers.push(buffer);
@@ -48,7 +48,7 @@ impl<F> AudioBuffer<F> {
         &self.channels
     }
 
-    pub fn append_chunk(&mut self, chunk: &[&[F]])
+    pub fn append_sliced_chunk(&mut self, chunk: &[&[F]])
     where
         F: Clone,
     {
@@ -80,13 +80,13 @@ impl<F> AudioBuffer<F> {
             .collect()
     }
 
-    pub fn split(mut self, chunk_size: usize) -> Vec<Self> {
-        assert!(chunk_size > 0);
+    pub fn split(mut self, number_of_frames_per_chunk: usize) -> Vec<Self> {
+        assert!(number_of_frames_per_chunk > 0);
 
         let number_of_samples = self.channels[0].len();
 
-        let result_len = number_of_samples / chunk_size
-            + if number_of_samples % chunk_size == 0 {
+        let result_len = number_of_samples / number_of_frames_per_chunk
+            + if number_of_samples % number_of_frames_per_chunk == 0 {
                 0
             } else {
                 1
@@ -102,7 +102,7 @@ impl<F> AudioBuffer<F> {
             let mut chunk = Vec::new();
             for sample in channel.drain(..) {
                 chunk.push(sample);
-                if chunk.len() == chunk_size {
+                if chunk.len() == number_of_frames_per_chunk {
                     result[chunk_index].push(mem::replace(&mut chunk, Vec::new()));
                     chunk_index += 1;
                 }
@@ -111,12 +111,12 @@ impl<F> AudioBuffer<F> {
                 result[chunk_index].push(chunk);
             }
         }
-        result.drain(..).map(AudioBuffer::from_channels).collect()
+        result.drain(..).map(AudioChunk::from_channels).collect()
     }
 }
 
 #[macro_export]
-macro_rules! audio_buffer {
+macro_rules! audio_chunk {
     [
         [
             $head_head:expr
@@ -134,7 +134,7 @@ macro_rules! audio_buffer {
             ]
         )*
     ] => {
-        $crate::dev_utilities::chunk::AudioBuffer::from_channels(
+        $crate::dev_utilities::chunk::AudioChunk::from_channels(
             vec![
                 vec![
                     $head_head
@@ -156,35 +156,35 @@ macro_rules! audio_buffer {
 }
 
 #[test]
-fn append_chunk_works_as_expected() {
-    let mut audio_buffer = AudioBuffer::new(3);
-    let input = audio_buffer![[1, 2], [3, 4], [5, 6]];
-    audio_buffer.append_chunk(input.as_slices().as_ref());
+fn append_works_as_expected() {
+    let mut audio_buffer = AudioChunk::new(3);
+    let input = audio_chunk![[1, 2], [3, 4], [5, 6]];
+    audio_buffer.append_sliced_chunk(input.as_slices().as_ref());
     assert_eq!(audio_buffer.channels()[0], vec![1, 2]);
     assert_eq!(audio_buffer.channels()[1], vec![3, 4]);
     assert_eq!(audio_buffer.channels()[2], vec![5, 6]);
 }
 
 #[test]
-fn chunk_works_with_dividing_input_length() {
-    let input = audio_buffer![[0, 1, 2, 3], [5, 6, 7, 8]];
+fn split_works_with_dividing_input_length() {
+    let input = audio_chunk![[0, 1, 2, 3], [5, 6, 7, 8]];
     let observed = input.split(2);
     assert_eq!(
         observed,
-        vec![audio_buffer![[0, 1], [5, 6]], audio_buffer![[2, 3], [7, 8]]]
+        vec![audio_chunk![[0, 1], [5, 6]], audio_chunk![[2, 3], [7, 8]]]
     )
 }
 
 #[test]
-fn chunk_works_with_non_dividing_input_length() {
-    let input = audio_buffer![[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]];
+fn split_works_with_non_dividing_input_length() {
+    let input = audio_chunk![[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]];
     let observed = input.split(2);
     assert_eq!(
         observed,
         vec![
-            audio_buffer![[0, 1], [5, 6]],
-            audio_buffer![[2, 3], [7, 8]],
-            audio_buffer![[4], [9]]
+            audio_chunk![[0, 1], [5, 6]],
+            audio_chunk![[2, 3], [7, 8]],
+            audio_chunk![[4], [9]]
         ]
     )
 }

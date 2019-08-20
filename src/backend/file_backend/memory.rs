@@ -1,15 +1,15 @@
 use super::AudioReader;
 use crate::backend::file_backend::AudioWriter;
-use crate::dev_utilities::chunk::AudioBuffer;
+use crate::dev_utilities::chunk::AudioChunk;
 
 pub struct AudioBufferReader<'b, F> {
     frames_per_second: u64,
     frame: usize,
-    buffer: &'b AudioBuffer<F>,
+    buffer: &'b AudioChunk<F>,
 }
 
 impl<'b, F> AudioBufferReader<'b, F> {
-    pub fn new(buffer: &'b AudioBuffer<F>, frames_per_second: u64) -> Self {
+    pub fn new(buffer: &'b AudioChunk<F>, frames_per_second: u64) -> Self {
         Self {
             buffer,
             frames_per_second,
@@ -52,18 +52,14 @@ mod AudioBufferReaderTests {
     mod fill_buffer {
         use super::super::super::AudioReader;
         use super::super::AudioBufferReader;
-        use crate::dev_utilities::chunk::AudioBuffer;
+        use crate::dev_utilities::chunk::AudioChunk;
 
         #[test]
         fn works_as_expected() {
-            let data = vec![
-                vec![1, 2, 3, 4, 5],
-                vec![6, 7, 8, 9, 10],
-                vec![11, 12, 13, 14, 15],
-            ];
-            let audio_buffer = AudioBuffer::from_channels(data);
+            let audio_buffer =
+                audio_chunk![[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]];
             let mut reader = AudioBufferReader::new(&audio_buffer, 16);
-            let mut output_buffer = AudioBuffer::zero(3, 2);
+            let mut output_buffer = AudioChunk::zero(3, 2);
             let mut buffers = output_buffer.as_mut_slices();
             assert_eq!(2, reader.fill_buffer(buffers.as_mut_slice()));
             assert_eq!(buffers[0], vec![1, 2].as_slice());
@@ -82,11 +78,11 @@ mod AudioBufferReaderTests {
 }
 
 pub struct AudioBufferWriter<'b, F> {
-    buffer: &'b mut AudioBuffer<F>,
+    buffer: &'b mut AudioChunk<F>,
 }
 
 impl<'b, F> AudioBufferWriter<'b, F> {
-    pub fn new(buffer: &'b mut AudioBuffer<F>) -> Self {
+    pub fn new(buffer: &'b mut AudioChunk<F>) -> Self {
         Self { buffer }
     }
 }
@@ -96,6 +92,6 @@ where
     F: Copy,
 {
     fn write_buffer(&mut self, buffer: &[&[F]]) {
-        self.buffer.append_chunk(buffer);
+        self.buffer.append_sliced_chunk(buffer);
     }
 }

@@ -1,4 +1,4 @@
-use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioBuffer};
+use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
@@ -68,8 +68,8 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     let frames_per_second = audio_in.frames_per_second();
     assert!(frames_per_second > 0);
 
-    let mut input_buffers = AudioBuffer::zero(number_of_channels, buffer_size_in_frames).inner();
-    let mut output_buffers = AudioBuffer::zero(number_of_channels, buffer_size_in_frames).inner();
+    let mut input_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
+    let mut output_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
 
     let mut spare_event = None;
     let mut last_time_in_frames = 0;
@@ -181,7 +181,7 @@ where
     T: AudioWriter<F>,
 {
     inner: &'w mut T,
-    expected_chunks: Vec<AudioBuffer<F>>,
+    expected_chunks: Vec<AudioChunk<F>>,
     chunk_index: usize,
 }
 
@@ -189,7 +189,7 @@ impl<'w, T, F> TestWriter<'w, T, F>
 where
     T: AudioWriter<F>,
 {
-    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioBuffer<F>>) -> Self {
+    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<F>>) -> Self {
         Self {
             inner: writer,
             expected_chunks,
@@ -218,7 +218,7 @@ mod tests {
         use super::super::{TestReader, TestWriter};
         use crate::backend::file_backend::dummy::{AudioDummy, MidiDummy};
         use crate::backend::file_backend::memory::{AudioBufferReader, AudioBufferWriter};
-        use crate::dev_utilities::{chunk::AudioBuffer, TestPlugin};
+        use crate::dev_utilities::{chunk::AudioChunk, TestPlugin};
         use crate::event::EventHandler;
         use crate::{AudioRenderer, AudioRendererMeta};
 
@@ -237,8 +237,8 @@ mod tests {
         #[test]
         fn copies_input_buffer_to_output_buffer() {
             let buffer_size = 2;
-            let input_data = audio_buffer![[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]];
-            let output_data = audio_buffer![
+            let input_data = audio_chunk![[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]];
+            let output_data = audio_chunk![
                 [-1, -2, -3, -4, -5, -6, -7],
                 [-8, -9, -10, -11, -12, -13, -14]
             ];
@@ -248,7 +248,7 @@ mod tests {
                 vec![vec![], vec![], vec![], vec![]],
                 DummyMeta,
             );
-            let mut output_buffer = AudioBuffer::new(2);
+            let mut output_buffer = AudioChunk::new(2);
             super::super::run(
                 test_plugin,
                 2,
