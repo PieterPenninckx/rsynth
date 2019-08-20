@@ -1,4 +1,4 @@
-use crate::dev_utilities::create_buffers;
+use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioBuffer};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::AudioRenderer;
 use num_traits::Zero;
@@ -45,28 +45,6 @@ pub trait MidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
 }
 
-pub struct FileBackend<F, AudioIn, AudioOut, MidiIn, MidiOut>
-where
-    AudioIn: AudioReader<F>,
-    AudioOut: AudioReader<F>,
-    MidiIn: MidiReader,
-    MidiOut: MidiWriter,
-{
-    audio_in: AudioIn,
-    audio_out: AudioOut,
-    midi_in: MidiIn,
-    midi_out: MidiOut,
-    _phantom: PhantomData<F>,
-}
-
-fn buffers_as_slice<'a, F>(buffers: &'a Vec<Vec<F>>, slice_len: usize) -> Vec<&'a [F]> {
-    buffers.iter().map(|b| &b[0..slice_len]).collect()
-}
-
-fn buffers_as_mut_slice<'a, F>(buffers: &'a mut Vec<Vec<F>>, slice_len: usize) -> Vec<&'a mut [F]> {
-    buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
-}
-
 pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     mut plugin: R,
     buffer_size_in_frames: usize,
@@ -91,8 +69,8 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     let frames_per_second = audio_in.frames_per_second();
     assert!(frames_per_second > 0);
 
-    let mut input_buffers = create_buffers(number_of_channels, buffer_size_in_frames);
-    let mut output_buffers = create_buffers(number_of_channels, buffer_size_in_frames);
+    let mut input_buffers = AudioBuffer::zero(number_of_channels, buffer_size_in_frames).inner();
+    let mut output_buffers = AudioBuffer::zero(number_of_channels, buffer_size_in_frames).inner();
 
     let mut spare_event = None;
     let mut last_time_in_frames = 0;
@@ -242,35 +220,34 @@ mod tests {
     mod run {
         use super::super::{TestReader, TestWriter};
         use crate::backend::file_backend::dummy::{AudioDummy, MidiDummy};
-        use crate::backend::file_backend::memory::AudioBuffer;
-        use crate::dev_utilities::{chunk, TestPlugin};
+        use crate::backend::file_backend::memory::{AudioBufferReader, AudioBufferWriter};
+        use crate::dev_utilities::{chunk::AudioBuffer, TestPlugin};
         use crate::event::EventHandler;
         use crate::{AudioRenderer, AudioRendererMeta};
 
         struct DummyMeta;
 
-        const expected_sample_rate: f64 = 1234.0;
+        const EXPECTED_SAMPLE_RATE: f64 = 1234.0;
         impl AudioRendererMeta for DummyMeta {
             const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 2;
             const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
 
             fn set_sample_rate(&mut self, sample_rate: f64) {
-                assert_eq!(sample_rate, expected_sample_rate);
+                assert_eq!(sample_rate, EXPECTED_SAMPLE_RATE);
             }
         }
 
         #[test]
         fn copies_input_buffer_to_output_buffer() {
             let buffer_size = 2;
-            let input_data = vec![vec![1, 2, 3, 4, 5, 6, 7], vec![8, 9, 10, 11, 12, 13, 14]];
-            let output_data = vec![
-                vec![-1, -2, -3, -4, -5, -6, -7],
-                vec![-8, -9, -10, -11, -12, -13, -14],
+            let input_data = audio_buffer![[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]];
+            let output_data = audio_buffer![
+                [-1, -2, -3, -4, -5, -6, -7],
+                [-8, -9, -10, -11, -12, -13, -14]
             ];
-            let input_buffer = AudioBuffer::from_channels(input_data.clone());
             let test_plugin = TestPlugin::new(
-                chunk(input_data.clone(), buffer_size),
-                chunk(output_data.clone(), buffer_size),
+                input_data.clone().split(buffer_size),
+                output_data.clone().split(buffer_size),
                 vec![vec![], vec![], vec![], vec![]],
                 DummyMeta,
             );
@@ -279,20 +256,18 @@ mod tests {
                 test_plugin,
                 2,
                 TestReader::new(
-                    input_buffer.reader(expected_sample_rate as u64),
+                    AudioBufferReader::new(&input_data, EXPECTED_SAMPLE_RATE as u64),
                     2,
                     vec![buffer_size; 4],
                 ),
                 TestWriter::new(
-                    &mut output_buffer.writer(),
-                    chunk(output_data.clone(), buffer_size),
+                    &mut AudioBufferWriter::new(&mut output_buffer),
+                    output_data.clone().split(buffer_size),
                 ),
                 MidiDummy::new(),
                 MidiDummy::new(),
             );
-            let channels = output_buffer.channels();
-            assert_eq!(channels[0], output_data[0]);
-            assert_eq!(channels[1], output_data[1]);
+            assert_eq!(output_buffer, output_data);
         }
     }
 }
