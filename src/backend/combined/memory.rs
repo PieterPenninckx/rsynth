@@ -1,5 +1,4 @@
-use super::AudioReader;
-use crate::backend::file_backend::AudioWriter;
+use super::{AudioReader, AudioWriter};
 use crate::dev_utilities::chunk::AudioChunk;
 
 pub struct AudioBufferReader<'b, F> {

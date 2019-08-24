@@ -1,5 +1,4 @@
-use super::{AudioReader, AudioWriter, MidiReader, MidiWriter};
-use crate::backend::file_backend::DeltaEvent;
+use super::{AudioReader, AudioWriter, DeltaEvent, MidiReader, MidiWriter};
 use crate::event::RawMidiEvent;
 use std::marker::PhantomData;
 

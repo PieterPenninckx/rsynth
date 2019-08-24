@@ -84,7 +84,7 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
             buffer_size_in_frames,
         ));
         assert!(frames_read <= buffer_size_in_frames);
-        if frames_read == 0 {
+        if dbg!(frames_read) == 0 {
             break;
         }
 
@@ -167,7 +167,7 @@ where
         assert_eq!(output.len(), self.expected_channels);
         for channel in output.iter() {
             assert_eq!(
-                self.expected_buffer_sizes[self.number_of_calls_to_fill_buffer],
+                self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
                 channel.len()
             )
         }
@@ -215,11 +215,13 @@ where
 #[cfg(test)]
 mod tests {
     mod run {
-        use super::super::{TestReader, TestWriter};
-        use crate::backend::file_backend::dummy::{AudioDummy, MidiDummy};
-        use crate::backend::file_backend::memory::{AudioBufferReader, AudioBufferWriter};
+        use super::super::{
+            dummy::{AudioDummy, MidiDummy},
+            memory::{AudioBufferReader, AudioBufferWriter},
+            DeltaEvent, TestReader, TestWriter,
+        };
         use crate::dev_utilities::{chunk::AudioChunk, TestPlugin};
-        use crate::event::EventHandler;
+        use crate::event::{EventHandler, RawMidiEvent, Timed};
         use crate::{AudioRenderer, AudioRendererMeta};
 
         struct DummyMeta;
@@ -232,6 +234,62 @@ mod tests {
             fn set_sample_rate(&mut self, sample_rate: f64) {
                 assert_eq!(sample_rate, EXPECTED_SAMPLE_RATE);
             }
+        }
+
+        #[test]
+        fn schedules_events_at_the_right_time() {
+            const BUFFER_SIZE: usize = 3;
+            const NUMBER_OF_CHANNELS: usize = 1;
+            const SAMPLE_RATE: u64 = 8000;
+            let input_data = AudioChunk::<i16>::zero(1, 16);
+            let output_data = AudioChunk::<i16>::zero(1, 16);
+
+            // So 1 frame  is 1/8000 seconds,
+            //    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.
+            let event = RawMidiEvent::new([1, 2, 3]);
+            let input_event = DeltaEvent {
+                microseconds_since_previous_event: 1000,
+                event,
+            };
+            // Event is expected at frame 8:
+            // . . .|. . .|. E .|. . .|. . .|.
+
+            let test_plugin = TestPlugin::new(
+                input_data.clone().split(BUFFER_SIZE),
+                output_data.clone().split(BUFFER_SIZE),
+                vec![
+                    vec![],
+                    vec![],
+                    vec![Timed::new(1, event)],
+                    vec![],
+                    vec![],
+                    vec![],
+                ],
+                DummyMeta,
+            );
+            let mut output_buffer = AudioChunk::new(NUMBER_OF_CHANNELS);
+            super::super::run(
+                test_plugin,
+                BUFFER_SIZE,
+                TestReader::new(
+                    AudioBufferReader::new(&input_data, SAMPLE_RATE),
+                    NUMBER_OF_CHANNELS,
+                    vec![
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                    ],
+                ),
+                TestWriter::new(
+                    &mut AudioBufferWriter::new(&mut output_buffer),
+                    output_data.clone().split(BUFFER_SIZE),
+                ),
+                MidiDummy::new(),
+                MidiDummy::new(),
+            );
         }
 
         #[test]

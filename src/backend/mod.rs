@@ -1,6 +1,6 @@
 //! Defines the different backends.
-#[cfg(feature = "backend-file")]
-pub mod file_backend;
+#[cfg(feature = "backend-combined")]
+pub mod combined;
 #[cfg(feature = "backend-jack")]
 pub mod jack_backend;
 #[cfg(feature = "backend-vst")]
