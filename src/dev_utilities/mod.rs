@@ -45,7 +45,7 @@
 //! ["Writing events" below]: ./index.html#writing-events
 use crate::dev_utilities::chunk::AudioChunk;
 use crate::event::EventHandler;
-use crate::{AudioRenderer, AudioRendererMeta};
+use crate::{AudioRenderer, AudioRendererMeta, ContextualAudioRenderer};
 use std::fmt::Debug;
 
 #[macro_use]
@@ -57,6 +57,7 @@ pub struct TestPlugin<F, E, M: AudioRendererMeta> {
     expected_inputs: Vec<AudioChunk<F>>,
     provided_outputs: Vec<AudioChunk<F>>,
     expected_events: Vec<Vec<E>>,
+    provided_events: Vec<Vec<E>>,
     meta: M,
     buffer_index: usize,
     event_index: usize,
@@ -67,14 +68,17 @@ impl<F, E, M: AudioRendererMeta> TestPlugin<F, E, M> {
         expected_inputs: Vec<AudioChunk<F>>,
         provided_outputs: Vec<AudioChunk<F>>,
         expected_events: Vec<Vec<E>>,
+        provided_events: Vec<Vec<E>>,
         meta: M,
     ) -> Self {
         assert_eq!(expected_inputs.len(), provided_outputs.len());
-        assert_eq!(expected_events.len(), expected_inputs.len());
+        assert_eq!(expected_inputs.len(), expected_events.len());
+        assert_eq!(expected_inputs.len(), provided_events.len());
         TestPlugin {
             expected_inputs,
             provided_outputs,
             expected_events,
+            provided_events,
             meta,
             buffer_index: 0,
             event_index: 0,
@@ -94,12 +98,13 @@ where
     }
 }
 
-impl<F, E, M> AudioRenderer<F> for TestPlugin<F, E, M>
+impl<F, E, M, C> ContextualAudioRenderer<F, C> for TestPlugin<F, E, M>
 where
     M: AudioRendererMeta,
     F: PartialEq + Debug + Copy,
+    C: EventHandler<E>,
 {
-    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]) {
+    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C) {
         assert!(
             self.buffer_index < self.expected_inputs.len(),
             "`render_buffer` called more often than expected: expected only {} times",
@@ -150,6 +155,12 @@ where
             );
             output_channel.copy_from_slice(expected_output_channel);
         }
+
+        let events = self.provided_events.drain(..1).next().unwrap();
+        for event in events {
+            context.handle_event(event);
+        }
+
         self.buffer_index += 1;
         self.event_index = 0;
     }

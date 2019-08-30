@@ -1,4 +1,5 @@
 use super::Timed;
+use crate::event::EventHandler;
 use std::ops::{Index, IndexMut};
 
 pub struct EventQueue<T> {

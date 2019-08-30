@@ -3,7 +3,7 @@
 //! Rsynth is well suited as a bootstrap for common audio plugin generators.
 //! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
 //!
-//! # Back-ends
+//! ## Back-ends
 //! `rsynth` currently supports two back-ends:
 //!
 //! * [`jack`]
@@ -11,7 +11,7 @@
 //!
 //! See the documentation of each back-end for more information.
 //!
-//! # Rendering audio
+//! ## Rendering audio
 //! Audio can be rendered with the `ContextualAudioRenderer` trait that is generic over the floating
 //! point type (`f32` or `f64`). There is an additional parameter `context` that is used by the
 //! host or environment to pass extra data.
@@ -19,7 +19,7 @@
 //! The plugin or application can internally also use the `AudioRenderer` trait, which is similar
 //! to the `ContextualAudioRenderer` trait, but does not have a `context` parameter.
 //!
-//! # Meta-data
+//! ## Meta-data
 //! There are a number of traits that define some meta-data
 //!
 //! * `CommonAudioPortMeta`
@@ -27,7 +27,7 @@
 //! * `CommonPluginMeta`
 //!     * Name of the plugin or application
 //!
-//! # Handling events
+//! ## Handling events
 //! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
 //! for each event type that they support.
 //! Currently supported events are:
@@ -35,12 +35,44 @@
 //! * [`RawMidiEvent`]
 //! * [`SysExEvent`]
 //!
-//! # Utilities
+//! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the
 //! plugin or application:
 //!
 //! * polyphony: managing of different voices
 //! * timesplitting: split the audio buffer at the events
+//!
+//! ## Some audio concepts
+//! A *sample* is a single number representing the air pressure at a given time.
+//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other
+//! types are possible as well.
+//!
+//! A *channel* usually corresponds with a speaker or a number of speakers.
+//! E.g. in a stereo setup, there is a "left" channel and a "right" channel.
+//!
+//! A *frame* consists of the samples for all the channels at a given time.
+//!
+//! A *buffer* consists of subsequent samples for a given channel and corresponds
+//! to a certain time period.
+//! (Non-standard terminology.)
+//!
+//! A *chunk* consists of the buffers for all channels for a given time period.
+//! (Non-standard terminology.)
+//!
+//!```text
+//!                         ┌ chunk     ┌ frame
+//!             ┌ sample    ↓           ↓
+//!             │      ┌─────────┐     ┌─┐
+//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
+//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
+//!          └─────────┼─────────┼─────┼─┼───────────────────┘
+//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
+//!                    │         │     │ │   ┌───────┐
+//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
+//!                    └─────────┘     └─┘   └───────┘
+//!                                            ↑
+//!                                            └ buffer
+//! ```
 //!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html

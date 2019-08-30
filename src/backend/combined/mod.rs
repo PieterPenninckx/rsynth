@@ -1,14 +1,14 @@
 use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
-use crate::AudioRenderer;
+use crate::{AudioRenderer, ContextualAudioRenderer};
 use num_traits::Zero;
 use std::fmt::Debug;
 
 pub mod dummy;
-#[cfg(feature = "backend-file-hound")]
+#[cfg(feature = "backend-combined-hound")]
 pub mod hound;
 pub mod memory;
-#[cfg(feature = "backend-file-rimd")]
+#[cfg(feature = "backend-combined-rimd")]
 pub mod rimd; // TODO: choose better naming.
 
 pub trait AudioReader<F> {
@@ -44,6 +44,50 @@ pub trait MidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
 }
 
+pub struct MidiWriterWrapper<W>
+where
+    W: MidiWriter,
+{
+    inner: W,
+    current_time_in_frames: u64,
+    previous_time_in_microseconds: u64,
+    micro_seconds_per_frame: f64,
+}
+
+// TODO: find a better name for this.
+impl<W> MidiWriterWrapper<W>
+where
+    W: MidiWriter,
+{
+    pub fn new(inner: W, micro_seconds_per_frame: f64) -> Self {
+        MidiWriterWrapper {
+            inner,
+            previous_time_in_microseconds: 0,
+            current_time_in_frames: 0,
+            micro_seconds_per_frame,
+        }
+    }
+
+    pub fn step_frames(&mut self, number_of_frames: u64) {
+        self.current_time_in_frames += number_of_frames;
+    }
+}
+
+impl<W> EventHandler<Timed<RawMidiEvent>> for MidiWriterWrapper<W>
+where
+    W: MidiWriter,
+{
+    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
+        let time_in_microseconds =
+            ((self.current_time_in_frames as f64) * self.micro_seconds_per_frame) as u64;
+        self.inner.write_event(DeltaEvent {
+            microseconds_since_previous_event: time_in_microseconds
+                - self.previous_time_in_microseconds,
+            event: event.event,
+        });
+    }
+}
+
 pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     mut plugin: R,
     buffer_size_in_frames: usize,
@@ -57,7 +101,7 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     MidiIn: MidiReader,
     MidiOut: MidiWriter,
     F: Zero,
-    R: AudioRenderer<F> + EventHandler<Timed<RawMidiEvent>>,
+    R: ContextualAudioRenderer<F, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
     assert!(buffer_size_in_frames < u32::max_value() as usize);
@@ -76,6 +120,8 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     let mut last_event_time_in_microseconds = 0;
 
     let frames_per_microsecond = audio_in.frames_per_microsecond();
+
+    let mut writer = MidiWriterWrapper::new(midi_out, 1.0 / frames_per_microsecond as f64);
 
     loop {
         // Read audio.
@@ -114,9 +160,12 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
         plugin.render_buffer(
             &buffers_as_slice(&input_buffers, frames_read),
             &mut buffers_as_mut_slice(&mut output_buffers, frames_read),
+            &mut writer,
         );
 
         audio_out.write_buffer(&buffers_as_slice(&output_buffers, frames_read));
+
+        writer.step_frames(frames_read as u64);
 
         if frames_read < buffer_size_in_frames {
             break;
@@ -216,7 +265,7 @@ where
 mod tests {
     mod run {
         use super::super::{
-            dummy::{AudioDummy, MidiDummy},
+            dummy::MidiDummy,
             memory::{AudioBufferReader, AudioBufferWriter},
             DeltaEvent, TestReader, TestWriter,
         };
@@ -265,6 +314,7 @@ mod tests {
                     vec![],
                     vec![],
                 ],
+                vec![Vec::new(); 6],
                 DummyMeta,
             );
             let mut output_buffer = AudioChunk::new(NUMBER_OF_CHANNELS);
@@ -304,6 +354,7 @@ mod tests {
                 input_data.clone().split(buffer_size),
                 output_data.clone().split(buffer_size),
                 vec![vec![], vec![], vec![], vec![]],
+                vec![Vec::new(); 4],
                 DummyMeta,
             );
             let mut output_buffer = AudioChunk::new(2);

@@ -1,38 +1,7 @@
 use num_traits::Zero;
 use std::mem;
 
-//! Some audio concepts
-//! -------------------
-//!
-//! A *sample* is a single number representing the air pressure at a given time.
-//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other
-//! possibilities exist.
-//!
-//! A *channel* usually corresponds with a speaker or a number of speakers.
-//! E.g. in a stereo setup, there is a "left" channel and a "right" channel.
-//!
-//! A *frame* consists of the samples for all the channels at a given time.
-//!
-//! A *buffer* consists of subsequent samples for a given channel and corresponds
-//! to a certain time period.
-//! (Non-standard terminology.)
-//!
-//! A *chunk* consists of the buffers for all channels for a given time period.
-//!
-//!```text
-//!                         ┌ chunk     ┌ frame
-//!             ┌ sample    ↓           ↓
-//!             │      ┌─────────┐     ┌─┐
-//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
-//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
-//!          └─────────┼─────────┼─────┼─┼───────────────────┘
-//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
-//!                    │         │     │ │   ┌───────┐
-//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
-//!                    └─────────┘     └─┘   └───────┘
-//!                                            ↑
-//!                                            └ buffer
-//! ```
+// Alternative name: "packet"?
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct AudioChunk<F> {
     // Invariant: channels is not empty.

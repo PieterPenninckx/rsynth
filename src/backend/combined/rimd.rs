@@ -1,6 +1,7 @@
 use super::{DeltaEvent, MidiReader, MICROSECONDS_PER_SECOND};
+use crate::backend::combined::MidiWriter;
 use crate::event::RawMidiEvent;
-use rimd::{Event, MetaCommand, MetaEvent, Track, TrackEvent, SMF};
+use rimd::{Event, MetaCommand, MetaEvent, MidiMessage, SMFBuilder, TrackEvent, SMF};
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
@@ -59,7 +60,7 @@ impl<'a> MidiReader for RimdMidiReader<'a> {
                         unimplemented!("better error handling for this error case");
                     }
                     return Some(DeltaEvent {
-                        microseconds_since_previous_event,
+                        microseconds_since_previous_event: microseconds_since_previous_event as u64,
                         event: RawMidiEvent::new([mm.data[0], mm.data[1], mm.data[2]]),
                     });
                 }
@@ -78,5 +79,63 @@ impl<'a> MidiReader for RimdMidiReader<'a> {
             }
         }
         return None;
+    }
+}
+
+pub struct RimdMidiWriter {
+    writer: SMFBuilder,
+    current_time_in_microseconds: u64,
+    current_tempo_in_micro_seconds_per_beat: u32,
+    ticks_per_beat: u16,
+}
+
+impl RimdMidiWriter {
+    pub fn new(current_tempo_in_micro_seconds_per_beat: u32, ticks_per_beat: u16) -> Self {
+        assert_eq!(ticks_per_beat & 0b10000000_00000000, 0);
+        let mut writer = SMFBuilder::new();
+        writer.add_track();
+        writer.add_meta_abs(
+            0,
+            0,
+            MetaEvent::tempo_setting(current_tempo_in_micro_seconds_per_beat),
+        );
+        Self {
+            writer,
+            current_time_in_microseconds: 0,
+            current_tempo_in_micro_seconds_per_beat,
+            ticks_per_beat,
+        }
+    }
+
+    fn ticks_per_microsecond(&self) -> f64 {
+        (self.ticks_per_beat as f64) / (self.current_tempo_in_micro_seconds_per_beat as f64)
+    }
+
+    pub fn get_smf(self) -> SMF {
+        let Self {
+            writer,
+            ticks_per_beat,
+            ..
+        } = self;
+        let mut result = writer.result();
+        result.division = ticks_per_beat as i16;
+        return result;
+    }
+}
+
+impl MidiWriter for RimdMidiWriter {
+    fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {
+        let DeltaEvent {
+            microseconds_since_previous_event,
+            event,
+        } = event;
+        self.current_time_in_microseconds += microseconds_since_previous_event;
+        let current_time_in_ticks =
+            self.current_time_in_microseconds as f64 / self.ticks_per_microsecond();
+        self.writer.add_midi_abs(
+            0,
+            current_time_in_ticks as u64,
+            MidiMessage::from_bytes(Vec::from(&event.data()[..])),
+        );
     }
 }
