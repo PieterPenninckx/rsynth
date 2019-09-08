@@ -9,7 +9,10 @@ use rsynth::utilities::polyphony::{
     simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
     EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
 };
-use rsynth::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
+use rsynth::{
+    AudioRendererMeta, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
+    ContextualAudioRenderer, MidiHandlerMeta,
+};
 use std::default::Default;
 
 use rsynth::event::raw_midi_event_event_types::*;
@@ -123,6 +126,11 @@ impl NoisePlayer {
     }
 }
 
+impl CommonPluginMeta for NoisePlayer {
+    // This is the name of our plugin.
+    const NAME: &'static str = "Noise generator";
+}
+
 impl AudioRendererMeta for NoisePlayer {
     // We have no audio inputs:
     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
@@ -133,11 +141,6 @@ impl AudioRendererMeta for NoisePlayer {
         trace!("set_sample_rate(sample_rate={})", sample_rate);
         // We are not doing anything with this right now.
     }
-}
-
-impl CommonPluginMeta for NoisePlayer {
-    // This is the name of our plugin.
-    const NAME: &'static str = "RSynth Example";
 }
 
 impl CommonAudioPortMeta for NoisePlayer {
@@ -155,6 +158,21 @@ impl CommonAudioPortMeta for NoisePlayer {
                 // because we have only specified two audio outputs.
             }
         }
+    }
+}
+
+impl MidiHandlerMeta for NoisePlayer {
+    // This plugin has one midi input port.
+    const MAX_NUMBER_OF_MIDI_INPUTS: usize = 1;
+    // This plugin does not generate midi.
+    const MAX_NUMBER_OF_MIDI_OUTPUTS: usize = 0;
+}
+
+impl CommonMidiPortMeta for NoisePlayer {
+    fn midi_input_name(_index: usize) -> String {
+        trace!("audio_output_name(index = {})", _index);
+        // `_index` is guaranteed to be `0` because we have only one midi input port.
+        "midi in".to_string()
     }
 }
 

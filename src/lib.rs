@@ -222,7 +222,7 @@ doctest!("../README.md");
 // Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
 // than one MIDI-port).
 
-/// Define the maximum number of inputs and the maximum number of outputs.
+/// Define the maximum number of audioinputs and the maximum number of audio outputs.
 /// Also defines how sample rate changes are handled.
 // TODO: Find a better name for this trait.
 pub trait AudioRendererMeta {
@@ -243,6 +243,11 @@ pub trait AudioRendererMeta {
     // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
     // TODO: there are no fractional sample rates. Maybe change the data type into u32?
     fn set_sample_rate(&mut self, sample_rate: f64);
+}
+/// Define the maximum number of midi inputs and the maximum number of midi outputs.
+pub trait MidiHandlerMeta {
+    const MAX_NUMBER_OF_MIDI_INPUTS: usize;
+    const MAX_NUMBER_OF_MIDI_OUTPUTS: usize;
 }
 
 /// Defines how audio is rendered.
@@ -302,5 +307,26 @@ pub trait CommonAudioPortMeta: AudioRendererMeta {
     /// When using the Jack backend, this function should not return an empty string.
     fn audio_output_name(index: usize) -> String {
         format!("audio out {}", index)
+    }
+}
+
+/// Provides some meta-data of the midi-ports used by the plugin or application to the host.
+pub trait CommonMidiPortMeta: MidiHandlerMeta {
+    /// The name of the midi input with the given index.
+    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_MIDI_INPUTS`
+    ///
+    /// # Note
+    /// When using the Jack backend, this function should not return an empty string.
+    fn midi_input_name(index: usize) -> String {
+        format!("midi in {}", index)
+    }
+
+    /// The name of the midi output with the given index.
+    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_MIDI_OUTPUTS`
+    ///
+    /// # Note
+    /// When using the Jack backend, this function should not return an empty string.
+    fn midi_output_name(index: usize) -> String {
+        format!("midi out {}", index)
     }
 }

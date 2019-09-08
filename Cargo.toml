@@ -8,12 +8,13 @@ autoexamples = false
 edition = "2018"
 
 [features]
+default = ["backend-jack", "backend-vst", "backend-combined-all"]
 backend-jack = ["jack"]
 backend-vst = ["vst"]
-backend-file-all = ["backend-file-hound"]
-backend-file-hound = ["hound", "backend-file", "sample"]
-backend-file-rimd = ["rimd", "backend-file"]
-backend-file = []
+backend-combined-all = ["backend-combined-hound", "backend-combined-rimd"]
+backend-combined-hound = ["hound", "backend-combined", "sample"]
+backend-combined-rimd = ["rimd", "backend-combined"]
+backend-combined = []
 
 [dependencies]
 asprim = "0.1"

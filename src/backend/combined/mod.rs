@@ -52,6 +52,7 @@ where
     current_time_in_frames: u64,
     previous_time_in_microseconds: u64,
     micro_seconds_per_frame: f64,
+    // TODO: Add a queue.
 }
 
 // TODO: find a better name for this.
@@ -70,6 +71,10 @@ where
 
     pub fn step_frames(&mut self, number_of_frames: u64) {
         self.current_time_in_frames += number_of_frames;
+        // TODO: "flush" queue
+        // for event in self.queue.iter() {
+        //        self.inner.write_event(event);
+        //}
     }
 }
 
@@ -78,13 +83,14 @@ where
     W: MidiWriter,
 {
     fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
-        let time_in_microseconds =
-            ((self.current_time_in_frames as f64) * self.micro_seconds_per_frame) as u64;
-        self.inner.write_event(DeltaEvent {
-            microseconds_since_previous_event: time_in_microseconds
-                - self.previous_time_in_microseconds,
-            event: event.event,
-        });
+        // let time_in_microseconds = event.time_in_frames * self.micro_seconds_per_frame; // Or similar.
+        // self.queue.queue_event(
+        // DeltaEvent {
+        //    microseconds_since_previous_event: time_in_microseconds
+        //        - self.previous_time_in_microseconds,
+        //    event: event.event,
+        //}
+        // )
     }
 }
 

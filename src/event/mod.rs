@@ -144,3 +144,44 @@ impl<E> AsMut<E> for Timed<E> {
         &mut self.event
     }
 }
+
+/// `Indexed<E>` adds an index to an event.
+#[derive(PartialEq, Eq, Debug)]
+pub struct Indexed<E> {
+    /// The index of the event
+    pub index: usize,
+    /// The underlying event.
+    pub event: E,
+}
+
+impl<E> Indexed<E> {
+    pub fn new(index: usize, event: E) -> Self {
+        Self { index, event }
+    }
+}
+
+impl<E> Clone for Indexed<E>
+where
+    E: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            index: self.index,
+            event: self.event.clone(),
+        }
+    }
+}
+
+impl<E> Copy for Indexed<E> where E: Copy {}
+
+impl<E> AsRef<E> for Indexed<E> {
+    fn as_ref(&self) -> &E {
+        &self.event
+    }
+}
+
+impl<E> AsMut<E> for Indexed<E> {
+    fn as_mut(&mut self) -> &mut E {
+        &mut self.event
+    }
+}
