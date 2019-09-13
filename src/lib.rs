@@ -87,6 +87,7 @@
 extern crate log;
 extern crate asprim;
 extern crate num_traits;
+extern crate vecstorage;
 
 #[cfg(feature = "backend-file-hound")]
 extern crate hound;

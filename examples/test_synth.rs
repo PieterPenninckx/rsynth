@@ -4,7 +4,9 @@
 use asprim::AsPrim;
 use num_traits::Float;
 use rand::{thread_rng, Rng};
-use rsynth::event::{ContextualEventHandler, EventHandler, RawMidiEvent, SysExEvent, Timed};
+use rsynth::event::{
+    ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
+};
 use rsynth::utilities::polyphony::{
     simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
     EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
@@ -199,8 +201,22 @@ impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlay
     }
 }
 
+// Only needed for Jack: delegate to the normal event handler.
+impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for NoisePlayer {
+    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, context: &mut Context) {
+        self.handle_event(event.event, context)
+    }
+}
+
 impl<'a, Context> ContextualEventHandler<Timed<SysExEvent<'a>>, Context> for NoisePlayer {
     fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, _context: &mut Context) {
         // We don't do anything with SysEx events.
+    }
+}
+
+// Only needed for Jack: delegate to the normal event handler.
+impl<'a, Context> ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, Context> for NoisePlayer {
+    fn handle_event(&mut self, event: Indexed<Timed<SysExEvent>>, context: &mut Context) {
+        self.handle_event(event.event, context)
     }
 }

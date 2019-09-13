@@ -13,10 +13,10 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
-use crate::dev_utilities::vecstorage::{VecStorage, VecStorageMut};
 use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
 use crate::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 use core::cmp;
+use vecstorage::VecStorage;
 use vst::api::Events;
 use vst::buffer::AudioBuffer;
 use vst::channels::ChannelInfo;
@@ -36,10 +36,10 @@ pub trait VstPluginMeta: CommonPluginMeta + AudioRendererMeta {
 pub struct VstPluginWrapper<P> {
     plugin: P,
     host: HostCallback,
-    inputs_f32: VecStorage<[f32]>,
-    outputs_f32: VecStorageMut<[f32]>,
-    inputs_f64: VecStorage<[f64]>,
-    outputs_f64: VecStorageMut<[f64]>,
+    inputs_f32: VecStorage<&'static [f32]>,
+    outputs_f32: VecStorage<&'static [f32]>,
+    inputs_f64: VecStorage<&'static [f64]>,
+    outputs_f64: VecStorage<&'static [f64]>,
 }
 
 impl<P> VstPluginWrapper<P>
@@ -67,9 +67,9 @@ where
         Self {
             plugin,
             inputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f32: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
+            outputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f64: VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
+            outputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             host,
         }
     }

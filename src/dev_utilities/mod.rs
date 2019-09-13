@@ -8,17 +8,6 @@
 //! from writing your backend in a separate crate (e.g., we have forgotten to
 //! mark something as `pub`), let us know by opening an issue.
 //!
-//! Creating an input buffer and an output buffer
-//! ---------------------------------------------
-//!
-//! When you pass `&[&[f32]]` for the input buffer and `&mut[&mut[f32]]`
-//! for the output buffer, you may face the challenge that you can have
-//! the buffers for each channel and you can `collect()` them into a `Vec`,
-//! but you don't want to allocate that `Vec` in the real-time thread.
-//! In order you to help overcome this problem, we provide
-//! [`VecStorage` and `VecStorageMut`], which you can pre-allocate and re-use for every
-//! call to `render_buffer` with different lifetimes of the slices.
-//!
 //! Writing custom events
 //! ---------------------
 //!
@@ -41,7 +30,6 @@
 //! so that the `Polyphonic` middleware can dispatch this event to all the voices.
 //!
 //!
-//! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html
 //! ["Writing events" below]: ./index.html#writing-events
 use crate::dev_utilities::chunk::AudioChunk;
 use crate::event::EventHandler;
@@ -50,7 +38,6 @@ use std::fmt::Debug;
 
 #[macro_use]
 pub mod chunk;
-pub mod vecstorage;
 
 /// A plugin useful for writing automated tests.
 pub struct TestPlugin<F, E, M: AudioRendererMeta> {

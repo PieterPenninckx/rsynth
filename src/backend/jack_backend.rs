@@ -11,30 +11,39 @@
 use crate::event::{EventHandler, Indexed};
 use crate::{
     backend::HostInterface,
-    dev_utilities::vecstorage::{VecStorage, VecStorageMut},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
     CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
-use jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope};
+use jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
+use vecstorage::VecStorage;
 
-pub struct JackHost<'c, 'mo> {
+pub struct JackHost<'c, 'mp, 'mw> {
     client: &'c Client,
-    midi_out_ports: &'mo Vec<Port<MidiOut>>,
+    midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
 }
 
-impl<'c, 'mo> HostInterface for JackHost<'c, 'mo> {
+impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
     fn output_initialized(&self) -> bool {
         false
     }
 }
 
-impl<'c, 'mo> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, 'mo> {
+impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, 'mp, 'mw> {
     fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>) {
-        unimplemented!()
+        let Indexed { index, event } = event;
+        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
+            let raw_midi = RawMidi {
+                time: event.time_in_frames,
+                bytes: event.event.data(),
+            };
+            midi_out_port.write(&raw_midi);
+        } else {
+            // TODO: log an error.
+        }
     }
 }
 
@@ -128,23 +137,36 @@ where
     out_ports
 }
 
+// `MidiWriter` does not implement `Send`, but we do want `JackProcessHandler` to implement `Send`.
+// `JackProcessHandler` contains only `VecStorage` of `MidiWriter`s, not a real `MidiWriter`.
+// So we solve this by creating a data type that is guaranteed to have the same alignment and
+// size as a `MidiWriter`.
+struct MidiWriterWrapper {
+    inner: jack::MidiWriter<'static>,
+}
+
+unsafe impl Send for MidiWriterWrapper {}
+unsafe impl Sync for MidiWriterWrapper {}
+
 struct JackProcessHandler<P> {
     audio_in_ports: Vec<Port<AudioIn>>,
     audio_out_ports: Vec<Port<AudioOut>>,
     midi_in_ports: Vec<Port<MidiIn>>,
     midi_out_ports: Vec<Port<MidiOut>>,
     plugin: P,
-    inputs: VecStorage<[f32]>,
-    outputs: VecStorageMut<[f32]>,
+    inputs: VecStorage<&'static [f32]>,
+    outputs: VecStorage<&'static [f32]>,
+    midi_writer: VecStorage<MidiWriterWrapper>,
 }
 
 impl<P> JackProcessHandler<P>
 where
-    for<'c> P: CommonAudioPortMeta
-        + CommonMidiPortMeta
-        + ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, &'c Client>,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
@@ -165,7 +187,9 @@ where
         let midi_out_ports = midi_out_ports::<P>(&client);
 
         let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
-        let outputs = VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+        let outputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+
+        let midi_writer = VecStorage::with_capacity(P::MAX_NUMBER_OF_MIDI_OUTPUTS);
 
         JackProcessHandler {
             audio_in_ports,
@@ -175,13 +199,19 @@ where
             plugin,
             inputs,
             outputs,
+            midi_writer,
         }
     }
 
-    fn handle_events(&mut self, process_scope: &ProcessScope, client: &Client) {
+    fn handle_events<'c, 'mp, 'mw>(
+        midi_in_ports: &Vec<Port<MidiIn>>,
+        plugin: &mut P,
+        process_scope: &ProcessScope,
+        jack_host: &mut JackHost<'c, 'mp, 'mw>,
+    ) {
         // No tracing here, because this is called in the `process` function,
         // and we do not want to trace that.
-        for (index, midi_in_port) in self.midi_in_ports.iter().enumerate() {
+        for (index, midi_in_port) in midi_in_ports.iter().enumerate() {
             trace!("handle_events for input port {}", index);
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
@@ -197,7 +227,7 @@ where
                             event: RawMidiEvent::new(data),
                         },
                     };
-                    self.plugin.handle_event(event, &mut &*client);
+                    plugin.handle_event(event, jack_host);
                 } else {
                     // TODO: SysEx event
                     // self.plugin.handle_event(event, &mut &*client);
@@ -209,13 +239,28 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + Send,
-    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, &'c Client>,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
-        self.handle_events(process_scope, client);
+        let mut midi_writer_guard = self.midi_writer.vec_guard();
+        for midi_output in self.midi_out_ports.iter_mut() {
+            midi_writer_guard.push(midi_output.writer(process_scope));
+        }
+        let mut jack_host: JackHost = JackHost {
+            client,
+            midi_out_ports: midi_writer_guard.as_mut_slice(),
+        };
+        Self::handle_events(
+            &self.midi_in_ports,
+            &mut self.plugin,
+            process_scope,
+            &mut jack_host,
+        );
 
         let mut inputs = self.inputs.vec_guard();
         for i in 0..cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
@@ -237,8 +282,7 @@ where
         }
 
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut &*client);
-
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut jack_host);
         Control::Continue
     }
 }
@@ -247,9 +291,11 @@ where
 pub fn run<P>(mut plugin: P)
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, &'c Client>,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
 
