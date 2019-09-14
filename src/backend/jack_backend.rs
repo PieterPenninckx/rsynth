@@ -47,6 +47,21 @@ impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, '
     }
 }
 
+impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost<'c, 'mp, 'mw> {
+    fn handle_event(&mut self, event: Indexed<Timed<SysExEvent>>) {
+        let Indexed { index, event } = event;
+        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
+            let raw_midi = RawMidi {
+                time: event.time_in_frames,
+                bytes: event.event.data(),
+            };
+            midi_out_port.write(&raw_midi);
+        } else {
+            // TODO: log an error.
+        }
+    }
+}
+
 fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
 where
     P: CommonAudioPortMeta,
