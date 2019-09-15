@@ -307,28 +307,6 @@ where
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
 
-    //       For now, we keep the midi input ports (and name) hard-coded, but maybe we should
-    //       probably define something like the following:
-    //       ```
-    //           pub trait JackPlugin : Plugin {
-    //               const NUMBER_OF_MIDI_INPUTS: usize = 1; // Do we support defaults here?
-    //               const NUMBER_OF_MIDI_OUTPUTS: usize = 0;
-    //               fn midi_input_name(index: usize) -> String {
-    //                   "midi_in".to_string()
-    //               }
-    //               fn midi_output_name(index: usize) -> String {
-    //                   "midi_out".to_string()
-    //               }
-    //               fn handle_midi_in(&mut self, &SomeDataTypeAboutMidiInputPorts);
-    //               fn handle_midi_out(&mut self, &mut SomeDataTypeAboutMidiOutputPorts);
-    //           }
-    //       And then the order to call the functions would be:
-    //       1. handle_events   (is input for the plugin)
-    //       2. handle_midi_in  (is input for the plugin)
-    //       3. process_buffer  (is both input and output for the plugin,
-    //                           must be after all other input and before all other output)
-    //       4. handle_midi_out (is output for the plugin)
-    //       ```
     let jack_process_handler = JackProcessHandler::new(&client, plugin);
     let active_client = match client.activate_async((), jack_process_handler) {
         Ok(c) => c,
