@@ -185,16 +185,6 @@ where
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
-        let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
-            Ok(mip) => Some(mip),
-            Err(e) => {
-                error!(
-                    "Failed to open midi in port: {:?}. Continuing without midi input.",
-                    e
-                );
-                None
-            }
-        };
         let audio_in_ports = audio_in_ports::<P>(&client);
         let audio_out_ports = audio_out_ports::<P>(&client);
 
@@ -305,7 +295,7 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P)
 where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + 'static,
     for<'c, 'mp, 'mw> P:
         ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
             + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
