@@ -56,13 +56,15 @@ impl<'a> MidiReader for RimdMidiReader<'a> {
 
             match &event.event {
                 Event::Midi(mm) => {
-                    if mm.data.len() != 3 {
+                    if let Some(raw_event) = RawMidiEvent::try_new(&mm.data) {
+                        return Some(DeltaEvent {
+                            microseconds_since_previous_event: microseconds_since_previous_event
+                                as u64,
+                            event: raw_event,
+                        });
+                    } else {
                         unimplemented!("better error handling for this error case");
                     }
-                    return Some(DeltaEvent {
-                        microseconds_since_previous_event: microseconds_since_previous_event as u64,
-                        event: RawMidiEvent::new([mm.data[0], mm.data[1], mm.data[2]]),
-                    });
                 }
                 Event::Meta(MetaEvent {
                     command: MetaCommand::TempoSetting,

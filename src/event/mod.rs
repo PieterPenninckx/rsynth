@@ -47,22 +47,53 @@ impl<'a> SysExEvent<'a> {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RawMidiEvent {
     data: [u8; 3],
+    length: usize,
 }
 
 impl Debug for RawMidiEvent {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(
-            f,
-            "RawMidiEvent({:X} {:X} {:X})",
-            self.data[0], self.data[1], self.data[2]
-        )
+        match self.length {
+            1 => write!(f, "RawMidiEvent({:X})", self.data[0]),
+            2 => write!(f, "RawMidiEvent({:X} {:X})", self.data[0], self.data[1]),
+            3 => write!(
+                f,
+                "RawMidiEvent({:X} {:X} {:X})",
+                self.data[0], self.data[1], self.data[2]
+            ),
+            _ => unreachable!("Raw midi event is expected to have length 1, 2 or 3."),
+        }
     }
 }
 
 impl RawMidiEvent {
     /// Create a new `RawMidiEvent` with the given raw data.
-    pub fn new(data: [u8; 3]) -> Self {
-        Self { data }
+    ///
+    /// Panics
+    /// ------
+    /// Panics when `data` does not have length 1, 2 or 3.
+    #[inline]
+    pub fn new(data: &[u8]) -> Self {
+        Self::try_new(data).expect("Raw midi event is expected to have length 1, 2 or 3.")
+    }
+
+    /// Try to create a new `RawMidiEvent` with the given raw data.
+    /// Return None when `data` does not have length 1, 2 or 3.
+    pub fn try_new(data: &[u8]) -> Option<Self> {
+        match data.len() {
+            1 => Some(Self {
+                data: [data[0], 0, 0],
+                length: data.len(),
+            }),
+            2 => Some(Self {
+                data: [data[0], data[1], 0],
+                length: data.len(),
+            }),
+            3 => Some(Self {
+                data: [data[0], data[1], data[2]],
+                length: data.len(),
+            }),
+            _ => None,
+        }
     }
     /// Get the raw data from a `RawMidiEvent`.
     pub fn data(&self) -> &[u8; 3] {

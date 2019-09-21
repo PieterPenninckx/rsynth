@@ -151,7 +151,7 @@ where
                 }) => {
                     let event = Timed {
                         time_in_frames: delta_frames as u32,
-                        event: RawMidiEvent::new(data),
+                        event: RawMidiEvent::new(&data),
                     };
                     self.plugin.handle_event(event, &mut self.host);
                 }

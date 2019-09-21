@@ -301,7 +301,7 @@ mod tests {
 
             // So 1 frame  is 1/8000 seconds,
             //    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.
-            let event = RawMidiEvent::new([1, 2, 3]);
+            let event = RawMidiEvent::new(&[1, 2, 3]);
             let input_event = DeltaEvent {
                 microseconds_since_previous_event: 1000,
                 event,

@@ -221,18 +221,18 @@ where
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
                 if input_event.bytes.len() <= 3 {
-                    let mut data = [0, 0, 0];
-                    for i in 0..input_event.bytes.len() {
-                        data[i] = input_event.bytes[i];
+                    if let Some(raw_event) = RawMidiEvent::try_new(&input_event.bytes) {
+                        let event = Indexed {
+                            index,
+                            event: Timed {
+                                time_in_frames: input_event.time,
+                                event: raw_event,
+                            },
+                        };
+                        plugin.handle_event(event, jack_host);
+                    } else {
+                        warn!("Strange event of length {}", input_event.bytes.len());
                     }
-                    let event = Indexed {
-                        index,
-                        event: Timed {
-                            time_in_frames: input_event.time,
-                            event: RawMidiEvent::new(data),
-                        },
-                    };
-                    plugin.handle_event(event, jack_host);
                 } else {
                     // TODO: SysEx event
                     // self.plugin.handle_event(event, &mut &*client);
