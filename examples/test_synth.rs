@@ -12,7 +12,7 @@ use rsynth::utilities::polyphony::{
     EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
 };
 use rsynth::{
-    AudioRendererMeta, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
+    AudioHandler, AudioHandlerMeta, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
     ContextualAudioRenderer, MidiHandlerMeta,
 };
 use std::default::Default;
@@ -130,15 +130,23 @@ impl NoisePlayer {
 
 impl CommonPluginMeta for NoisePlayer {
     // This is the name of our plugin.
-    const NAME: &'static str = "Noise generator";
+    fn name(&self) -> &'static str {
+        "Noise generator"
+    }
 }
 
-impl AudioRendererMeta for NoisePlayer {
-    // We have no audio inputs:
-    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
-    // We expect stereo output:
-    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
+impl AudioHandlerMeta for NoisePlayer {
+    fn max_number_of_audio_inputs(&self) -> usize {
+        // We have no audio inputs:
+        0
+    }
+    fn max_number_of_audio_outputs(&self) -> usize {
+        // We expect stereo output:
+        2
+    }
+}
 
+impl AudioHandler for NoisePlayer {
     fn set_sample_rate(&mut self, sample_rate: f64) {
         trace!("set_sample_rate(sample_rate={})", sample_rate);
         // We are not doing anything with this right now.
@@ -146,7 +154,7 @@ impl AudioRendererMeta for NoisePlayer {
 }
 
 impl CommonAudioPortMeta for NoisePlayer {
-    fn audio_output_name(index: usize) -> String {
+    fn audio_output_name(&self, index: usize) -> String {
         trace!("audio_output_name(index = {})", index);
         match index {
             0 => "left".to_string(),
@@ -164,14 +172,19 @@ impl CommonAudioPortMeta for NoisePlayer {
 }
 
 impl MidiHandlerMeta for NoisePlayer {
-    // This plugin has one midi input port.
-    const MAX_NUMBER_OF_MIDI_INPUTS: usize = 1;
-    // This plugin does not generate midi.
-    const MAX_NUMBER_OF_MIDI_OUTPUTS: usize = 0;
+    fn max_number_of_midi_inputs(&self) -> usize {
+        // This plugin has one midi input port.
+        1
+    }
+
+    fn max_number_of_midi_outputs(&self) -> usize {
+        // This plugin does not generate midi.
+        0
+    }
 }
 
 impl CommonMidiPortMeta for NoisePlayer {
-    fn midi_input_name(_index: usize) -> String {
+    fn midi_input_name(&self, _index: usize) -> String {
         trace!("audio_output_name(index = {})", _index);
         // `_index` is guaranteed to be `0` because we have only one midi input port.
         "midi in".to_string()

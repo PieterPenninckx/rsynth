@@ -33,14 +33,14 @@
 //! ["Writing events" below]: ./index.html#writing-events
 use crate::dev_utilities::chunk::AudioChunk;
 use crate::event::EventHandler;
-use crate::{AudioRenderer, AudioRendererMeta, ContextualAudioRenderer};
+use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer, ContextualAudioRenderer};
 use std::fmt::Debug;
 
 #[macro_use]
 pub mod chunk;
 
 /// A plugin useful for writing automated tests.
-pub struct TestPlugin<F, E, M: AudioRendererMeta> {
+pub struct TestPlugin<F, E, M: AudioHandlerMeta> {
     expected_inputs: Vec<AudioChunk<F>>,
     provided_outputs: Vec<AudioChunk<F>>,
     expected_events: Vec<Vec<E>>,
@@ -50,7 +50,7 @@ pub struct TestPlugin<F, E, M: AudioRendererMeta> {
     event_index: usize,
 }
 
-impl<F, E, M: AudioRendererMeta> TestPlugin<F, E, M> {
+impl<F, E, M: AudioHandlerMeta> TestPlugin<F, E, M> {
     pub fn new(
         expected_inputs: Vec<AudioChunk<F>>,
         provided_outputs: Vec<AudioChunk<F>>,
@@ -73,13 +73,22 @@ impl<F, E, M: AudioRendererMeta> TestPlugin<F, E, M> {
     }
 }
 
-impl<F, E, M> AudioRendererMeta for TestPlugin<F, E, M>
+impl<F, E, M> AudioHandlerMeta for TestPlugin<F, E, M>
 where
-    M: AudioRendererMeta,
+    M: AudioHandlerMeta,
 {
-    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = M::MAX_NUMBER_OF_AUDIO_INPUTS;
-    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = M::MAX_NUMBER_OF_AUDIO_OUTPUTS;
+    fn max_number_of_audio_inputs(&self) -> usize {
+        self.meta.max_number_of_audio_inputs()
+    }
+    fn max_number_of_audio_outputs(&self) -> usize {
+        self.meta.max_number_of_audio_outputs()
+    }
+}
 
+impl<F, E, M> AudioHandler for TestPlugin<F, E, M>
+where
+    M: AudioHandler,
+{
     fn set_sample_rate(&mut self, sample_rate: f64) {
         self.meta.set_sample_rate(sample_rate);
     }
@@ -87,7 +96,7 @@ where
 
 impl<F, E, M, C> ContextualAudioRenderer<F, C> for TestPlugin<F, E, M>
 where
-    M: AudioRendererMeta,
+    M: AudioHandler,
     F: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
@@ -155,7 +164,7 @@ where
 
 impl<F, E, M> EventHandler<E> for TestPlugin<F, E, M>
 where
-    M: AudioRendererMeta,
+    M: AudioHandlerMeta,
     E: PartialEq + Debug,
 {
     fn handle_event(&mut self, event: E) {

@@ -20,13 +20,15 @@ pub trait HostInterface {
     ///
     /// ```
     /// use rsynth::ContextualAudioRenderer;
-    /// # use rsynth::AudioRendererMeta;
+    /// # use rsynth::{AudioHandlerMeta, AudioHandler};
     /// use rsynth::backend::HostInterface;
     /// use rsynth::utilities::initialize_to_zero;
     /// # struct MyPlugin {}
-    /// # impl AudioRendererMeta for MyPlugin {
-    /// #    const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
-    /// #    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
+    /// # impl AudioHandlerMeta for MyPlugin {
+    /// #    fn max_number_of_audio_inputs(&self) -> usize { 0 }
+    /// #    fn max_number_of_audio_outputs(&self) -> usize { 2 }
+    /// # }
+    /// # impl AudioHandler for MyPlugin {
     /// #    fn set_sample_rate(&mut self,sample_rate: f64) {
     /// #    }
     /// # }

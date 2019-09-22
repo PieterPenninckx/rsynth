@@ -226,13 +226,15 @@ doctest!("../README.md");
 /// Define the maximum number of audioinputs and the maximum number of audio outputs.
 /// Also defines how sample rate changes are handled.
 // TODO: Find a better name for this trait.
-pub trait AudioRendererMeta {
+pub trait AudioHandlerMeta {
     /// The maximum number of inputs supported.
-    const MAX_NUMBER_OF_AUDIO_INPUTS: usize;
+    fn max_number_of_audio_inputs(&self) -> usize;
 
     /// The maximum number of audio outputs.
-    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize;
+    fn max_number_of_audio_outputs(&self) -> usize;
+}
 
+pub trait AudioHandler: AudioHandlerMeta {
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
     /// any other.
@@ -247,15 +249,15 @@ pub trait AudioRendererMeta {
 }
 /// Define the maximum number of midi inputs and the maximum number of midi outputs.
 pub trait MidiHandlerMeta {
-    const MAX_NUMBER_OF_MIDI_INPUTS: usize;
-    const MAX_NUMBER_OF_MIDI_OUTPUTS: usize;
+    fn max_number_of_midi_inputs(&self) -> usize;
+    fn max_number_of_midi_outputs(&self) -> usize;
 }
 
 /// Defines how audio is rendered.
 ///
 /// The type parameter `F` refers to the floating point type.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<F>: AudioRendererMeta {
+pub trait AudioRenderer<F>: AudioHandler {
     /// This method is called repeatedly for subsequent buffers.
     ///
     /// You may assume that the number of inputs (`inputs.len()`)
@@ -274,7 +276,7 @@ pub trait AudioRenderer<F>: AudioRendererMeta {
 ///
 /// See the documentation of `AudioRenderer` for more information.
 // TODO: Add link to that documentation.
-pub trait ContextualAudioRenderer<F, Context>: AudioRendererMeta {
+pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the `render_buffer` from the `AudioRenderer` trait,
@@ -287,17 +289,17 @@ pub trait ContextualAudioRenderer<F, Context>: AudioRendererMeta {
 /// This trait is common for all backends that need this info.
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    const NAME: &'static str;
+    fn name<'a>(&'a self) -> &'a str;
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
-pub trait CommonAudioPortMeta: AudioRendererMeta {
+pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// The name of the audio input with the given index.
     /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_INPUTS`
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn audio_input_name(index: usize) -> String {
+    fn audio_input_name(&self, index: usize) -> String {
         format!("audio in {}", index)
     }
 
@@ -306,7 +308,7 @@ pub trait CommonAudioPortMeta: AudioRendererMeta {
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn audio_output_name(index: usize) -> String {
+    fn audio_output_name(&self, index: usize) -> String {
         format!("audio out {}", index)
     }
 }
@@ -318,7 +320,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn midi_input_name(index: usize) -> String {
+    fn midi_input_name(&self, index: usize) -> String {
         format!("midi in {}", index)
     }
 
@@ -327,7 +329,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn midi_output_name(index: usize) -> String {
+    fn midi_output_name(&self, index: usize) -> String {
         format!("midi out {}", index)
     }
 }

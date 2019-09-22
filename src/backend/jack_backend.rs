@@ -62,13 +62,13 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
     }
 }
 
-fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
+fn audio_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioIn>>
 where
     P: CommonAudioPortMeta,
 {
-    let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
-    for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
-        let name = P::audio_input_name(index);
+    let mut in_ports = Vec::with_capacity(plugin.max_number_of_audio_inputs());
+    for index in 0..plugin.max_number_of_audio_inputs() {
+        let name = plugin.audio_input_name(index);
         info!("Registering audio input port with name {}", name);
         let port = client.register_port(&name, AudioIn::default());
         match port {
@@ -85,13 +85,13 @@ where
     in_ports
 }
 
-fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
+fn audio_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioOut>>
 where
     P: CommonAudioPortMeta,
 {
-    let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
-    for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
-        let name = P::audio_output_name(index);
+    let mut out_ports = Vec::with_capacity(plugin.max_number_of_audio_outputs());
+    for index in 0..plugin.max_number_of_audio_outputs() {
+        let name = plugin.audio_output_name(index);
         info!("Registering audio output port with name {}", name);
         let port = client.register_port(&name, AudioOut::default());
         match port {
@@ -108,13 +108,13 @@ where
     out_ports
 }
 
-fn midi_in_ports<P>(client: &Client) -> Vec<Port<MidiIn>>
+fn midi_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiIn>>
 where
     P: CommonMidiPortMeta,
 {
-    let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_MIDI_INPUTS);
-    for index in 0..P::MAX_NUMBER_OF_MIDI_INPUTS {
-        let name = P::midi_input_name(index);
+    let mut in_ports = Vec::with_capacity(plugin.max_number_of_midi_inputs());
+    for index in 0..plugin.max_number_of_midi_inputs() {
+        let name = plugin.midi_input_name(index);
         info!("Registering midi input port with name {}", name);
         let port = client.register_port(&name, MidiIn::default());
         match port {
@@ -130,13 +130,13 @@ where
     in_ports
 }
 
-fn midi_out_ports<P>(client: &Client) -> Vec<Port<MidiOut>>
+fn midi_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiOut>>
 where
     P: CommonMidiPortMeta,
 {
-    let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_MIDI_OUTPUTS);
-    for index in 0..P::MAX_NUMBER_OF_MIDI_OUTPUTS {
-        let name = P::midi_output_name(index);
+    let mut out_ports = Vec::with_capacity(plugin.max_number_of_midi_outputs());
+    for index in 0..plugin.max_number_of_midi_outputs() {
+        let name = plugin.midi_output_name(index);
         info!("Registering midi output port with name {}", name);
         let port = client.register_port(&name, MidiOut::default());
         match port {
@@ -185,16 +185,16 @@ where
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
-        let audio_in_ports = audio_in_ports::<P>(&client);
-        let audio_out_ports = audio_out_ports::<P>(&client);
+        let audio_in_ports = audio_in_ports::<P>(&client, &plugin);
+        let audio_out_ports = audio_out_ports::<P>(&client, &plugin);
 
-        let midi_in_ports = midi_in_ports::<P>(&client);
-        let midi_out_ports = midi_out_ports::<P>(&client);
+        let midi_in_ports = midi_in_ports::<P>(&client, &plugin);
+        let midi_out_ports = midi_out_ports::<P>(&client, &plugin);
 
-        let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
-        let outputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+        let inputs = VecStorage::with_capacity(plugin.max_number_of_audio_inputs());
+        let outputs = VecStorage::with_capacity(plugin.max_number_of_audio_outputs());
 
-        let midi_writer = VecStorage::with_capacity(P::MAX_NUMBER_OF_MIDI_OUTPUTS);
+        let midi_writer = VecStorage::with_capacity(plugin.max_number_of_midi_outputs());
 
         JackProcessHandler {
             audio_in_ports,
@@ -302,7 +302,7 @@ where
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
-    let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
+    let (client, _status) = Client::new(plugin.name(), ClientOptions::NO_START_SERVER).unwrap();
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);

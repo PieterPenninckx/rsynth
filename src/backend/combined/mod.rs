@@ -277,15 +277,21 @@ mod tests {
         };
         use crate::dev_utilities::{chunk::AudioChunk, TestPlugin};
         use crate::event::{EventHandler, RawMidiEvent, Timed};
-        use crate::{AudioRenderer, AudioRendererMeta};
+        use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer};
 
         struct DummyMeta;
 
         const EXPECTED_SAMPLE_RATE: f64 = 1234.0;
-        impl AudioRendererMeta for DummyMeta {
-            const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 2;
-            const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 2;
+        impl AudioHandlerMeta for DummyMeta {
+            fn max_number_of_audio_inputs(&self) -> usize {
+                2
+            }
+            fn max_number_of_audio_outputs(&self) -> usize {
+                2
+            }
+        }
 
+        impl AudioHandler for DummyMeta {
             fn set_sample_rate(&mut self, sample_rate: f64) {
                 assert_eq!(sample_rate, EXPECTED_SAMPLE_RATE);
             }

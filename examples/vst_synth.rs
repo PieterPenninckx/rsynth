@@ -59,8 +59,12 @@ use vst::plugin::Category;
 
 #[cfg(feature = "backend-vst")]
 impl VstPluginMeta for NoisePlayer {
-    const PLUGIN_ID: i32 = 123;
-    const CATEGORY: Category = Category::Synth;
+    fn plugin_id(&self) -> i32 {
+        123
+    }
+    fn category(&self) -> Category {
+        Category::Synth
+    }
 }
 
 #[rustfmt::skip::macros(vst_init)]

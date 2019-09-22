@@ -14,7 +14,7 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
 use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
-use crate::{AudioRendererMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
+use crate::{AudioHandlerMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 use core::cmp;
 use vecstorage::VecStorage;
 use vst::api::Events;
@@ -27,9 +27,9 @@ use vst::plugin::{HostCallback, Info};
 
 /// A VST plugin should implement this trait in addition to some other traits.
 // TODO: document which other traits.
-pub trait VstPluginMeta: CommonPluginMeta + AudioRendererMeta {
-    const PLUGIN_ID: i32;
-    const CATEGORY: Category;
+pub trait VstPluginMeta: CommonPluginMeta + AudioHandlerMeta {
+    fn plugin_id(&self) -> i32;
+    fn category(&self) -> Category;
 }
 
 /// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
@@ -54,22 +54,22 @@ where
     pub fn get_info(&self) -> Info {
         trace!("get_info");
         Info {
-            name: P::NAME.to_string(),
-            inputs: P::MAX_NUMBER_OF_AUDIO_INPUTS as i32,
-            outputs: P::MAX_NUMBER_OF_AUDIO_OUTPUTS as i32,
-            unique_id: P::PLUGIN_ID,
-            category: P::CATEGORY,
+            name: self.plugin.name().to_string(),
+            inputs: self.plugin.max_number_of_audio_inputs() as i32,
+            outputs: self.plugin.max_number_of_audio_outputs() as i32,
+            unique_id: self.plugin.plugin_id(),
+            category: self.plugin.category(),
             ..Info::default()
         }
     }
 
     pub fn new(plugin: P, host: HostCallback) -> Self {
         Self {
+            inputs_f32: VecStorage::with_capacity(plugin.max_number_of_audio_inputs()),
+            outputs_f32: VecStorage::with_capacity(plugin.max_number_of_audio_outputs()),
+            inputs_f64: VecStorage::with_capacity(plugin.max_number_of_audio_inputs()),
+            outputs_f64: VecStorage::with_capacity(plugin.max_number_of_audio_outputs()),
             plugin,
-            inputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f32: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
-            inputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS),
-            outputs_f64: VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS),
             host,
         }
     }
@@ -118,13 +118,18 @@ where
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
         trace!("get_input_info({})", input_index);
-        ChannelInfo::new(P::audio_input_name(input_index as usize), None, true, None)
+        ChannelInfo::new(
+            self.plugin.audio_input_name(input_index as usize),
+            None,
+            true,
+            None,
+        )
     }
 
     pub fn get_output_info(&self, output_index: i32) -> ChannelInfo {
         trace!("get_output_info({})", output_index);
         ChannelInfo::new(
-            P::audio_output_name(output_index as usize),
+            self.plugin.audio_output_name(output_index as usize),
             None,
             true,
             None,
@@ -203,37 +208,42 @@ impl HostInterface for HostCallback {
 ///         vst_backend::VstPluginMeta
 ///     },
 ///     ContextualAudioRenderer,
-///     AudioRendererMeta
+///     AudioHandlerMeta,
+///     AudioHandler
 /// };
 /// use vst::plugin::Category;
 /// impl VstPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
-/// #    const PLUGIN_ID: i32 = 123;
-/// #    const CATEGORY: Category = Category::Synth;
+/// #    fn plugin_id(&self) -> i32 { 123 }
+/// #    fn category(&self) -> Category { Category::Synth }
 /// }
 ///
 /// use asprim::AsPrim;
 /// use num_traits::Float;
 ///
-/// impl AudioRendererMeta for MyPlugin {
+/// impl AudioHandlerMeta for MyPlugin {
 ///      // Implementation omitted for brevity.
-/// #     const MAX_NUMBER_OF_AUDIO_INPUTS: usize = 0;
-/// #     const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize = 0;
+/// #     fn max_number_of_audio_inputs(&self) -> usize { 0 }
+/// #     fn max_number_of_audio_outputs(&self) -> usize { 0 }
+/// }
+///
+/// impl AudioHandler for MyPlugin {
+///     // Implementation omitted for brevity.
 /// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
 /// }
 ///
 /// impl CommonPluginMeta for MyPlugin {
 ///     // Implementation omitted for brevity.
-/// #    const NAME: &'static str = "Example";
+/// #    fn name(&self) -> &'static str { "Example" }
 /// }
 /// impl CommonAudioPortMeta for MyPlugin
 /// {
 ///     // Implementation omitted for brevity.
-/// #    fn audio_input_name(index: usize) -> String {
+/// #    fn audio_input_name(&self, index: usize) -> String {
 /// #        unimplemented!()
 /// #    }
 /// #
-/// #    fn audio_output_name(index: usize) -> String {
+/// #    fn audio_output_name(&self, index: usize) -> String {
 /// #        unimplemented!()
 /// #    }
 /// #
