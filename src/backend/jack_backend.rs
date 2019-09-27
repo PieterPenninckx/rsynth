@@ -293,7 +293,7 @@ where
 }
 
 /// Run the plugin until the user presses a key on the computer keyboard.
-pub fn run<P>(mut plugin: P)
+pub fn run<P>(mut plugin: P) -> Option<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + 'static,
     for<'c, 'mp, 'mw> P:
@@ -312,7 +312,7 @@ where
         Ok(c) => c,
         Err(e) => {
             error!("Failed to activate client: {:?}", e);
-            return;
+            return None;
         }
     };
 
@@ -322,11 +322,13 @@ where
 
     info!("Deactivating client...");
     match active_client.deactivate() {
-        Ok(_) => {
+        Ok((_, _, plugin)) => {
             info!("Client deactivated.");
+            return Some(plugin.plugin);
         }
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
+            return None;
         }
     }
 }
