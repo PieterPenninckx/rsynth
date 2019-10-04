@@ -1,36 +1,79 @@
-macro_rules! match_number {
-    (@with_number ($number:expr) @ ) => {
-        _ => {unreachable!();}
-    },
-    (@with_number ($number:expr) @ $in_name:expr,) => {
-        $number => $in_name,
-    },
-    (@with_number ($number:expr) @ $in_name_head:expr, $($in_name_tail:expr,)) => {
-        $number => $in_name,
-        audio_in_name!(($number+1) @ $($in_name_tail,)*);
-    },
-    ($($)*)
+use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
+
+pub trait Meta {
+    type MetaData;
+    fn meta(&self) -> &Self::MetaData;
 }
-macro_rules! define {
-    (impl $plugin:ty; $name_head:ident : $definition_head:tt $(, $name_tail:ident : $definition_tail:tt )*) => {
-        define!(impl $plugin; , $name_head:$definition_head $(,$name_tail:$definition_tail)*);
-    },
-    (impl $plugin:ty; , name : $definition_head:expr $(, $name_tail:ident : $definition_tail:tt )*) => {
-        impl $crate::CommonPluginMeta for $plugin {
-            fn name(&self) -> &str { $definition_head }
-        }
-        
-        define!(impl $plugin:ty; $(,$name_tail: $definition_tail));
-    },
-    (impl $plugin:ty; , audio : { in: {$($in_name:expr,)*}, out: {$($out_name:expr,)*} } $(, $name_tail:ident : $definition_tail:tt )*) => {
-        impl $crate::CommonAudioPortMeta for $plugin {
-            fn audio_input_name(&self, index: usize) -> &str {
-                match index {
-                    $()*
-                }
-            }
-        }
-        
-        define!(impl $plugin:ty; $(,$name_tail: $definition_tail));
-    },
+
+pub trait General {
+    type GeneralData;
+    fn general(&self) -> &Self::GeneralData;
+}
+
+pub trait Name {
+    fn name(&self) -> &str;
+}
+
+impl Name for String {
+    fn name(&self) -> &str {
+        self
+    }
+}
+
+impl Name for &'static str {
+    fn name(&self) -> &str {
+        self
+    }
+}
+
+pub trait Port<T> {
+    type PortData;
+    fn in_ports(&self) -> &[Self::PortData];
+    fn out_ports(&self) -> &[Self::PortData];
+}
+
+/// A "marker" struct
+pub struct MidiPort;
+/// A "marker" struct
+pub struct AudioPort;
+
+pub struct MetaData<G, AP, MP> {
+    pub general_meta: G,
+    pub audio_port_meta: InOut<AP>,
+    pub midi_port_meta: InOut<MP>,
+}
+
+pub struct InOut<T> {
+    pub inputs: Vec<T>,
+    pub outputs: Vec<T>,
+}
+
+impl<G, AP, MP> General for MetaData<G, AP, MP> {
+    type GeneralData = G;
+    fn general(&self) -> &G {
+        &self.general_meta
+    }
+}
+
+impl<G, AP, MP> Port<AudioPort> for MetaData<G, AP, MP> {
+    type PortData = AP;
+    fn in_ports(&self) -> &[AP] {
+        self.audio_port_meta.inputs.as_ref()
+    }
+
+    fn out_ports(&self) -> &[AP] {
+        self.audio_port_meta.outputs.as_ref()
+    }
+}
+
+impl<G, AP, MP> Port<MidiPort> for MetaData<G, AP, MP> {
+    type PortData = MP;
+
+    fn in_ports(&self) -> &[MP] {
+        self.midi_port_meta.inputs.as_ref()
+    }
+
+    fn out_ports(&self) -> &[MP] {
+        self.midi_port_meta.outputs.as_ref()
+    }
 }

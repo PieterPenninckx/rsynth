@@ -101,6 +101,8 @@ extern crate vst;
 #[macro_use]
 extern crate doc_comment;
 
+use crate::metaconfig::{AudioPort, General, Meta, MidiPort, Name, Port};
+
 #[macro_use]
 pub mod dev_utilities;
 pub mod backend;
@@ -110,6 +112,8 @@ pub mod middleware;
 pub mod utilities;
 
 doctest!("../README.md");
+
+pub mod metaconfig;
 
 // Notes about the design
 // ======================
@@ -331,5 +335,76 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// When using the Jack backend, this function should not return an empty string.
     fn midi_output_name(&self, index: usize) -> String {
         format!("midi out {}", index)
+    }
+}
+
+impl<T> CommonPluginMeta for T
+where
+    T: Meta,
+    T::MetaData: General,
+    <<T as Meta>::MetaData as General>::GeneralData: Name,
+{
+    fn name<'a>(&'a self) -> &'a str {
+        self.meta().general().name()
+    }
+}
+
+impl<T> AudioHandlerMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<AudioPort>,
+{
+    fn max_number_of_audio_inputs(&self) -> usize {
+        self.meta().in_ports().len()
+    }
+
+    fn max_number_of_audio_outputs(&self) -> usize {
+        self.meta().out_ports().len()
+    }
+}
+
+impl<T> CommonAudioPortMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<AudioPort>,
+    <<T as Meta>::MetaData as Port<AudioPort>>::PortData: Name,
+{
+    fn audio_input_name(&self, index: usize) -> String {
+        self.meta().in_ports()[index].name().to_string()
+    }
+
+    fn audio_output_name(&self, index: usize) -> String {
+        self.meta().out_ports()[index].name().to_string()
+    }
+}
+
+impl<T> MidiHandlerMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<MidiPort>,
+{
+    fn max_number_of_midi_inputs(&self) -> usize {
+        self.meta().in_ports().len()
+    }
+
+    fn max_number_of_midi_outputs(&self) -> usize {
+        self.meta().out_ports().len()
+    }
+}
+
+impl<T> CommonMidiPortMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<MidiPort>,
+    <<T as Meta>::MetaData as Port<MidiPort>>::PortData: Name,
+{
+    fn midi_input_name(&self, index: usize) -> String {
+        // TODO: It doesn't feel right that we have to do a `to_string` here.
+        self.meta().in_ports()[index].name().to_string()
+    }
+
+    fn midi_output_name(&self, index: usize) -> String {
+        // TODO: It doesn't feel right that we have to do a `to_string` here.
+        self.meta().out_ports()[index].name().to_string()
     }
 }
