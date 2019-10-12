@@ -1,5 +1,26 @@
 use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
 
+//! Example
+//! -------
+//! ```
+//! struct MyPlugin { /* ... */ }
+//! 
+//! impl Meta<MetaData<&'static str, &'static str, &'static str>> for MyPlugin {
+//!     fn meta() -> MetaData<&'static str, &'static str, &'static str> {
+//!         MetaData {
+//!             general_meta: unimplemented!(),
+//!             audio_port_meta: InOut {
+//!                 inputs: vec![unimplemented!()],
+//!                 outputs: vec![unimplemented!()],
+//!             },
+//!             midi_port_meta: InOut {
+//!                 inputs: vec![unimplemented!()],
+//!                 outputs: vec![unimplemented!()],
+//!             },
+//!         }
+//!     }
+//! }
+
 pub trait Meta {
     type MetaData;
     fn meta(&self) -> &Self::MetaData;
