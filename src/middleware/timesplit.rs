@@ -1,4 +1,4 @@
-use crate::event::event_queue::EventQueue;
+use crate::event::event_queue::{AlwaysIgnoreNew, AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::Timed;
 use asprim::AsPrim;
 use num_traits::Float;
@@ -29,7 +29,7 @@ impl<E> TimeSplitter<E> {
     }
 
     pub fn queue_event(&mut self, event: Timed<E>) -> Option<Timed<E>> {
-        self.queue.queue_event(event)
+        self.queue.queue_event(event, AlwaysInsertNewAfterOld)
     }
 
     pub fn chunk<'f, 's, F>(

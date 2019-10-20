@@ -1,12 +1,12 @@
-use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
-
 //! Example
 //! -------
 //! ```
+//! use rsynth::metaconfig::{Meta, MetaData, InOut};
 //! struct MyPlugin { /* ... */ }
-//! 
-//! impl Meta<MetaData<&'static str, &'static str, &'static str>> for MyPlugin {
-//!     fn meta() -> MetaData<&'static str, &'static str, &'static str> {
+//!
+//! impl Meta for MyPlugin {
+//!     type MetaData = MetaData<&'static str, &'static str, &'static str>;
+//!     fn meta(&self) -> MetaData<&'static str, &'static str, &'static str> {
 //!         MetaData {
 //!             general_meta: unimplemented!(),
 //!             audio_port_meta: InOut {
@@ -20,6 +20,9 @@ use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
 //!         }
 //!     }
 //! }
+//! ```
+
+use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
 
 pub trait Meta {
     type MetaData;
