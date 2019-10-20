@@ -2,22 +2,33 @@
 //! -------
 //! ```
 //! use rsynth::metaconfig::{Meta, MetaData, InOut};
-//! struct MyPlugin { /* ... */ }
+//! struct MyPlugin {
+//!     meta: MetaData<&'static str, &'static str, &'static str>
+//! /* ... */
+//! }
+//!
+//! impl MyPlugin {
+//!     pub fn new() -> Self {
+//!         Self {
+//!             meta: MetaData {
+//!                 general_meta: unimplemented!(),
+//!                 audio_port_meta: InOut {
+//!                     inputs: vec![unimplemented!()],
+//!                     outputs: vec![unimplemented!()],
+//!                 },
+//!                 midi_port_meta: InOut {
+//!                     inputs: vec![unimplemented!()],
+//!                     outputs: vec![unimplemented!()],
+//!                 },
+//!             }
+//!         }        
+//!     }
+//! }
 //!
 //! impl Meta for MyPlugin {
 //!     type MetaData = MetaData<&'static str, &'static str, &'static str>;
-//!     fn meta(&self) -> MetaData<&'static str, &'static str, &'static str> {
-//!         MetaData {
-//!             general_meta: unimplemented!(),
-//!             audio_port_meta: InOut {
-//!                 inputs: vec![unimplemented!()],
-//!                 outputs: vec![unimplemented!()],
-//!             },
-//!             midi_port_meta: InOut {
-//!                 inputs: vec![unimplemented!()],
-//!                 outputs: vec![unimplemented!()],
-//!             },
-//!         }
+//!     fn meta(&self) -> &Self::MetaData {
+//!         &self.meta
 //!     }
 //! }
 //! ```
