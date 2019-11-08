@@ -128,11 +128,9 @@ impl<T> EventQueue<T> {
                             return Some(new_event);
                         }
                     }
-                    // Two events at the same time.
-                    // This should not happen, we are ignoring this event.
-                    // TODO: Log a warning.
+                } else if read_event.time_in_frames > new_event.time_in_frames {
+                    break;
                 }
-                break;
             }
         }
         self.queue.insert(insert_index, new_event);
@@ -301,6 +299,29 @@ fn eventqueue_queue_event_with_always_insert_new_after_old() {
     let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
     let expected_buffer = vec![
         Timed::new(4, 16),
+        Timed::new(6, 36),
+        Timed::new(6, 25),
+        Timed::new(7, 49),
+    ];
+    let mut queue = EventQueue {
+        queue: initial_buffer.clone(),
+    };
+    queue.queue.reserve(1);
+
+    // Act
+    let result = queue.queue_event(Timed::new(6, 25), AlwaysInsertNewAfterOld);
+
+    assert_eq!(result, None);
+
+    // Assert:
+    assert_eq!(queue.queue, expected_buffer);
+}
+
+#[test]
+fn eventqueue_queue_event_with_always_insert_new_after_old_with_doubles() {
+    let initial_buffer = vec![Timed::new(6, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let expected_buffer = vec![
+        Timed::new(6, 16),
         Timed::new(6, 36),
         Timed::new(6, 25),
         Timed::new(7, 49),
