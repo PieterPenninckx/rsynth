@@ -182,9 +182,27 @@ impl<T> EventQueue<T> {
     pub fn first(&self) -> Option<&Timed<T>> {
         self.queue.get(0)
     }
+
+    pub fn iter<'a>(&'a self) -> Iter<'a, Timed<T>> {
+        Iter {
+            inner: self.queue.iter(),
+        }
+    }
 }
 
-// TODO: Add an iterator over the events.
+pub struct Iter<'a, T> {
+    inner: std::slice::Iter<'a, T>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
+
+// TODO: maybe simply implement `Deref<&[T]>`?
 
 #[test]
 fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_comes_first() {

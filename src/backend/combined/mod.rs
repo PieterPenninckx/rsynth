@@ -1,4 +1,5 @@
 use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
+use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
 use crate::{AudioRenderer, ContextualAudioRenderer};
 use num_traits::Zero;
@@ -31,6 +32,7 @@ pub trait AudioWriter<F> {
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DeltaEvent<E> {
     microseconds_since_previous_event: u64,
     event: E,
@@ -52,7 +54,7 @@ where
     current_time_in_frames: u64,
     previous_time_in_microseconds: u64,
     micro_seconds_per_frame: f64,
-    // TODO: Add a queue.
+    event_queue: EventQueue<RawMidiEvent>,
 }
 
 // TODO: find a better name for this.
@@ -66,15 +68,25 @@ where
             previous_time_in_microseconds: 0,
             current_time_in_frames: 0,
             micro_seconds_per_frame,
+            event_queue: EventQueue::new(1024),
         }
     }
 
     pub fn step_frames(&mut self, number_of_frames: u64) {
+        for event in self.event_queue.iter() {
+            let current_time_in_frames =
+                self.current_time_in_frames + (event.time_in_frames as u64);
+            let current_time_in_microseconds =
+                (current_time_in_frames as f64 * self.micro_seconds_per_frame) as u64;
+            let delta_event = DeltaEvent {
+                microseconds_since_previous_event: current_time_in_microseconds
+                    - self.previous_time_in_microseconds,
+                event: event.event,
+            };
+            self.inner.write_event(delta_event);
+            self.previous_time_in_microseconds = current_time_in_microseconds;
+        }
         self.current_time_in_frames += number_of_frames;
-        // TODO: "flush" queue
-        // for event in self.queue.iter() {
-        //        self.inner.write_event(event);
-        //}
     }
 }
 
@@ -83,19 +95,12 @@ where
     W: MidiWriter,
 {
     fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
-        // let time_in_microseconds = event.time_in_frames * self.micro_seconds_per_frame; // Or similar.
-        // self.queue.queue_event(
-        // DeltaEvent {
-        //    microseconds_since_previous_event: time_in_microseconds
-        //        - self.previous_time_in_microseconds,
-        //    event: event.event,
-        //}
-        // )
+        self.event_queue.queue_event(event, AlwaysInsertNewAfterOld);
     }
 }
 
 pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
-    mut plugin: R,
+    plugin: &mut R,
     buffer_size_in_frames: usize,
     mut audio_in: AudioIn,
     mut audio_out: AudioOut,
@@ -267,6 +272,60 @@ where
     }
 }
 
+pub struct TestMidiReader {
+    provided_events: Vec<DeltaEvent<RawMidiEvent>>,
+    event_index: usize,
+}
+
+impl TestMidiReader {
+    pub fn new(provided_events: Vec<DeltaEvent<RawMidiEvent>>) -> Self {
+        TestMidiReader {
+            provided_events,
+            event_index: 0,
+        }
+    }
+}
+
+impl MidiReader for TestMidiReader {
+    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
+        if self.event_index < self.provided_events.len() {
+            let result = self.provided_events[self.event_index].clone();
+            self.event_index += 1;
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct TestMidiWriter {
+    expected_events: Vec<DeltaEvent<RawMidiEvent>>,
+    event_index: usize,
+}
+
+impl TestMidiWriter {
+    pub fn new(expected_events: Vec<DeltaEvent<RawMidiEvent>>) -> Self {
+        TestMidiWriter {
+            expected_events,
+            event_index: 0,
+        }
+    }
+
+    pub fn check_last(&self) {
+        assert_eq!(self.event_index, self.expected_events.len());
+    }
+}
+
+impl TestMidiWriter {}
+
+impl MidiWriter for TestMidiWriter {
+    fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {
+        assert!(self.event_index < self.expected_events.len());
+        assert_eq!(self.expected_events[self.event_index], event);
+        self.event_index += 1;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     mod run {
@@ -275,6 +334,7 @@ mod tests {
             memory::{AudioBufferReader, AudioBufferWriter},
             DeltaEvent, TestReader, TestWriter,
         };
+        use crate::backend::combined::{TestMidiReader, TestMidiWriter};
         use crate::dev_utilities::{chunk::AudioChunk, TestPlugin};
         use crate::event::{EventHandler, RawMidiEvent, Timed};
         use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer};
@@ -298,7 +358,99 @@ mod tests {
         }
 
         #[test]
-        fn schedules_events_at_the_right_time() {
+        fn reads_events_at_the_right_time() {
+            const BUFFER_SIZE: usize = 3;
+            const NUMBER_OF_CHANNELS: usize = 1;
+            const SAMPLE_RATE: u64 = 8000;
+            let input_data = AudioChunk::<i16>::zero(1, 16);
+            let output_data = AudioChunk::<i16>::zero(1, 16);
+
+            // So 1 frame  is 1/8000 seconds,
+            //    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.
+            let event = RawMidiEvent::new(&[1, 2, 3]);
+            // Event is expected at frame 8:
+            // . . .|. . .|. E .|. . .|. . .|.
+            let input_event = DeltaEvent {
+                microseconds_since_previous_event: 1000,
+                event,
+            };
+
+            let mut test_plugin = TestPlugin::new(
+                input_data.clone().split(BUFFER_SIZE),
+                output_data.clone().split(BUFFER_SIZE),
+                vec![
+                    vec![],
+                    vec![],
+                    vec![Timed::new(1, event)],
+                    vec![],
+                    vec![],
+                    vec![],
+                ],
+                vec![Vec::new(); 6],
+                DummyMeta,
+            );
+            let mut output_buffer = AudioChunk::new(NUMBER_OF_CHANNELS);
+            super::super::run(
+                &mut test_plugin,
+                BUFFER_SIZE,
+                TestReader::new(
+                    AudioBufferReader::new(&input_data, SAMPLE_RATE),
+                    NUMBER_OF_CHANNELS,
+                    vec![
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                    ],
+                ),
+                TestWriter::new(
+                    &mut AudioBufferWriter::new(&mut output_buffer),
+                    output_data.clone().split(BUFFER_SIZE),
+                ),
+                TestMidiReader::new(vec![input_event]),
+                MidiDummy::new(),
+            );
+            test_plugin.check_last();
+        }
+
+        #[test]
+        fn copies_input_buffer_to_output_buffer() {
+            let buffer_size = 2;
+            let input_data = audio_chunk![[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]];
+            let output_data = audio_chunk![
+                [-1, -2, -3, -4, -5, -6, -7],
+                [-8, -9, -10, -11, -12, -13, -14]
+            ];
+            let mut test_plugin = TestPlugin::new(
+                input_data.clone().split(buffer_size),
+                output_data.clone().split(buffer_size),
+                vec![vec![], vec![], vec![], vec![]],
+                vec![Vec::new(); 4],
+                DummyMeta,
+            );
+            let mut output_buffer = AudioChunk::new(2);
+            super::super::run(
+                &mut test_plugin,
+                2,
+                TestReader::new(
+                    AudioBufferReader::new(&input_data, EXPECTED_SAMPLE_RATE as u64),
+                    2,
+                    vec![buffer_size; 4],
+                ),
+                TestWriter::new(
+                    &mut AudioBufferWriter::new(&mut output_buffer),
+                    output_data.clone().split(buffer_size),
+                ),
+                MidiDummy::new(),
+                MidiDummy::new(),
+            );
+            assert_eq!(output_buffer, output_data);
+        }
+
+        #[test]
+        fn writes_events_at_the_right_time() {
             const BUFFER_SIZE: usize = 3;
             const NUMBER_OF_CHANNELS: usize = 1;
             const SAMPLE_RATE: u64 = 8000;
@@ -315,7 +467,7 @@ mod tests {
             // Event is expected at frame 8:
             // . . .|. . .|. E .|. . .|. . .|.
 
-            let test_plugin = TestPlugin::new(
+            let mut test_plugin = TestPlugin::new(
                 input_data.clone().split(BUFFER_SIZE),
                 output_data.clone().split(BUFFER_SIZE),
                 vec![
@@ -331,7 +483,7 @@ mod tests {
             );
             let mut output_buffer = AudioChunk::new(NUMBER_OF_CHANNELS);
             super::super::run(
-                test_plugin,
+                &mut test_plugin,
                 BUFFER_SIZE,
                 TestReader::new(
                     AudioBufferReader::new(&input_data, SAMPLE_RATE),
@@ -352,40 +504,6 @@ mod tests {
                 MidiDummy::new(),
                 MidiDummy::new(),
             );
-        }
-
-        #[test]
-        fn copies_input_buffer_to_output_buffer() {
-            let buffer_size = 2;
-            let input_data = audio_chunk![[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]];
-            let output_data = audio_chunk![
-                [-1, -2, -3, -4, -5, -6, -7],
-                [-8, -9, -10, -11, -12, -13, -14]
-            ];
-            let test_plugin = TestPlugin::new(
-                input_data.clone().split(buffer_size),
-                output_data.clone().split(buffer_size),
-                vec![vec![], vec![], vec![], vec![]],
-                vec![Vec::new(); 4],
-                DummyMeta,
-            );
-            let mut output_buffer = AudioChunk::new(2);
-            super::super::run(
-                test_plugin,
-                2,
-                TestReader::new(
-                    AudioBufferReader::new(&input_data, EXPECTED_SAMPLE_RATE as u64),
-                    2,
-                    vec![buffer_size; 4],
-                ),
-                TestWriter::new(
-                    &mut AudioBufferWriter::new(&mut output_buffer),
-                    output_data.clone().split(buffer_size),
-                ),
-                MidiDummy::new(),
-                MidiDummy::new(),
-            );
-            assert_eq!(output_buffer, output_data);
         }
     }
 }

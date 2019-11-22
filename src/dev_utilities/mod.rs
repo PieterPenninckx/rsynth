@@ -71,6 +71,10 @@ impl<F, E, M: AudioHandlerMeta> TestPlugin<F, E, M> {
             event_index: 0,
         }
     }
+
+    pub fn check_last(&self) {
+        assert_eq!(self.buffer_index, self.expected_inputs.len());
+    }
 }
 
 impl<F, E, M> AudioHandlerMeta for TestPlugin<F, E, M>
@@ -106,6 +110,17 @@ where
             "`render_buffer` called more often than expected: expected only {} times",
             self.expected_inputs.len()
         );
+
+        assert_eq!(
+            self.event_index,
+            self.expected_events[self.buffer_index].len(),
+            "`handle_event` called {} times for buffer {} (zero-based), but {} times was expected",
+            self.event_index,
+            self.buffer_index,
+            self.expected_events[self.buffer_index].len()
+        );
+        self.event_index = 0;
+
         let expected_input_channels = &self.expected_inputs[self.buffer_index].channels();
         assert_eq!(inputs.len(), expected_input_channels.len());
         for (input_channel_index, input_channel) in inputs.iter().enumerate() {
@@ -173,7 +188,7 @@ where
             "`handle_event` is called after {} calls to `render_buffer`; this is unexpected",
             self.expected_events.len()
         );
-        let expected_events_for_this_buffer = &self.expected_events[self.event_index];
+        let expected_events_for_this_buffer = &self.expected_events[self.buffer_index];
         assert!(
             self.event_index < expected_events_for_this_buffer.len(),
             "`handle_events` is called more than {0} times after {1} calls to `render_buffer`;\

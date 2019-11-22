@@ -8,6 +8,7 @@ autoexamples = false
 edition = "2018"
 
 [features]
+all = ["backend-jack", "backend-vst", "backend-combined-all"]
 backend-jack = ["jack"]
 backend-vst = ["vst"]
 backend-combined-all = ["backend-combined-hound", "backend-combined-rimd"]
