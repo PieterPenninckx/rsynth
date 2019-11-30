@@ -15,9 +15,11 @@ pub mod rimd; // TODO: choose better naming.
 pub trait AudioReader<F> {
     fn number_of_channels(&self) -> usize;
     fn frames_per_second(&self) -> u64;
-    fn frames_per_microsecond(&self) -> u64 {
-        self.frames_per_second() * MICROSECONDS_PER_SECOND
+    /*
+    fn frames_per_microsecond(&self) -> f64 {
+        (self.frames_per_second() as f64) / (MICROSECONDS_PER_SECOND as f64)
     }
+    */
 
     /// Fill the buffers. Return the number of frames that have been written.
     /// If it is `<` the number of frames in the input, now more frames can be expected.
@@ -38,12 +40,60 @@ pub struct DeltaEvent<E> {
     event: E,
 }
 
-pub trait MidiReader {
+// TODO: This looks a lot like the `Iterator` trait.
+// TODO: Clarify whether we should simply use the `Iterator` trait itself.
+pub trait MidiReader: Sized {
     fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>>;
+    fn peakable(self) -> PeakableMidiReader<Self> {
+        PeakableMidiReader::new(self)
+    }
 }
 
 pub trait MidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
+}
+
+pub struct PeakableMidiReader<R>
+where
+    R: MidiReader,
+{
+    inner: R,
+    next: Option<DeltaEvent<RawMidiEvent>>,
+}
+
+impl<R> PeakableMidiReader<R>
+where
+    R: MidiReader,
+{
+    pub fn new(inner: R) -> Self {
+        PeakableMidiReader { inner, next: None }
+    }
+
+    pub fn peak(&mut self) -> Option<&DeltaEvent<RawMidiEvent>> {
+        if self.next.is_some() {
+            self.next.as_ref()
+        } else {
+            self.next = self.inner.read_event();
+            if let Some(ref next) = self.next.as_ref() {
+                Some(next)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+impl<R> MidiReader for PeakableMidiReader<R>
+where
+    R: MidiReader,
+{
+    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
+        if let Some(next) = self.next.take() {
+            Some(next)
+        } else {
+            self.inner.read_event()
+        }
+    }
 }
 
 pub struct MidiWriterWrapper<W>
@@ -104,8 +154,8 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     buffer_size_in_frames: usize,
     mut audio_in: AudioIn,
     mut audio_out: AudioOut,
-    mut midi_in: MidiIn,
-    mut midi_out: MidiOut,
+    midi_in: MidiIn,
+    midi_out: MidiOut,
 ) where
     AudioIn: AudioReader<F>,
     AudioOut: AudioWriter<F>,
@@ -126,13 +176,17 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     let mut input_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
     let mut output_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
 
-    let mut spare_event = None;
     let mut last_time_in_frames = 0;
     let mut last_event_time_in_microseconds = 0;
 
-    let frames_per_microsecond = audio_in.frames_per_microsecond();
+    let frames_per_second = audio_in.frames_per_second();
 
-    let mut writer = MidiWriterWrapper::new(midi_out, 1.0 / frames_per_microsecond as f64);
+    let mut writer = MidiWriterWrapper::new(
+        midi_out,
+        MICROSECONDS_PER_SECOND as f64 / frames_per_second as f64,
+    );
+
+    let mut peakable_midi_reader = midi_in.peakable();
 
     loop {
         // Read audio.
@@ -146,25 +200,21 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
         }
 
         // Handle events
-        if let Some(leftover) = spare_event.take() {
-            plugin.handle_event(Timed {
-                time_in_frames: (last_event_time_in_microseconds / frames_per_microsecond
-                    - last_time_in_frames) as u32,
-                event: leftover,
-            });
-        }
-        while let Some(event) = midi_in.read_event() {
-            last_event_time_in_microseconds += event.microseconds_since_previous_event;
-            let time_in_frames =
-                last_event_time_in_microseconds / frames_per_microsecond - last_time_in_frames;
+        if let Some(event) = peakable_midi_reader.peak() {
+            let time_in_frames = (last_event_time_in_microseconds
+                + event.microseconds_since_previous_event)
+                * frames_per_second
+                / MICROSECONDS_PER_SECOND
+                - last_time_in_frames;
             if time_in_frames < buffer_size_in_frames as u64 {
+                let event = peakable_midi_reader
+                    .read_event()
+                    .expect("to see event that I just peaked at");
                 plugin.handle_event(Timed {
                     time_in_frames: time_in_frames as u32,
                     event: event.event,
                 });
-            } else {
-                spare_event = Some(event.event);
-                break;
+                last_event_time_in_microseconds += event.microseconds_since_previous_event;
             }
         }
 
@@ -369,7 +419,8 @@ mod tests {
             //    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.
             let event = RawMidiEvent::new(&[1, 2, 3]);
             // Event is expected at frame 8:
-            // . . .|. . .|. E .|. . .|. . .|.
+            // 0 1 2 3 4 5 6 7 8        (in 1000 microseconds)
+            // . . .|. . .|. . E|. . .|. . .|.
             let input_event = DeltaEvent {
                 microseconds_since_previous_event: 1000,
                 event,
@@ -381,7 +432,7 @@ mod tests {
                 vec![
                     vec![],
                     vec![],
-                    vec![Timed::new(1, event)],
+                    vec![Timed::new(2, event)],
                     vec![],
                     vec![],
                     vec![],

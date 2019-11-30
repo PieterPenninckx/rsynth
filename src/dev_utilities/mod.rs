@@ -188,14 +188,15 @@ where
             "`handle_event` is called after {} calls to `render_buffer`; this is unexpected",
             self.expected_events.len()
         );
+        dbg!(&self.expected_events);
         let expected_events_for_this_buffer = &self.expected_events[self.buffer_index];
         assert!(
             self.event_index < expected_events_for_this_buffer.len(),
-            "`handle_events` is called more than {0} times after {1} calls to `render_buffer`;\
+            "`handle_events` is called more than {0} times after {1} calls to `render_buffer`; \
              only {0} times are expected because we expect only \
              {0} events for the subsequent buffer",
             expected_events_for_this_buffer.len(),
-            self.buffer_index + 1
+            self.buffer_index
         );
         assert_eq!(
             event,
@@ -203,7 +204,7 @@ where
             "mismatch for event #{} after {} calls to `render_buffer`: \
              expected {:?} but got {:?}.",
             self.event_index,
-            self.buffer_index + 1,
+            self.buffer_index,
             expected_events_for_this_buffer[self.event_index],
             event
         );
