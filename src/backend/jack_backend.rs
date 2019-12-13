@@ -295,7 +295,7 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P) -> Option<P>
 where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + 'static,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + Sync + 'static,
     for<'c, 'mp, 'mw> P:
         ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
             + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
