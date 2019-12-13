@@ -4,7 +4,7 @@
 //! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
 //!
 //! ## Back-ends
-//! `rsynth` currently supports the following backends back-ends:
+//! `rsynth` currently supports the following back-ends:
 //!
 //! * [`jack`]
 //! * [`vst`]
@@ -34,7 +34,7 @@
 //! * [CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
-//! Every plugin should implement these, but it cancan be tedious, so you can implement these 
+//! Every plugin should implement these, but it cancan be tedious, so you can implement these
 //! traits in a more straightforward way by implementing the [`Meta`] trait.
 //!
 //! ## Handling events

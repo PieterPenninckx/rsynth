@@ -371,7 +371,12 @@ impl TestMidiWriter {}
 
 impl MidiWriter for TestMidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {
-        assert!(self.event_index < self.expected_events.len(), "Only {} events are expected, but {} events are written.", self.expected_events.len(), self.event_index + 1);
+        assert!(
+            self.event_index < self.expected_events.len(),
+            "Only {} events are expected, but {} events are written.",
+            self.expected_events.len(),
+            self.event_index + 1
+        );
         assert_eq!(self.expected_events[self.event_index], event);
         self.event_index += 1;
     }
@@ -558,7 +563,7 @@ mod tests {
                 TestMidiWriter::new(vec![input_event]),
             );
         }
-        
+
         #[test]
         fn writes_two_events_at_the_right_time() {
             const BUFFER_SIZE: usize = 3;
@@ -619,7 +624,7 @@ mod tests {
                 TestMidiWriter::new(vec![output_event1, output_event2]),
             );
         }
-        
+
         #[test]
         fn writes_two_events_in_the_same_buffer_at_the_right_time() {
             const BUFFER_SIZE: usize = 3;
