@@ -5,6 +5,49 @@ pub struct EventQueue<T> {
     queue: Vec<Timed<T>>,
 }
 
+pub enum EventCollisionHandling {
+    InsertNewBeforeOld,
+    InsertNewAfterOld,
+    IgnoreNew,
+    RemoveOld,
+}
+
+pub trait HandleEventCollision<T> {
+    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling;
+}
+
+pub struct AlwaysInsertNewBeforeOld;
+impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
+    #[inline(always)]
+    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+        EventCollisionHandling::InsertNewBeforeOld
+    }
+}
+
+pub struct AlwaysInsertNewAfterOld;
+impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
+    #[inline(always)]
+    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+        EventCollisionHandling::InsertNewAfterOld
+    }
+}
+
+pub struct AlwaysIgnoreNew;
+impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
+    #[inline(always)]
+    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+        EventCollisionHandling::IgnoreNew
+    }
+}
+
+pub struct AlwaysRemoveOld;
+impl<T> HandleEventCollision<T> for AlwaysRemoveOld {
+    #[inline(always)]
+    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+        EventCollisionHandling::RemoveOld
+    }
+}
+
 impl<T> Index<usize> for EventQueue<T> {
     type Output = Timed<T>;
 
@@ -38,10 +81,11 @@ impl<T> EventQueue<T> {
     /// Queue a new event.
     /// When the buffer is full, an element may be removed from the queue to make some room.
     /// This element is returned.
-    /// TODO: This should come in two modes:
-    /// TODO: * one mode in which there are no two events at the same time
-    /// TODO: * another mode in which there can be two events at the same time
-    pub fn queue_event(&mut self, new_event: Timed<T>) -> Option<Timed<T>> {
+    pub fn queue_event<H>(&mut self, new_event: Timed<T>, collision_decider: H) -> Option<Timed<T>>
+    where
+        H: HandleEventCollision<T>,
+    {
+        let mut new_event = new_event;
         let result;
         if self.queue.len() >= self.queue.capacity() {
             // TODO: Log an error.
@@ -63,17 +107,30 @@ impl<T> EventQueue<T> {
         debug_assert!(self.queue.len() < self.queue.capacity());
 
         let mut insert_index = 0;
-        for read_event in self.queue.iter() {
+        for read_event in self.queue.iter_mut() {
             if read_event.time_in_frames < new_event.time_in_frames {
                 insert_index += 1;
             } else {
                 if read_event.time_in_frames == new_event.time_in_frames {
-                    // Two events at the same time.
-                    // This should not happen, we are ignoring this event.
-                    // TODO: Log a warning.
-                    return Some(new_event);
+                    match collision_decider.decide_on_collision(&read_event.event, &new_event.event)
+                    {
+                        EventCollisionHandling::IgnoreNew => {
+                            return Some(new_event);
+                        }
+                        EventCollisionHandling::InsertNewBeforeOld => {
+                            break;
+                        }
+                        EventCollisionHandling::InsertNewAfterOld => {
+                            insert_index += 1;
+                        }
+                        EventCollisionHandling::RemoveOld => {
+                            std::mem::swap(&mut read_event.event, &mut new_event.event);
+                            return Some(new_event);
+                        }
+                    }
+                } else if read_event.time_in_frames > new_event.time_in_frames {
+                    break;
                 }
-                break;
             }
         }
         self.queue.insert(insert_index, new_event);
@@ -125,7 +182,27 @@ impl<T> EventQueue<T> {
     pub fn first(&self) -> Option<&Timed<T>> {
         self.queue.get(0)
     }
+
+    pub fn iter<'a>(&'a self) -> Iter<'a, Timed<T>> {
+        Iter {
+            inner: self.queue.iter(),
+        }
+    }
 }
+
+pub struct Iter<'a, T> {
+    inner: std::slice::Iter<'a, T>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
+
+// TODO: maybe simply implement `Deref<&[T]>`?
 
 #[test]
 fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_comes_first() {
@@ -142,7 +219,7 @@ fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_come
     assert_eq!(queue.queue.capacity(), queue.queue.len());
 
     // Act
-    queue.queue_event(Timed::new(3, 9));
+    queue.queue_event(Timed::new(3, 9), AlwaysIgnoreNew);
 
     // Assert:
     assert_eq!(queue.queue, initial_buffer);
@@ -163,7 +240,7 @@ fn event_queue_queue_event_first_event_removed_when_already_full_and_new_event_a
     assert_eq!(queue.queue.capacity(), queue.queue.len());
 
     // Act
-    queue.queue_event(Timed::new(5, 25));
+    queue.queue_event(Timed::new(5, 25), AlwaysInsertNewAfterOld);
 
     // Assert:
     assert_eq!(
@@ -186,7 +263,7 @@ fn eventqueue_queue_event_new_event_inserted_at_correct_location() {
     queue.queue.reserve(1);
 
     // Act
-    queue.queue_event(Timed::new(5, 25));
+    queue.queue_event(Timed::new(5, 25), AlwaysInsertNewAfterOld);
 
     // Assert:
     assert_eq!(
@@ -201,7 +278,8 @@ fn eventqueue_queue_event_new_event_inserted_at_correct_location() {
 }
 
 #[test]
-fn eventqueue_queue_event_new_event_ignored_when_already_event_at_that_location() {
+fn eventqueue_queue_event_with_always_ignore_new_new_event_ignored_when_already_event_at_that_location(
+) {
     let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
     let mut queue = EventQueue {
         queue: initial_buffer.clone(),
@@ -209,10 +287,98 @@ fn eventqueue_queue_event_new_event_ignored_when_already_event_at_that_location(
     queue.queue.reserve(1);
 
     // Act
-    queue.queue_event(Timed::new(6, 25));
+    queue.queue_event(Timed::new(6, 25), AlwaysIgnoreNew);
 
     // Assert:
     assert_eq!(queue.queue, initial_buffer);
+}
+
+#[test]
+fn eventqueue_queue_event_with_always_ignore_old_old_event_ignored_when_already_event_at_that_location(
+) {
+    let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let expected_buffer = vec![Timed::new(4, 16), Timed::new(6, 25), Timed::new(7, 49)];
+    let mut queue = EventQueue {
+        queue: initial_buffer.clone(),
+    };
+    queue.queue.reserve(1);
+
+    // Act
+    let result = queue.queue_event(Timed::new(6, 25), AlwaysRemoveOld);
+
+    assert_eq!(result, Some(Timed::new(6, 36)));
+
+    // Assert:
+    assert_eq!(queue.queue, expected_buffer);
+}
+
+#[test]
+fn eventqueue_queue_event_with_always_insert_new_after_old() {
+    let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let expected_buffer = vec![
+        Timed::new(4, 16),
+        Timed::new(6, 36),
+        Timed::new(6, 25),
+        Timed::new(7, 49),
+    ];
+    let mut queue = EventQueue {
+        queue: initial_buffer.clone(),
+    };
+    queue.queue.reserve(1);
+
+    // Act
+    let result = queue.queue_event(Timed::new(6, 25), AlwaysInsertNewAfterOld);
+
+    assert_eq!(result, None);
+
+    // Assert:
+    assert_eq!(queue.queue, expected_buffer);
+}
+
+#[test]
+fn eventqueue_queue_event_with_always_insert_new_after_old_with_doubles() {
+    let initial_buffer = vec![Timed::new(6, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let expected_buffer = vec![
+        Timed::new(6, 16),
+        Timed::new(6, 36),
+        Timed::new(6, 25),
+        Timed::new(7, 49),
+    ];
+    let mut queue = EventQueue {
+        queue: initial_buffer.clone(),
+    };
+    queue.queue.reserve(1);
+
+    // Act
+    let result = queue.queue_event(Timed::new(6, 25), AlwaysInsertNewAfterOld);
+
+    assert_eq!(result, None);
+
+    // Assert:
+    assert_eq!(queue.queue, expected_buffer);
+}
+
+#[test]
+fn eventqueue_queue_event_with_always_insert_new_before_old() {
+    let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let expected_buffer = vec![
+        Timed::new(4, 16),
+        Timed::new(6, 25),
+        Timed::new(6, 36),
+        Timed::new(7, 49),
+    ];
+    let mut queue = EventQueue {
+        queue: initial_buffer.clone(),
+    };
+    queue.queue.reserve(1);
+
+    // Act
+    let result = queue.queue_event(Timed::new(6, 25), AlwaysInsertNewBeforeOld);
+
+    assert_eq!(result, None);
+
+    // Assert:
+    assert_eq!(queue.queue, expected_buffer);
 }
 
 #[test]

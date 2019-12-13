@@ -20,4 +20,4 @@ before_script:
   - $RUSTUP
   - $FMT
 script:
-  - cargo test --verbose --features jack-backend,vst-backend
+  - cargo test --verbose --features backend-jack,backend-vst

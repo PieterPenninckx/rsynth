@@ -5,7 +5,7 @@
 // =========
 // You can compile this example with
 // ```
-// cargo build --release --examples --features jack-backend
+// cargo build --release --examples --features backend-jack
 // ```
 // This generates a standalone application that you can find
 //
@@ -60,17 +60,17 @@ extern crate rsynth;
 mod test_synth;
 use test_synth::*;
 
-#[cfg(feature = "jack-backend")]
+#[cfg(feature = "backend-jack")]
 use rsynth::backend::jack_backend::run;
 
-#[cfg(feature = "jack-backend")]
+#[cfg(feature = "backend-jack")]
 fn main() {
     run(NoisePlayer::new());
 }
 
-#[cfg(not(feature = "jack-backend"))]
+#[cfg(not(feature = "backend-jack"))]
 fn main() {
     println!("This example was compiled without support for jack.");
-    println!("Compile with passing `--features jack-backend`");
+    println!("Compile with passing `--features backend-jack`");
     println!("as parameter to `cargo`.");
 }

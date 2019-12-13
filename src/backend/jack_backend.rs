@@ -1,5 +1,5 @@
 //! Wrapper for the [JACK] backend.
-//! Support is only enabled if you compile with the "jack-backend" feature, see
+//! Support is only enabled if you compile with the "backend-jack" feature, see
 //! [the cargo reference] for more information on setting cargo features.
 //!
 //! For an example, see `jack_synth.rs` in the `examples` folder.
@@ -8,31 +8,67 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
+use crate::event::{EventHandler, Indexed};
 use crate::{
     backend::HostInterface,
-    dev_utilities::vecstorage::{VecStorage, VecStorageMut},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
-    CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
+    CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
 use core::cmp;
-use jack::{AudioIn, AudioOut, MidiIn, Port, ProcessScope};
+use jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
+use vecstorage::VecStorage;
 
-impl<'c> HostInterface for &'c Client {
+pub struct JackHost<'c, 'mp, 'mw> {
+    client: &'c Client,
+    midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
+}
+
+impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
     fn output_initialized(&self) -> bool {
         false
     }
 }
 
-fn audio_in_ports<P>(client: &Client) -> Vec<Port<AudioIn>>
+impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, 'mp, 'mw> {
+    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>) {
+        let Indexed { index, event } = event;
+        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
+            let raw_midi = RawMidi {
+                time: event.time_in_frames,
+                bytes: event.event.data(),
+            };
+            midi_out_port.write(&raw_midi);
+        } else {
+            // TODO: log an error.
+        }
+    }
+}
+
+impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost<'c, 'mp, 'mw> {
+    fn handle_event(&mut self, event: Indexed<Timed<SysExEvent>>) {
+        let Indexed { index, event } = event;
+        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
+            let raw_midi = RawMidi {
+                time: event.time_in_frames,
+                bytes: event.event.data(),
+            };
+            midi_out_port.write(&raw_midi);
+        } else {
+            // TODO: log an error.
+        }
+    }
+}
+
+fn audio_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioIn>>
 where
     P: CommonAudioPortMeta,
 {
-    let mut in_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
-    for index in 0..P::MAX_NUMBER_OF_AUDIO_INPUTS {
-        let name = P::audio_input_name(index);
+    let mut in_ports = Vec::with_capacity(plugin.max_number_of_audio_inputs());
+    for index in 0..plugin.max_number_of_audio_inputs() {
+        let name = plugin.audio_input_name(index);
         info!("Registering audio input port with name {}", name);
         let port = client.register_port(&name, AudioIn::default());
         match port {
@@ -49,13 +85,13 @@ where
     in_ports
 }
 
-fn audio_out_ports<P>(client: &Client) -> Vec<Port<AudioOut>>
+fn audio_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioOut>>
 where
     P: CommonAudioPortMeta,
 {
-    let mut out_ports = Vec::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
-    for index in 0..P::MAX_NUMBER_OF_AUDIO_OUTPUTS {
-        let name = P::audio_output_name(index);
+    let mut out_ports = Vec::with_capacity(plugin.max_number_of_audio_outputs());
+    for index in 0..plugin.max_number_of_audio_outputs() {
+        let name = plugin.audio_output_name(index);
         info!("Registering audio output port with name {}", name);
         let port = client.register_port(&name, AudioOut::default());
         match port {
@@ -72,67 +108,130 @@ where
     out_ports
 }
 
+fn midi_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiIn>>
+where
+    P: CommonMidiPortMeta,
+{
+    let mut in_ports = Vec::with_capacity(plugin.max_number_of_midi_inputs());
+    for index in 0..plugin.max_number_of_midi_inputs() {
+        let name = plugin.midi_input_name(index);
+        info!("Registering midi input port with name {}", name);
+        let port = client.register_port(&name, MidiIn::default());
+        match port {
+            Ok(p) => {
+                in_ports.push(p);
+            }
+            Err(e) => {
+                // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi input port?
+                error!("Failed to open midi input port with index {} and name {}: {:?}. Skipping this port.", index, name, e);
+            }
+        }
+    }
+    in_ports
+}
+
+fn midi_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiOut>>
+where
+    P: CommonMidiPortMeta,
+{
+    let mut out_ports = Vec::with_capacity(plugin.max_number_of_midi_outputs());
+    for index in 0..plugin.max_number_of_midi_outputs() {
+        let name = plugin.midi_output_name(index);
+        info!("Registering midi output port with name {}", name);
+        let port = client.register_port(&name, MidiOut::default());
+        match port {
+            Ok(p) => {
+                out_ports.push(p);
+            }
+            Err(e) => {
+                // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi output port?
+                error!("Failed to open midi output port with index {} and name {}: {:?}. Skipping this port.", index, name, e);
+            }
+        }
+    }
+    out_ports
+}
+
+// `MidiWriter` does not implement `Send`, but we do want `JackProcessHandler` to implement `Send`.
+// `JackProcessHandler` contains only `VecStorage` of `MidiWriter`s, not a real `MidiWriter`.
+// So we solve this by creating a data type that is guaranteed to have the same alignment and
+// size as a `MidiWriter`.
+struct MidiWriterWrapper {
+    inner: jack::MidiWriter<'static>,
+}
+
+unsafe impl Send for MidiWriterWrapper {}
+unsafe impl Sync for MidiWriterWrapper {}
+
 struct JackProcessHandler<P> {
     audio_in_ports: Vec<Port<AudioIn>>,
     audio_out_ports: Vec<Port<AudioOut>>,
-    midi_in_port: Option<Port<MidiIn>>,
+    midi_in_ports: Vec<Port<MidiIn>>,
+    midi_out_ports: Vec<Port<MidiOut>>,
     plugin: P,
-    inputs: VecStorage<[f32]>,
-    outputs: VecStorageMut<[f32]>,
+    inputs: VecStorage<&'static [f32]>,
+    outputs: VecStorage<&'static [f32]>,
+    midi_writer: VecStorage<MidiWriterWrapper>,
 }
 
 impl<P> JackProcessHandler<P>
 where
-    for<'c> P: CommonAudioPortMeta
-        + ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn new(client: &Client, plugin: P) -> Self {
         trace!("JackProcessHandler::new()");
-        let midi_in_port = match client.register_port("midi_in", MidiIn::default()) {
-            Ok(mip) => Some(mip),
-            Err(e) => {
-                error!(
-                    "Failed to open midi in port: {:?}. Continuing without midi input.",
-                    e
-                );
-                None
-            }
-        };
-        let audio_in_ports = audio_in_ports::<P>(&client);
-        let audio_out_ports = audio_out_ports::<P>(&client);
+        let audio_in_ports = audio_in_ports::<P>(&client, &plugin);
+        let audio_out_ports = audio_out_ports::<P>(&client, &plugin);
 
-        let inputs = VecStorage::with_capacity(P::MAX_NUMBER_OF_AUDIO_INPUTS);
+        let midi_in_ports = midi_in_ports::<P>(&client, &plugin);
+        let midi_out_ports = midi_out_ports::<P>(&client, &plugin);
 
-        let outputs = VecStorageMut::with_capacity(P::MAX_NUMBER_OF_AUDIO_OUTPUTS);
+        let inputs = VecStorage::with_capacity(plugin.max_number_of_audio_inputs());
+        let outputs = VecStorage::with_capacity(plugin.max_number_of_audio_outputs());
+
+        let midi_writer = VecStorage::with_capacity(plugin.max_number_of_midi_outputs());
 
         JackProcessHandler {
             audio_in_ports,
             audio_out_ports,
-            midi_in_port,
+            midi_in_ports,
+            midi_out_ports,
             plugin,
             inputs,
             outputs,
+            midi_writer,
         }
     }
 
-    fn handle_events(&mut self, process_scope: &ProcessScope, client: &Client) {
+    fn handle_events<'c, 'mp, 'mw>(
+        midi_in_ports: &Vec<Port<MidiIn>>,
+        plugin: &mut P,
+        process_scope: &ProcessScope,
+        jack_host: &mut JackHost<'c, 'mp, 'mw>,
+    ) {
         // No tracing here, because this is called in the `process` function,
         // and we do not want to trace that.
-        if let Some(ref mut midi_in_port) = self.midi_in_port {
+        for (index, midi_in_port) in midi_in_ports.iter().enumerate() {
+            trace!("handle_events for input port {}", index);
             for input_event in midi_in_port.iter(process_scope) {
                 trace!("handle_events found event: {:?}", &input_event.bytes);
                 if input_event.bytes.len() <= 3 {
-                    let mut data = [0, 0, 0];
-                    for i in 0..input_event.bytes.len() {
-                        data[i] = input_event.bytes[i];
+                    if let Some(raw_event) = RawMidiEvent::try_new(&input_event.bytes) {
+                        let event = Indexed {
+                            index,
+                            event: Timed {
+                                time_in_frames: input_event.time,
+                                event: raw_event,
+                            },
+                        };
+                        plugin.handle_event(event, jack_host);
+                    } else {
+                        warn!("Strange event of length {}", input_event.bytes.len());
                     }
-                    let event = Timed {
-                        time_in_frames: input_event.time,
-                        event: RawMidiEvent::new(data),
-                    };
-                    self.plugin.handle_event(event, &mut &*client);
                 } else {
                     // TODO: SysEx event
                     // self.plugin.handle_event(event, &mut &*client);
@@ -144,13 +243,27 @@ where
 
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
-    P: CommonAudioPortMeta + Send,
-    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
-        self.handle_events(process_scope, client);
+        let mut midi_writer_guard = self.midi_writer.vec_guard();
+        for midi_output in self.midi_out_ports.iter_mut() {
+            midi_writer_guard.push(midi_output.writer(process_scope));
+        }
+        let mut jack_host: JackHost = JackHost {
+            client,
+            midi_out_ports: midi_writer_guard.as_mut_slice(),
+        };
+        Self::handle_events(
+            &self.midi_in_ports,
+            &mut self.plugin,
+            process_scope,
+            &mut jack_host,
+        );
 
         let mut inputs = self.inputs.vec_guard();
         for i in 0..cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
@@ -172,53 +285,31 @@ where
         }
 
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut &*client);
-
+            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut jack_host);
         Control::Continue
     }
 }
 
 /// Run the plugin until the user presses a key on the computer keyboard.
-pub fn run<P>(mut plugin: P)
+pub fn run<P>(mut plugin: P) -> Option<P>
 where
-    P: CommonAudioPortMeta + CommonPluginMeta + Send,
-    for<'c> P: ContextualAudioRenderer<f32, &'c Client>
-        + ContextualEventHandler<Timed<RawMidiEvent>, &'c Client>,
-    for<'c, 'a> P: ContextualEventHandler<Timed<SysExEvent<'a>>, &'c Client>,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + Sync + 'static,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw, 'a> P:
+        ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
-    let (client, _status) = Client::new(P::NAME, ClientOptions::NO_START_SERVER).unwrap();
+    let (client, _status) = Client::new(plugin.name(), ClientOptions::NO_START_SERVER).unwrap();
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
 
-    //       For now, we keep the midi input ports (and name) hard-coded, but maybe we should
-    //       probably define something like the following:
-    //       ```
-    //           pub trait JackPlugin : Plugin {
-    //               const NUMBER_OF_MIDI_INPUTS: usize = 1; // Do we support defaults here?
-    //               const NUMBER_OF_MIDI_OUTPUTS: usize = 0;
-    //               fn midi_input_name(index: usize) -> String {
-    //                   "midi_in".to_string()
-    //               }
-    //               fn midi_output_name(index: usize) -> String {
-    //                   "midi_out".to_string()
-    //               }
-    //               fn handle_midi_in(&mut self, &SomeDataTypeAboutMidiInputPorts);
-    //               fn handle_midi_out(&mut self, &mut SomeDataTypeAboutMidiOutputPorts);
-    //           }
-    //       And then the order to call the functions would be:
-    //       1. handle_events   (is input for the plugin)
-    //       2. handle_midi_in  (is input for the plugin)
-    //       3. process_buffer  (is both input and output for the plugin,
-    //                           must be after all other input and before all other output)
-    //       4. handle_midi_out (is output for the plugin)
-    //       ```
     let jack_process_handler = JackProcessHandler::new(&client, plugin);
     let active_client = match client.activate_async((), jack_process_handler) {
         Ok(c) => c,
         Err(e) => {
             error!("Failed to activate client: {:?}", e);
-            return;
+            return None;
         }
     };
 
@@ -228,11 +319,13 @@ where
 
     info!("Deactivating client...");
     match active_client.deactivate() {
-        Ok(_) => {
+        Ok((_, _, plugin)) => {
             info!("Client deactivated.");
+            return Some(plugin.plugin);
         }
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
+            return None;
         }
     }
 }

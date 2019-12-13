@@ -3,15 +3,16 @@
 //! Rsynth is well suited as a bootstrap for common audio plugin generators.
 //! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
 //!
-//! # Back-ends
-//! `rsynth` currently supports two back-ends:
+//! ## Back-ends
+//! `rsynth` currently supports the following back-ends:
 //!
 //! * [`jack`]
 //! * [`vst`]
+//! * [`combined`] (reading and writing audio and midi files, or working in-memory)
 //!
 //! See the documentation of each back-end for more information.
 //!
-//! # Rendering audio
+//! ## Rendering audio
 //! Audio can be rendered with the `ContextualAudioRenderer` trait that is generic over the floating
 //! point type (`f32` or `f64`). There is an additional parameter `context` that is used by the
 //! host or environment to pass extra data.
@@ -19,32 +20,76 @@
 //! The plugin or application can internally also use the `AudioRenderer` trait, which is similar
 //! to the `ContextualAudioRenderer` trait, but does not have a `context` parameter.
 //!
-//! # Meta-data
-//! There are a number of traits that define some meta-data
+//! ## Meta-data
+//! There are a number of traits that define some meta-data:
 //!
-//! * `CommonAudioPortMeta`
+//! * [`CommonPluginMeta`]
+//!     * Name of the plugin etc
+//! * [`AudioHandlerMeta`]
+//!     * Number of audio ports
+//! * [`MidiHandlerMeta`]
+//!     * Number of midi ports
+//! * [`CommonAudioPortMeta`]
 //!     * Names of the audio in and out ports
-//! * `CommonPluginMeta`
+//! * [CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
-//! # Handling events
+//! Every plugin should implement these, but it cancan be tedious, so you can implement these
+//! traits in a more straightforward way by implementing the [`Meta`] trait.
+//!
+//! ## Handling events
 //! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
 //! for each event type that they support.
 //! Currently supported events are:
 //!
 //! * [`RawMidiEvent`]
 //! * [`SysExEvent`]
+//! * [`Timed<T>`]
+//! * [`Indexed<T>`]
 //!
-//! # Utilities
+//! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the
 //! plugin or application:
 //!
 //! * polyphony: managing of different voices
 //! * timesplitting: split the audio buffer at the events
 //!
+//! ## Some audio concepts
+//! A *sample* is a single number representing the air pressure at a given time.
+//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other
+//! types are possible as well.
+//!
+//! A *channel* usually corresponds with a speaker or a number of speakers.
+//! E.g. in a stereo setup, there is a "left" channel and a "right" channel.
+//!
+//! A *frame* consists of the samples for all the channels at a given time.
+//!
+//! A *buffer* consists of subsequent samples for a given channel and corresponds
+//! to a certain time period.
+//! (Non-standard terminology.)
+//!
+//! A *chunk* consists of the buffers for all channels for a given time period.
+//! (Non-standard terminology.)
+//!
+//!```text
+//!                         ┌ chunk     ┌ frame
+//!             ┌ sample    ↓           ↓
+//!             │      ┌─────────┐     ┌─┐
+//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
+//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
+//!          └─────────┼─────────┼─────┼─┼───────────────────┘
+//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
+//!                    │         │     │ │   ┌───────┐
+//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
+//!                    └─────────┘     └─┘   └───────┘
+//!                                            ↑
+//!                                            └ buffer
+//! ```
+//!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
+//! [`combined`]: ./backend/combined/index.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
 //! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
 //! [`SysExEvent`]: ./event/struct.SysExEvent.html
@@ -55,14 +100,21 @@
 extern crate log;
 extern crate asprim;
 extern crate num_traits;
+extern crate vecstorage;
 
-#[cfg(feature = "jack-backend")]
+#[cfg(feature = "backend-file-hound")]
+extern crate hound;
+#[cfg(feature = "backend-jack")]
 extern crate jack;
-#[cfg(feature = "vst-backend")]
+#[cfg(feature = "backend-file-hound")]
+extern crate sample;
+#[cfg(feature = "backend-vst")]
 extern crate vst;
 
 #[macro_use]
 extern crate doc_comment;
+
+use crate::metaconfig::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 #[macro_use]
 pub mod dev_utilities;
@@ -73,6 +125,8 @@ pub mod middleware;
 pub mod utilities;
 
 doctest!("../README.md");
+
+pub mod metaconfig;
 
 // Notes about the design
 // ======================
@@ -102,13 +156,11 @@ doctest!("../README.md");
 // In this way, third party crates that define backends can define their own event types.
 //
 //
-// Associated constants for plugin meta-data
-// -----------------------------------------
-// The idea behind this is that it cannot change during the execution of the application.
-// I'm not sure if this was really a good idea, e.g. `MAX_NUMBER_OF_AUDIO_INPUTS` may be
-// read from a config file.
-// We're leaving this as it is for now until we have a better understanding of the requirements
-// for the meta-data (e.g. when we add support for LV2).
+// No associated constants for plugin meta-data
+// --------------------------------------------
+// The idea behind this was that it cannot change during the execution of the application.
+// We got rid of this in order to enable a more dynamic approach and in order to enable the
+// `Meta` trait.
 //
 // Separate `AudioRenderer` and `ContextualAudioRenderer` traits
 // -------------------------------------------------------------
@@ -176,7 +228,7 @@ doctest!("../README.md");
 // For these reasons, I have abandoned this design and started using the slices instead.
 // This in turn gives a problem for the API-wrappers, which will want to pre-allocate the buffer
 // for the slices, but want to use this buffer for slices with different lifetimes.
-// This has been solved by the `VecStorage` and `VecStorageMut` structs.
+// This has been solved by the `VecStorage` struct, which has moved to its own crate.
 //
 // One remaining issue is that the length of the buffer cannot be known when there are 0 inputs and
 // 0 outputs.
@@ -186,16 +238,20 @@ doctest!("../README.md");
 // Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
 // than one MIDI-port).
 
-/// Define the maximum number of inputs and the maximum number of outputs.
+/// Define the maximum number of audioinputs and the maximum number of audio outputs.
 /// Also defines how sample rate changes are handled.
-// TODO: Find a better name for this trait.
-pub trait AudioRendererMeta {
-    /// The maximum number of inputs supported.
-    const MAX_NUMBER_OF_AUDIO_INPUTS: usize;
+/// This trait can be more conveniently implemented by implementing the `Meta` trait.
+pub trait AudioHandlerMeta {
+    /// The maximum number of audio inputs supported.
+    /// This method should return the same value for subsequent calls.
+    fn max_number_of_audio_inputs(&self) -> usize;
 
-    /// The maximum number of audio outputs.
-    const MAX_NUMBER_OF_AUDIO_OUTPUTS: usize;
+    /// The maximum number of audio outputs supported.
+    /// This method should return the same value for subsequent calls.
+    fn max_number_of_audio_outputs(&self) -> usize;
+}
 
+pub trait AudioHandler: AudioHandlerMeta {
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
     /// any other.
@@ -204,65 +260,171 @@ pub trait AudioRendererMeta {
     /// `sample_rate`: The new sample rate in frames per second (Hz).
     /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, commonly used for video
     /// production.
+    // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
+    // TODO: there are no fractional sample rates. Maybe change the data type into u32?
     fn set_sample_rate(&mut self, sample_rate: f64);
+}
+
+/// Define the maximum number of midi inputs and the maximum number of midi outputs.
+/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+pub trait MidiHandlerMeta {
+    /// The maximum number of midi inputs supported.
+    /// This method should return the same value for subsequent calls.
+    fn max_number_of_midi_inputs(&self) -> usize;
+    /// The maximum number of midi outputs supported.
+    /// This method should return the same value for subsequent calls.
+    fn max_number_of_midi_outputs(&self) -> usize;
 }
 
 /// Defines how audio is rendered.
 ///
-/// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
-/// are all guaranteed to equal to each other.
-/// This shared length can however be different for subsequent calls to `render_buffer`.
-///
 /// The type parameter `F` refers to the floating point type.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<F>: AudioRendererMeta {
-    /// This method called repeatedly for subsequent buffers.
+pub trait AudioRenderer<F>: AudioHandler {
+    /// This method is called repeatedly for subsequent buffers.
     ///
     /// You may assume that the number of inputs (`inputs.len()`)
-    /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_INPUTS`.
+    /// is smaller than or equal to [`Self::max_number_of_audio_inputs()`].
     /// You may assume that the number of outputs (`outputs.len()`)
-    /// is smaller than or equal to `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`.
+    /// is smaller than or equal to [`Self::max_number_of_audio_outputs()`].
+    ///
+    /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
+    /// are all guaranteed to equal to each other.
+    /// This shared length can however be different for subsequent calls to `render_buffer`.
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]);
 }
 
 /// Defines how audio is rendered, similar to the `AudioRenderer` trait.
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
-/// See the documentation of `AudioRenderer` for more information.
-// TODO: Add link to that documentation.
-pub trait ContextualAudioRenderer<F, Context>: AudioRendererMeta {
+/// See the documentation of [`AudioRenderer`] for more information.
+pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
     /// This method called repeatedly for subsequent buffers.
     ///
-    /// It is similar to the `render_buffer` from the `AudioRenderer` trait,
+    /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
     /// see its documentation for more information.
-    // TODO: Add link to that documentation.
     fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut Context);
 }
 
 /// Provides common meta-data of the plugin or application to the host.
 /// This trait is common for all backends that need this info.
+/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    const NAME: &'static str;
+    fn name<'a>(&'a self) -> &'a str;
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
-pub trait CommonAudioPortMeta: AudioRendererMeta {
+/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// The name of the audio input with the given index.
-    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_INPUTS`
+    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn audio_input_name(index: usize) -> String {
+    fn audio_input_name(&self, index: usize) -> String {
         format!("audio in {}", index)
     }
 
     /// The name of the audio output with the given index.
-    /// You can assume that `index` is strictly smaller than `Self::MAX_NUMBER_OF_AUDIO_OUTPUTS`
+    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_outputs()`].
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
-    fn audio_output_name(index: usize) -> String {
+    fn audio_output_name(&self, index: usize) -> String {
         format!("audio out {}", index)
+    }
+}
+
+/// Provides some meta-data of the midi-ports used by the plugin or application to the host.
+/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+pub trait CommonMidiPortMeta: MidiHandlerMeta {
+    /// The name of the midi input with the given index.
+    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].
+    ///
+    /// # Note
+    /// When using the Jack backend, this function should not return an empty string.
+    fn midi_input_name(&self, index: usize) -> String {
+        format!("midi in {}", index)
+    }
+
+    /// The name of the midi output with the given index.
+    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_outputs()`]
+    ///
+    /// # Note
+    /// When using the Jack backend, this function should not return an empty string.
+    fn midi_output_name(&self, index: usize) -> String {
+        format!("midi out {}", index)
+    }
+}
+
+impl<T> CommonPluginMeta for T
+where
+    T: Meta,
+    T::MetaData: General,
+    <<T as Meta>::MetaData as General>::GeneralData: Name,
+{
+    fn name<'a>(&'a self) -> &'a str {
+        self.meta().general().name()
+    }
+}
+
+impl<T> AudioHandlerMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<AudioPort>,
+{
+    fn max_number_of_audio_inputs(&self) -> usize {
+        self.meta().in_ports().len()
+    }
+
+    fn max_number_of_audio_outputs(&self) -> usize {
+        self.meta().out_ports().len()
+    }
+}
+
+impl<T> CommonAudioPortMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<AudioPort>,
+    <<T as Meta>::MetaData as Port<AudioPort>>::PortData: Name,
+{
+    fn audio_input_name(&self, index: usize) -> String {
+        self.meta().in_ports()[index].name().to_string()
+    }
+
+    fn audio_output_name(&self, index: usize) -> String {
+        self.meta().out_ports()[index].name().to_string()
+    }
+}
+
+impl<T> MidiHandlerMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<MidiPort>,
+{
+    fn max_number_of_midi_inputs(&self) -> usize {
+        self.meta().in_ports().len()
+    }
+
+    fn max_number_of_midi_outputs(&self) -> usize {
+        self.meta().out_ports().len()
+    }
+}
+
+impl<T> CommonMidiPortMeta for T
+where
+    T: Meta,
+    T::MetaData: Port<MidiPort>,
+    <<T as Meta>::MetaData as Port<MidiPort>>::PortData: Name,
+{
+    fn midi_input_name(&self, index: usize) -> String {
+        // TODO: It doesn't feel right that we have to do a `to_string` here.
+        self.meta().in_ports()[index].name().to_string()
+    }
+
+    fn midi_output_name(&self, index: usize) -> String {
+        // TODO: It doesn't feel right that we have to do a `to_string` here.
+        self.meta().out_ports()[index].name().to_string()
     }
 }

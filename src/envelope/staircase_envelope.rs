@@ -1,5 +1,5 @@
 use super::{Envelope, EnvelopeIteratorItem};
-use crate::event::event_queue::EventQueue;
+use crate::event::event_queue::{AlwaysRemoveOld, EventQueue};
 use crate::event::Timed;
 
 pub struct StairCaseEnvelopeIterator<'a, T>
@@ -111,7 +111,7 @@ where
     }
 
     fn insert_event(&mut self, new_event: Timed<T>) {
-        self.event_queue.queue_event(new_event);
+        self.event_queue.queue_event(new_event, AlwaysRemoveOld);
     }
 
     fn forget_past(&mut self, number_of_frames_to_forget: u32) {

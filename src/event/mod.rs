@@ -1,6 +1,7 @@
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
 use std::convert::{AsMut, AsRef};
+use std::fmt::{Debug, Error, Formatter};
 
 pub mod event_queue;
 
@@ -16,9 +17,19 @@ pub trait ContextualEventHandler<E, Context> {
 }
 
 /// A System Exclusive ("SysEx") event.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SysExEvent<'a> {
     data: &'a [u8],
+}
+
+impl<'a> Debug for SysExEvent<'a> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "SysExEvent{{data (length: {:?}): &[", self.data.len())?;
+        for byte in self.data {
+            write!(f, "{:X} ", byte)?;
+        }
+        write!(f, "]}}")
+    }
 }
 
 impl<'a> SysExEvent<'a> {
@@ -33,15 +44,56 @@ impl<'a> SysExEvent<'a> {
 }
 
 /// A raw midi event.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RawMidiEvent {
     data: [u8; 3],
+    length: usize,
+}
+
+impl Debug for RawMidiEvent {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match self.length {
+            1 => write!(f, "RawMidiEvent({:X})", self.data[0]),
+            2 => write!(f, "RawMidiEvent({:X} {:X})", self.data[0], self.data[1]),
+            3 => write!(
+                f,
+                "RawMidiEvent({:X} {:X} {:X})",
+                self.data[0], self.data[1], self.data[2]
+            ),
+            _ => unreachable!("Raw midi event is expected to have length 1, 2 or 3."),
+        }
+    }
 }
 
 impl RawMidiEvent {
     /// Create a new `RawMidiEvent` with the given raw data.
-    pub fn new(data: [u8; 3]) -> Self {
-        Self { data }
+    ///
+    /// Panics
+    /// ------
+    /// Panics when `data` does not have length 1, 2 or 3.
+    #[inline]
+    pub fn new(data: &[u8]) -> Self {
+        Self::try_new(data).expect("Raw midi event is expected to have length 1, 2 or 3.")
+    }
+
+    /// Try to create a new `RawMidiEvent` with the given raw data.
+    /// Return None when `data` does not have length 1, 2 or 3.
+    pub fn try_new(data: &[u8]) -> Option<Self> {
+        match data.len() {
+            1 => Some(Self {
+                data: [data[0], 0, 0],
+                length: data.len(),
+            }),
+            2 => Some(Self {
+                data: [data[0], data[1], 0],
+                length: data.len(),
+            }),
+            3 => Some(Self {
+                data: [data[0], data[1], data[2]],
+                length: data.len(),
+            }),
+            _ => None,
+        }
     }
     /// Get the raw data from a `RawMidiEvent`.
     pub fn data(&self) -> &[u8; 3] {
@@ -76,7 +128,9 @@ pub mod raw_midi_event_event_types {
 /// `Timed<E>` adds timing to an event.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Timed<E> {
-    /// The offset (in frames) of the event.
+    /// The offset (in frames) of the event relative to the start of
+    /// the audio buffer.
+    ///
     /// E.g. when `time_in_frames` is 6, this means that
     /// the event happens on the sixth frame of the buffer in the call to
     /// the [`render_buffer`] method of the `Plugin` trait.
@@ -117,6 +171,47 @@ impl<E> AsRef<E> for Timed<E> {
 }
 
 impl<E> AsMut<E> for Timed<E> {
+    fn as_mut(&mut self) -> &mut E {
+        &mut self.event
+    }
+}
+
+/// `Indexed<E>` adds an index to an event.
+#[derive(PartialEq, Eq, Debug)]
+pub struct Indexed<E> {
+    /// The index of the event
+    pub index: usize,
+    /// The underlying event.
+    pub event: E,
+}
+
+impl<E> Indexed<E> {
+    pub fn new(index: usize, event: E) -> Self {
+        Self { index, event }
+    }
+}
+
+impl<E> Clone for Indexed<E>
+where
+    E: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            index: self.index,
+            event: self.event.clone(),
+        }
+    }
+}
+
+impl<E> Copy for Indexed<E> where E: Copy {}
+
+impl<E> AsRef<E> for Indexed<E> {
+    fn as_ref(&self) -> &E {
+        &self.event
+    }
+}
+
+impl<E> AsMut<E> for Indexed<E> {
     fn as_mut(&mut self) -> &mut E {
         &mut self.event
     }
