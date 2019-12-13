@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Additive","Output by adding the sample to what is already in the output. Useful in a polyphonic context."],["Substitution","Output by replacing what is already in the output by the given value. Useful in a monophonic context."]],"trait":[["OutputMode","Defines a method to set an output sample."]]});

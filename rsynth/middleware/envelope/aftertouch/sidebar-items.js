@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["AfterTouchContext",""],["AfterTouchMarker",""],["AfterTouchMiddleware",""],["EnvelopeContextWrapper",""]],"trait":[["AfterTouchEvent",""]]});

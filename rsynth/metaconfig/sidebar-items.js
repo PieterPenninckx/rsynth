@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AudioPort","A \"marker\" struct"],["InOut",""],["MetaData",""],["MidiPort","A \"marker\" struct"]],"trait":[["General",""],["Meta",""],["Name",""],["Port",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["EventDispatchClass",""],["VoiceAssignment",""]],"mod":[["simple_event_dispatching",""]],"struct":[["RawMidiEventToneIdentifierDispatchClassifier",""],["ToneIdentifier",""]],"trait":[["ContextualEventDispatcher",""],["EventDispatchClassifier",""],["EventDispatcher",""],["Voice",""],["VoiceAssigner",""]]});

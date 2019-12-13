@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["run","Run the plugin until the user presses a key on the computer keyboard."]]});
+initSidebarItems({"fn":[["run","Run the plugin until the user presses a key on the computer keyboard."]],"struct":[["JackHost",""]]});

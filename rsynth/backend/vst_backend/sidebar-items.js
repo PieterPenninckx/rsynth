@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["VstPluginWrapper","A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this."]],"trait":[["VstPlugin","A VST plugin should implement this trait in addition to the `Plugin` trait."]]});
+initSidebarItems({"struct":[["VstPluginWrapper","A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this."]],"trait":[["VstPluginMeta","A VST plugin should implement this trait in addition to some other traits."]]});

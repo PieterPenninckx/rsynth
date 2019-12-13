@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["Transparent","A trait for defining middleware that can work with different back-ends."]]});

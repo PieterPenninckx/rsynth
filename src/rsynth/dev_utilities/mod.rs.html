@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/dev_utilities/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../rsynth/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/dev_utilities/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -211,201 +211,6 @@
 <span id="211">211</span>
 <span id="212">212</span>
 <span id="213">213</span>
-<span id="214">214</span>
-<span id="215">215</span>
-<span id="216">216</span>
-<span id="217">217</span>
-<span id="218">218</span>
-<span id="219">219</span>
-<span id="220">220</span>
-<span id="221">221</span>
-<span id="222">222</span>
-<span id="223">223</span>
-<span id="224">224</span>
-<span id="225">225</span>
-<span id="226">226</span>
-<span id="227">227</span>
-<span id="228">228</span>
-<span id="229">229</span>
-<span id="230">230</span>
-<span id="231">231</span>
-<span id="232">232</span>
-<span id="233">233</span>
-<span id="234">234</span>
-<span id="235">235</span>
-<span id="236">236</span>
-<span id="237">237</span>
-<span id="238">238</span>
-<span id="239">239</span>
-<span id="240">240</span>
-<span id="241">241</span>
-<span id="242">242</span>
-<span id="243">243</span>
-<span id="244">244</span>
-<span id="245">245</span>
-<span id="246">246</span>
-<span id="247">247</span>
-<span id="248">248</span>
-<span id="249">249</span>
-<span id="250">250</span>
-<span id="251">251</span>
-<span id="252">252</span>
-<span id="253">253</span>
-<span id="254">254</span>
-<span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
-<span id="261">261</span>
-<span id="262">262</span>
-<span id="263">263</span>
-<span id="264">264</span>
-<span id="265">265</span>
-<span id="266">266</span>
-<span id="267">267</span>
-<span id="268">268</span>
-<span id="269">269</span>
-<span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
-<span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
-<span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
-<span id="289">289</span>
-<span id="290">290</span>
-<span id="291">291</span>
-<span id="292">292</span>
-<span id="293">293</span>
-<span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
-<span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
-<span id="303">303</span>
-<span id="304">304</span>
-<span id="305">305</span>
-<span id="306">306</span>
-<span id="307">307</span>
-<span id="308">308</span>
-<span id="309">309</span>
-<span id="310">310</span>
-<span id="311">311</span>
-<span id="312">312</span>
-<span id="313">313</span>
-<span id="314">314</span>
-<span id="315">315</span>
-<span id="316">316</span>
-<span id="317">317</span>
-<span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
-<span id="322">322</span>
-<span id="323">323</span>
-<span id="324">324</span>
-<span id="325">325</span>
-<span id="326">326</span>
-<span id="327">327</span>
-<span id="328">328</span>
-<span id="329">329</span>
-<span id="330">330</span>
-<span id="331">331</span>
-<span id="332">332</span>
-<span id="333">333</span>
-<span id="334">334</span>
-<span id="335">335</span>
-<span id="336">336</span>
-<span id="337">337</span>
-<span id="338">338</span>
-<span id="339">339</span>
-<span id="340">340</span>
-<span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
-<span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
-<span id="355">355</span>
-<span id="356">356</span>
-<span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
-<span id="360">360</span>
-<span id="361">361</span>
-<span id="362">362</span>
-<span id="363">363</span>
-<span id="364">364</span>
-<span id="365">365</span>
-<span id="366">366</span>
-<span id="367">367</span>
-<span id="368">368</span>
-<span id="369">369</span>
-<span id="370">370</span>
-<span id="371">371</span>
-<span id="372">372</span>
-<span id="373">373</span>
-<span id="374">374</span>
-<span id="375">375</span>
-<span id="376">376</span>
-<span id="377">377</span>
-<span id="378">378</span>
-<span id="379">379</span>
-<span id="380">380</span>
-<span id="381">381</span>
-<span id="382">382</span>
-<span id="383">383</span>
-<span id="384">384</span>
-<span id="385">385</span>
-<span id="386">386</span>
-<span id="387">387</span>
-<span id="388">388</span>
-<span id="389">389</span>
-<span id="390">390</span>
-<span id="391">391</span>
-<span id="392">392</span>
-<span id="393">393</span>
-<span id="394">394</span>
-<span id="395">395</span>
-<span id="396">396</span>
-<span id="397">397</span>
-<span id="398">398</span>
-<span id="399">399</span>
-<span id="400">400</span>
-<span id="401">401</span>
-<span id="402">402</span>
-<span id="403">403</span>
-<span id="404">404</span>
-<span id="405">405</span>
-<span id="406">406</span>
-<span id="407">407</span>
-<span id="408">408</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Utilities to be used when developing backends and middleware.</span>
 <span class="doccomment">//!</span>
@@ -416,40 +221,6 @@
 <span class="doccomment">//! a backend in a separate crate. If you encounter problems that prevent you</span>
 <span class="doccomment">//! from writing your backend in a separate crate (e.g., we have forgotten to</span>
 <span class="doccomment">//! mark something as `pub`), let us know by opening an issue.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Creating an input buffer and an output buffer</span>
-<span class="doccomment">//! ---------------------------------------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! When you pass `&amp;[&amp;[f32]]` for the input buffer and `&amp;mut[&amp;mut[f32]]`</span>
-<span class="doccomment">//! for the output buffer, you may face the challenge that you can have</span>
-<span class="doccomment">//! the buffers for each channel and you can `collect()` them into a `Vec`,</span>
-<span class="doccomment">//! but you don&#39;t want to allocate that `Vec` in the real-time thread.</span>
-<span class="doccomment">//! In order you to help overcome this problem, we provide</span>
-<span class="doccomment">//! [`VecStorage` and `VecStorageMut`], which you can pre-allocate and re-use for every</span>
-<span class="doccomment">//! call to `render_buffer` with different lifetimes of the slices.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Writing a custom trait for a backend</span>
-<span class="doccomment">//! ------------------------------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! When the backend needs a special trait to be implemented by the plugin,</span>
-<span class="doccomment">//! ideally all middleware should &quot;pass trough&quot; this trait. The middleware</span>
-<span class="doccomment">//! does this by implementing the [`Transparent`] trait. The backend needs</span>
-<span class="doccomment">//! to be able to &quot;look trough&quot; the middleware. This can be achieved by using</span>
-<span class="doccomment">//! a blanket impl as follows:</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use rsynth::dev_utilities::transparent::Transparent;</span>
-<span class="doccomment">//! trait MyCustomTrait {</span>
-<span class="doccomment">//!     // ...</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl&lt;T&gt; MyCustomTrait for T</span>
-<span class="doccomment">//! where</span>
-<span class="doccomment">//!    T: Transparent,</span>
-<span class="doccomment">//!    &lt;T as Transparent&gt;::Inner: MyCustomTrait,</span>
-<span class="doccomment">//! {</span>
-<span class="doccomment">//!     // ...</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Writing custom events</span>
 <span class="doccomment">//! ---------------------</span>
@@ -462,198 +233,6 @@
 <span class="doccomment">//! When you publish a backend crate, let us know by opening an issue or pull request</span>
 <span class="doccomment">//! so that we can link to it in the documentation of rsynth.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Writing middleware</span>
-<span class="doccomment">//! ==================</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Implementing backend-specific traits</span>
-<span class="doccomment">//! ------------------------------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Some backends might require plugins to implement a trait specific for that</span>
-<span class="doccomment">//! backend. In order to implement this trait for the middleware as well,</span>
-<span class="doccomment">//! you can simply implement the [`Transparent`] trait. A blanket impl defined</span>
-<span class="doccomment">//! by the backend will then ensure that the middleware also implements the</span>
-<span class="doccomment">//! backend specific trait.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Handling events</span>
-<span class="doccomment">//! ---------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Middleware needs to implement [`EventHandler`] for &quot;all&quot; events.</span>
-<span class="doccomment">//! If the middleware does not do anything with events at all, it is</span>
-<span class="doccomment">//! easy to simply pass it to the child:</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use rsynth::event::EventHandler;</span>
-<span class="doccomment">//! struct MyMiddleware&lt;P&gt; {</span>
-<span class="doccomment">//!     child: P</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! impl&lt;E, P, C&gt; EventHandler&lt;E, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where P: EventHandler&lt;E, C&gt; {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: E, context: &amp;mut C) {</span>
-<span class="doccomment">//!         self.child.handle_event(event, context);</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! When trying to handle one event type in a special way, this no longer</span>
-<span class="doccomment">//! works because Rust does not yet support specialization (at the time of writing):</span>
-<span class="doccomment">//! the following will not compile.</span>
-<span class="doccomment">//! ```compile_fail</span>
-<span class="doccomment">//! use rsynth::event::EventHandler;</span>
-<span class="doccomment">//! struct MyMiddleware&lt;P&gt; {</span>
-<span class="doccomment">//!     child: P</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! impl&lt;E, P, C&gt; EventHandler&lt;E, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where P: EventHandler&lt;E, C&gt; {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: E, context: &amp;mut C) {</span>
-<span class="doccomment">//!         self.child.handle_event(event, context);</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! # struct SpecialEventType {}</span>
-<span class="doccomment">//! impl&lt;P, C&gt; EventHandler&lt;SpecialEventType, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: SpecialEventType, context: &amp;mut C) {</span>
-<span class="doccomment">//!         // Do something specific with the middleware.</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! You can solve this problem in two ways, depending on the type that</span>
-<span class="doccomment">//! you want to handle in a special way. These techniques are supported by the [`syllogism`] crate</span>
-<span class="doccomment">//! and will be described below.</span>
-<span class="doccomment">//! Additionally, we advise to provide support using specialization in addition to the techniques</span>
-<span class="doccomment">//! from the [`syllogism`] crate. This allows you to ensure that your middleware still works when</span>
-<span class="doccomment">//! we would switch from the [`syllogism`] crate to using specializationg, once that gets</span>
-<span class="doccomment">//! stabilized.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! In order to support specialization, you can edit tthe `Cargo.toml` file as follows:</span>
-<span class="doccomment">//! ```toml</span>
-<span class="doccomment">//! [features]</span>
-<span class="doccomment">//! default=[&quot;stable&quot;]</span>
-<span class="doccomment">//! stable=[&quot;syllogism&quot;, &quot;syllogism-macro&quot;]</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! [dependencies]</span>
-<span class="doccomment">//! syllogism = {version = &quot;0.1&quot;, optional = true}</span>
-<span class="doccomment">//! syllogism-macro = {version = &quot;0.1&quot;, optional = true}</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! In order to support specilization, you can change your source code as follows:</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! // In the root module:</span>
-<span class="doccomment">//! #![cfg_attr(not(feature = &quot;stable&quot;), feature(specialization))]</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # use rsynth::event::EventHandler;</span>
-<span class="doccomment">//! # struct MyMiddleware&lt;P&gt; {</span>
-<span class="doccomment">//! #     child: P</span>
-<span class="doccomment">//! # }</span>
-<span class="doccomment">//! // Near the definition of `MyMiddleware`</span>
-<span class="doccomment">//! #[cfg(not(feature = &quot;stable&quot;))]</span>
-<span class="doccomment">//! impl&lt;E, P, C&gt; EventHandler&lt;E, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where // ...</span>
-<span class="doccomment">//! {</span>
-<span class="doccomment">//!     default fn handle_event(&amp;mut self, event: E, context: &amp;mut C) {</span>
-<span class="doccomment">//!         // The generic implementation.</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # struct SpecialEventType {}</span>
-<span class="doccomment">//! #[cfg(not(feature = &quot;stable&quot;))]</span>
-<span class="doccomment">//! impl&lt;P, C&gt; EventHandler&lt;SpecialEventType, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where // ...</span>
-<span class="doccomment">//! {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: SpecialEventType, context: &amp;mut C) {</span>
-<span class="doccomment">//!         // The specific implementation.</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ### Specializing for events with a concrete type using the `syllogism` crate</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! If the event type for which you want to specialize is a concrete type,</span>
-<span class="doccomment">//! you can use the [`IsNot`] trait from the [`syllogism`] crate to distinguish the generic</span>
-<span class="doccomment">//! types from the special type.</span>
-<span class="doccomment">//! Because no event type should implement `IsNot&lt;Self&gt;`, the compiler</span>
-<span class="doccomment">//! knows there is no overlap. All event types should implement `IsNot&lt;T&gt;` for all</span>
-<span class="doccomment">//! other types `T`. How this is achieved, is explained below.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use rsynth::event::EventHandler;</span>
-<span class="doccomment">//! use syllogism::IsNot;</span>
-<span class="doccomment">//! struct MyMiddleware&lt;P&gt; {</span>
-<span class="doccomment">//!     child: P</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! # struct SpecialEventType {}</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // If you are also supporting specialization as described above,</span>
-<span class="doccomment">//! // this should be behind the `#[cfg(feature = &quot;stable&quot;)]` attribute.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // The generic event types</span>
-<span class="doccomment">//! impl&lt;E, P, C&gt; EventHandler&lt;E, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where P: EventHandler&lt;E, C&gt; , E: IsNot&lt;SpecialEventType&gt; {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: E, context: &amp;mut C) {</span>
-<span class="doccomment">//!         self.child.handle_event(event, context);</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // If you are also supporting specialization as described above,</span>
-<span class="doccomment">//! // this should be behind the `#[cfg(feature = &quot;stable&quot;)]` attribute.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // The special event type</span>
-<span class="doccomment">//! impl&lt;P, C&gt; EventHandler&lt;SpecialEventType, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: SpecialEventType, context: &amp;mut C) {</span>
-<span class="doccomment">//!         // Do something specific with the middleware.</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ### Specializing for events of a type parameter using the `syllogism` crate</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! If the event type for which you want to specialize is a type parameter,</span>
-<span class="doccomment">//! you cannot use the `IsNot` trait because the compiler cannot know that</span>
-<span class="doccomment">//! no type (even not in a dependent crate) will implement `IsNot&lt;Self&gt;`.</span>
-<span class="doccomment">//! Not implementing `IsNot&lt;Self&gt;` is just a convention,</span>
-<span class="doccomment">//! it is not compiler-enforced and the compiler cannot see</span>
-<span class="doccomment">//! this. To work around this, you can use the [`Specialize`] trait from the</span>
-<span class="doccomment">//! [`syllogism`] crate:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use rsynth::event::EventHandler;</span>
-<span class="doccomment">//! use syllogism::{Specialize, Distinction};</span>
-<span class="doccomment">//! struct MyMiddleware&lt;P&gt; {</span>
-<span class="doccomment">//!     child: P</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! # struct SpecialEventType {}</span>
-<span class="doccomment">//! # impl Specialize&lt;SpecialEventType&gt; for SpecialEventType {</span>
-<span class="doccomment">//! #   fn specialize(self) -&gt; Distinction&lt;SpecialEventType, Self&gt; { Distinction::Special(self) }</span>
-<span class="doccomment">//! # }</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // If you are also supporting specialization as described above,</span>
-<span class="doccomment">//! // this should be behind the `#[cfg(feature = &quot;stable&quot;)]` attribute.</span>
-<span class="doccomment">//! impl&lt;E, P, C&gt; EventHandler&lt;E, C&gt; for MyMiddleware&lt;P&gt;</span>
-<span class="doccomment">//! where P: EventHandler&lt;E, C&gt; , E: Specialize&lt;SpecialEventType&gt; {</span>
-<span class="doccomment">//!     fn handle_event(&amp;mut self, event: E, context: &amp;mut C) {</span>
-<span class="doccomment">//!         match event.specialize() {</span>
-<span class="doccomment">//!             Distinction::Special(special) =&gt; {</span>
-<span class="doccomment">//!                 // Do something special</span>
-<span class="doccomment">//!             },</span>
-<span class="doccomment">//!             Distinction::Generic(generic) =&gt; {</span>
-<span class="doccomment">//!                 // self.child.handle_event(generic, context);</span>
-<span class="doccomment">//!             }</span>
-<span class="doccomment">//!         }</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Writing special events for the middleware</span>
-<span class="doccomment">//! -----------------------------------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! See [&quot;Writing events&quot; below].</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Publishing a middleware crate</span>
-<span class="doccomment">//! -----------------------------</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! When you publish a middleware crate, let us know by opening an issue or pull request</span>
-<span class="doccomment">//! so that we can link to it in the documentation of `rsynth`.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Writing events</span>
 <span class="doccomment">//! ==============</span>
@@ -664,156 +243,187 @@
 <span class="doccomment">//! If possible, implement the `Copy` trait for the event,</span>
 <span class="doccomment">//! so that the `Polyphonic` middleware can dispatch this event to all the voices.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Compatibility</span>
-<span class="doccomment">//! -------------</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! In order to allow specialization for the middleware (see above),</span>
-<span class="doccomment">//! any event type `T1` needs to implement</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * `IsNot&lt;T2&gt;` for every event type `T2` that differs from `T1`</span>
-<span class="doccomment">//! * `Specialize&lt;T&gt;` for every event type `T`, including `T1` itself.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Here &quot;every event type&quot; also needs to include event types defined in other crates that you may</span>
-<span class="doccomment">//! or may not know about. In order to make this possible, open an issue for `rsynth` announcing</span>
-<span class="doccomment">//! that you want to develop a crate and we can provide you</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * a trait that is implemented for all event types defined outside your crate</span>
-<span class="doccomment">//! * a macro that you should use for all event types defined in your crate.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! In the meanwhile, you can use the trait `NotInUnpublishedCrate` and the macro</span>
-<span class="doccomment">//! `macro_for_unpublished_crate`.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Please note that there are some subtleties around defining events with conditional compilation.</span>
-<span class="doccomment">//! If you are planning to define some events only when some compile-time conditions are met,</span>
-<span class="doccomment">//! please state so in the issue and we can discuss how we will handle this.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ### Compatibility in the manual way</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! You can manually implement `IsNot` and `Specialize` as follows.</span>
-<span class="doccomment">//! We include this documentation for clarity; in practice, you may want</span>
-<span class="doccomment">//! to use the macro&#39;s as explained below in order to lower the risk that</span>
-<span class="doccomment">//! you forget something.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! #### Implementing `IsNot` by hand</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! If you declare more than one event type, you need to ensure that each</span>
-<span class="doccomment">//! event type implements `IsNot` of each other. Suppose that you can</span>
-<span class="doccomment">//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`,</span>
-<span class="doccomment">//! then you can ensure by hand that `IsNot` is implemented:</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use syllogism::IsNot;</span>
-<span class="doccomment">//! # trait NotInMyCrate {}</span>
-<span class="doccomment">//! # macro_rules! macro_for_my_crate {</span>
-<span class="doccomment">//! # ($($t:tt)*) =&gt; {}</span>
-<span class="doccomment">//! # }</span>
-<span class="doccomment">//! struct EventType1 {}</span>
-<span class="doccomment">//! struct EventType2 {}</span>
-<span class="doccomment">//! struct EventType3 {}</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl IsNot&lt;EventType2&gt; for EventType1 {}</span>
-<span class="doccomment">//! impl IsNot&lt;EventType3&gt; for EventType1 {}</span>
-<span class="doccomment">//! impl&lt;T&gt; IsNot&lt;T&gt; for EventType1 where T: NotInMyCrate {}</span>
-<span class="doccomment">//! macro_for_my_crate!(impl trait for EventType1);</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl IsNot&lt;EventType1&gt; for EventType2 {}</span>
-<span class="doccomment">//! impl IsNot&lt;EventType3&gt; for EventType2 {}</span>
-<span class="doccomment">//! impl&lt;T&gt; IsNot&lt;T&gt; for EventType2 where T: NotInMyCrate {}</span>
-<span class="doccomment">//! macro_for_my_crate!(impl trait for EventType2);</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl IsNot&lt;EventType1&gt; for EventType3 {}</span>
-<span class="doccomment">//! impl IsNot&lt;EventType2&gt; for EventType3 {}</span>
-<span class="doccomment">//! impl&lt;T&gt; IsNot&lt;T&gt; for EventType3 where T: NotInMyCrate {}</span>
-<span class="doccomment">//! macro_for_my_crate!(impl trait for EventType3);</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! #### Implementing `Specialize` by hand</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Each event type needs to implement `Specialize&lt;Self&gt;`.</span>
-<span class="doccomment">//! Additionally, if you declare more than one event type, you need to ensure that each</span>
-<span class="doccomment">//! event type implements `Specialize` of each other.</span>
-<span class="doccomment">//! Suppose that you can</span>
-<span class="doccomment">//! use the trait `NotInMyCrate` and the macro `macro_for_my_crate`, then you can ensure by hand</span>
-<span class="doccomment">//! that `Specialize` is implemented:</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use syllogism::{Specialize, Distinction};</span>
-<span class="doccomment">//! # trait NotInMyCrate {}</span>
-<span class="doccomment">//! # macro_rules! macro_for_my_crate {</span>
-<span class="doccomment">//! # ($($t:tt)*) =&gt; {}</span>
-<span class="doccomment">//! # }</span>
-<span class="doccomment">//! struct EventType1 {}</span>
-<span class="doccomment">//! struct EventType2 {}</span>
-<span class="doccomment">//! struct EventType3 {}</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl Specialize&lt;EventType1&gt; for EventType1 {</span>
-<span class="doccomment">//!     fn specialize(self) -&gt; Distinction&lt;EventType1, Self&gt; {</span>
-<span class="doccomment">//!         Distinction::Special(self)</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! impl Specialize&lt;EventType2&gt; for EventType1 {</span>
-<span class="doccomment">//!     fn specialize(self) -&gt; Distinction&lt;EventType2, Self&gt; {</span>
-<span class="doccomment">//!         Distinction::Generic(self)</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! impl Specialize&lt;EventType3&gt; for EventType1 {</span>
-<span class="doccomment">//!     fn specialize(self) -&gt; Distinction&lt;EventType3, Self&gt; {</span>
-<span class="doccomment">//!         Distinction::Generic(self)</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! impl&lt;T&gt; Specialize&lt;T&gt; for EventType1 where T: NotInMyCrate {</span>
-<span class="doccomment">//!     fn specialize(self) -&gt; Distinction&lt;T, Self&gt; {</span>
-<span class="doccomment">//!         Distinction::Generic(self)</span>
-<span class="doccomment">//!     }</span>
-<span class="doccomment">//! }</span>
-<span class="doccomment">//! macro_for_my_crate!(impl trait for EventType1);</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! // And similar for `EventType2` and `EventType3`, I&#39;m omitting this for brevity.</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ### Compatibility by using the macros from `syllogism-macro`</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Most of the implementations of `IsNot` and `Specialize` can be done by using</span>
-<span class="doccomment">//! the macro [`impl_specialization`] from the `syllogism-macro` crate:</span>
-<span class="doccomment">//! under the same assumptions as above, this can be simplified</span>
-<span class="doccomment">//! to the following (but see the note below for types with type parameters):</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! use syllogism_macro::impl_specialization;</span>
-<span class="doccomment">//! # trait NotInMyCrate {}</span>
-<span class="doccomment">//! # macro_rules! macro_for_my_crate {</span>
-<span class="doccomment">//! # ($($t:tt)*) =&gt; {}</span>
-<span class="doccomment">//! # }</span>
-<span class="doccomment">//! struct EventType1 {}</span>
-<span class="doccomment">//! struct EventType2 {}</span>
-<span class="doccomment">//! struct EventType3 {}</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! impl_specialization!(</span>
-<span class="doccomment">//!     trait NotInMyCrate;</span>
-<span class="doccomment">//!     macro macro_for_my_crate;</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//!     type EventType1;</span>
-<span class="doccomment">//!     type EventType2;</span>
-<span class="doccomment">//!     type EventType3;</span>
-<span class="doccomment">//! );</span>
-<span class="doccomment">//! # fn main () {}</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! The caveats are that for types with type parameters, you still need to implement `Specialize`</span>
-<span class="doccomment">//! by hand and if you have more types with type parameters, you must use different names for</span>
-<span class="doccomment">//! the type parameters in the call to the [`impl_specialization`] macro.</span>
-<span class="doccomment">//! For more information, see the documentation of [`impl_specialization`].</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! [`VecStorage` and `VecStorageMut`]: ./vecstorage/index.html</span>
-<span class="doccomment">//! [`Transparent`]: ./transparent/trait.Transparent.html</span>
-<span class="doccomment">//! [`EventHandler`]: ../event/trait.EventHandler.html</span>
 <span class="doccomment">//! [&quot;Writing events&quot; below]: ./index.html#writing-events</span>
-<span class="doccomment">//! [`syllogism`]: https://docs.rs/syllogism/0.1.0/syllogism/</span>
-<span class="doccomment">//! [`IsNot`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.IsNot.html</span>
-<span class="doccomment">//! [`Specialize`]: https://docs.rs/syllogism/0.1.0/syllogism/trait.Specialize.html</span>
-<span class="doccomment">//! [`impl_specialization`]: https://docs.rs/syllogism-macro/0.1.0/syllogism_macro/macro.impl_specialization.html</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">transparent</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">vecstorage</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">dev_utilities</span>::<span class="ident">chunk</span>::<span class="ident">AudioChunk</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::<span class="ident">EventHandler</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">AudioHandler</span>, <span class="ident">AudioHandlerMeta</span>, <span class="ident">AudioRenderer</span>, <span class="ident">ContextualAudioRenderer</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>;
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;stable&quot;</span>)]</span>
-<span class="attribute">#[<span class="ident">doc</span>(<span class="ident">hidden</span>)]</span>
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">compatibility</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">chunk</span>;
+
+<span class="doccomment">/// A plugin useful for writing automated tests.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span>: <span class="ident">AudioHandlerMeta</span><span class="op">&gt;</span> {
+    <span class="ident">expected_inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AudioChunk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">provided_outputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AudioChunk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">expected_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">provided_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">meta</span>: <span class="ident">M</span>,
+    <span class="ident">buffer_index</span>: <span class="ident">usize</span>,
+    <span class="ident">event_index</span>: <span class="ident">usize</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span>: <span class="ident">AudioHandlerMeta</span><span class="op">&gt;</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
+        <span class="ident">expected_inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AudioChunk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
+        <span class="ident">provided_outputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AudioChunk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
+        <span class="ident">expected_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;&gt;</span>,
+        <span class="ident">provided_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;&gt;</span>,
+        <span class="ident">meta</span>: <span class="ident">M</span>,
+    ) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">expected_inputs</span>.<span class="ident">len</span>(), <span class="ident">provided_outputs</span>.<span class="ident">len</span>());
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">expected_inputs</span>.<span class="ident">len</span>(), <span class="ident">expected_events</span>.<span class="ident">len</span>());
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">expected_inputs</span>.<span class="ident">len</span>(), <span class="ident">provided_events</span>.<span class="ident">len</span>());
+        <span class="ident">TestPlugin</span> {
+            <span class="ident">expected_inputs</span>,
+            <span class="ident">provided_outputs</span>,
+            <span class="ident">expected_events</span>,
+            <span class="ident">provided_events</span>,
+            <span class="ident">meta</span>,
+            <span class="ident">buffer_index</span>: <span class="number">0</span>,
+            <span class="ident">event_index</span>: <span class="number">0</span>,
+        }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">check_last</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">buffer_index</span>, <span class="self">self</span>.<span class="ident">expected_inputs</span>.<span class="ident">len</span>());
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span> <span class="ident">AudioHandlerMeta</span> <span class="kw">for</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">M</span>: <span class="ident">AudioHandlerMeta</span>,
+{
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">meta</span>.<span class="ident">max_number_of_audio_inputs</span>()
+    }
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">meta</span>.<span class="ident">max_number_of_audio_outputs</span>()
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span> <span class="ident">AudioHandler</span> <span class="kw">for</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">M</span>: <span class="ident">AudioHandler</span>,
+{
+    <span class="kw">fn</span> <span class="ident">set_sample_rate</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">sample_rate</span>: <span class="ident">f64</span>) {
+        <span class="self">self</span>.<span class="ident">meta</span>.<span class="ident">set_sample_rate</span>(<span class="ident">sample_rate</span>);
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span>, <span class="ident">C</span><span class="op">&gt;</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">C</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">M</span>: <span class="ident">AudioHandler</span>,
+    <span class="ident">F</span>: <span class="ident">PartialEq</span> <span class="op">+</span> <span class="ident">Debug</span> <span class="op">+</span> <span class="ident">Copy</span>,
+    <span class="ident">C</span>: <span class="ident">EventHandler</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;</span>,
+{
+    <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">inputs</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>[<span class="ident">F</span>]], <span class="ident">outputs</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">F</span>]], <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">C</span>) {
+        <span class="macro">assert</span><span class="macro">!</span>(
+            <span class="self">self</span>.<span class="ident">buffer_index</span> <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">expected_inputs</span>.<span class="ident">len</span>(),
+            <span class="string">&quot;`render_buffer` called more often than expected: expected only {} times&quot;</span>,
+            <span class="self">self</span>.<span class="ident">expected_inputs</span>.<span class="ident">len</span>()
+        );
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="self">self</span>.<span class="ident">event_index</span>,
+            <span class="self">self</span>.<span class="ident">expected_events</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>].<span class="ident">len</span>(),
+            <span class="string">&quot;`handle_event` called {} times for buffer {} (zero-based), but {} times was expected&quot;</span>,
+            <span class="self">self</span>.<span class="ident">event_index</span>,
+            <span class="self">self</span>.<span class="ident">buffer_index</span>,
+            <span class="self">self</span>.<span class="ident">expected_events</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>].<span class="ident">len</span>()
+        );
+        <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">=</span> <span class="number">0</span>;
+
+        <span class="kw">let</span> <span class="ident">expected_input_channels</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">expected_inputs</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>].<span class="ident">channels</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">inputs</span>.<span class="ident">len</span>(), <span class="ident">expected_input_channels</span>.<span class="ident">len</span>());
+        <span class="kw">for</span> (<span class="ident">input_channel_index</span>, <span class="ident">input_channel</span>) <span class="kw">in</span> <span class="ident">inputs</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+            <span class="kw">let</span> <span class="ident">expected_input_channel</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">expected_input_channels</span>[<span class="ident">input_channel_index</span>];
+            <span class="macro">assert_eq</span><span class="macro">!</span>(
+                <span class="ident">input_channel</span>.<span class="ident">len</span>(),
+                <span class="ident">expected_input_channel</span>.<span class="ident">len</span>(),
+                <span class="string">&quot;mismatch in input channel #{} in buffer #{}: \
+                 expected input channel with length {}, but got one with length {}&quot;</span>,
+                <span class="ident">input_channel_index</span>,
+                <span class="self">self</span>.<span class="ident">buffer_index</span>,
+                <span class="ident">input_channel</span>.<span class="ident">len</span>(),
+                <span class="ident">expected_input_channel</span>.<span class="ident">len</span>()
+            );
+            <span class="kw">for</span> (<span class="ident">sample_index</span>, <span class="ident">sample</span>) <span class="kw">in</span> <span class="ident">input_channel</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+                <span class="macro">assert_eq</span><span class="macro">!</span>(
+                    <span class="kw-2">*</span><span class="ident">sample</span>,
+                    <span class="ident">expected_input_channel</span>[<span class="ident">sample_index</span>],
+                    <span class="string">&quot;mismatch in input sample with index #{} in channel #{} in buffer #{}: \
+                     expected {:?} but got {:?}&quot;</span>,
+                    <span class="ident">sample_index</span>,
+                    <span class="ident">input_channel_index</span>,
+                    <span class="self">self</span>.<span class="ident">buffer_index</span>,
+                    <span class="ident">expected_input_channel</span>[<span class="ident">sample_index</span>],
+                    <span class="ident">sample</span>
+                );
+            }
+        }
+
+        <span class="kw">let</span> <span class="ident">expected_output_channels</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">provided_outputs</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>].<span class="ident">channels</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">outputs</span>.<span class="ident">len</span>(), <span class="ident">expected_output_channels</span>.<span class="ident">len</span>());
+        <span class="kw">for</span> (<span class="ident">output_channel_index</span>, <span class="ident">output_channel</span>) <span class="kw">in</span> <span class="ident">outputs</span>.<span class="ident">iter_mut</span>().<span class="ident">enumerate</span>() {
+            <span class="kw">let</span> <span class="ident">expected_output_channel</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">expected_output_channels</span>[<span class="ident">output_channel_index</span>];
+            <span class="macro">assert_eq</span><span class="macro">!</span>(
+                <span class="ident">output_channel</span>.<span class="ident">len</span>(),
+                <span class="ident">expected_output_channel</span>.<span class="ident">len</span>(),
+                <span class="string">&quot;mismatch in output channel #{} in buffer #{}: \
+                 expected one with length {}, but got one with length {}&quot;</span>,
+                <span class="ident">output_channel_index</span>,
+                <span class="self">self</span>.<span class="ident">buffer_index</span>,
+                <span class="ident">expected_output_channel</span>.<span class="ident">len</span>(),
+                <span class="ident">output_channel</span>.<span class="ident">len</span>()
+            );
+            <span class="ident">output_channel</span>.<span class="ident">copy_from_slice</span>(<span class="ident">expected_output_channel</span>);
+        }
+
+        <span class="kw">let</span> <span class="ident">events</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">provided_events</span>.<span class="ident">drain</span>(..<span class="number">1</span>).<span class="ident">next</span>().<span class="ident">unwrap</span>();
+        <span class="kw">for</span> <span class="ident">event</span> <span class="kw">in</span> <span class="ident">events</span> {
+            <span class="ident">context</span>.<span class="ident">handle_event</span>(<span class="ident">event</span>);
+        }
+
+        <span class="self">self</span>.<span class="ident">buffer_index</span> <span class="op">+=</span> <span class="number">1</span>;
+        <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">=</span> <span class="number">0</span>;
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span> <span class="ident">EventHandler</span><span class="op">&lt;</span><span class="ident">E</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">TestPlugin</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">E</span>, <span class="ident">M</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">M</span>: <span class="ident">AudioHandlerMeta</span>,
+    <span class="ident">E</span>: <span class="ident">PartialEq</span> <span class="op">+</span> <span class="ident">Debug</span>,
+{
+    <span class="kw">fn</span> <span class="ident">handle_event</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">event</span>: <span class="ident">E</span>) {
+        <span class="macro">assert</span><span class="macro">!</span>(
+            <span class="self">self</span>.<span class="ident">buffer_index</span> <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">expected_events</span>.<span class="ident">len</span>(),
+            <span class="string">&quot;`handle_event` is called after {} calls to `render_buffer`; this is unexpected&quot;</span>,
+            <span class="self">self</span>.<span class="ident">expected_events</span>.<span class="ident">len</span>()
+        );
+        <span class="macro">dbg</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">expected_events</span>);
+        <span class="kw">let</span> <span class="ident">expected_events_for_this_buffer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">expected_events</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>];
+        <span class="macro">assert</span><span class="macro">!</span>(
+            <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">&lt;</span> <span class="ident">expected_events_for_this_buffer</span>.<span class="ident">len</span>(),
+            <span class="string">&quot;`handle_events` is called more than {0} times after {1} calls to `render_buffer`; \
+             only {0} times are expected because we expect only \
+             {0} events for the subsequent buffer&quot;</span>,
+            <span class="ident">expected_events_for_this_buffer</span>.<span class="ident">len</span>(),
+            <span class="self">self</span>.<span class="ident">buffer_index</span>
+        );
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">event</span>,
+            <span class="ident">expected_events_for_this_buffer</span>[<span class="self">self</span>.<span class="ident">event_index</span>],
+            <span class="string">&quot;mismatch for event #{} after {} calls to `render_buffer`: \
+             expected {:?} but got {:?}.&quot;</span>,
+            <span class="self">self</span>.<span class="ident">event_index</span>,
+            <span class="self">self</span>.<span class="ident">buffer_index</span>,
+            <span class="ident">expected_events_for_this_buffer</span>[<span class="self">self</span>.<span class="ident">event_index</span>],
+            <span class="ident">event</span>
+        );
+        <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">+=</span> <span class="number">1</span>;
+    }
+}
 </pre></div>
-</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../../";window.currentCrate = "rsynth";</script><script src="../../../aliases.js"></script><script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script><script defer src="../../../search-index.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../../";window.currentCrate = "rsynth";</script><script src="../../../aliases.js"></script><script src="../../../main.js"></script><script src="../../../source-files.js"></script><script src="../../../source-script.js"></script><script defer src="../../../search-index.js"></script></body></html>

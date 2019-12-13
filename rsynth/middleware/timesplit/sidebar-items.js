@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["TimeSplit",""]]});
+initSidebarItems({"struct":[["TimeChunk",""],["TimeChunkIterator",""],["TimeSplitter",""]]});

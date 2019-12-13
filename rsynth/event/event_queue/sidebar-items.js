@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["EventCollisionHandling",""]],"struct":[["AlwaysIgnoreNew",""],["AlwaysInsertNewAfterOld",""],["AlwaysInsertNewBeforeOld",""],["AlwaysRemoveOld",""],["EventQueue",""],["Iter",""]],"trait":[["HandleEventCollision",""]]});

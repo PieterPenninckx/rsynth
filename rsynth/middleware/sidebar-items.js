@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["envelope",""],["frame_counter",""],["polyphony",""],["timesplit",""],["zero_init","Middleware for initializing the output to zero before actually calling the plugin."]]});
+initSidebarItems({"mod":[["timesplit",""]]});
