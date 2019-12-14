@@ -428,6 +428,36 @@
 <span id="428">428</span>
 <span id="429">429</span>
 <span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! # Rsynth</span>
 <span class="doccomment">//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.</span>
@@ -444,15 +474,18 @@
 <span class="doccomment">//! See the documentation of each back-end for more information.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Rendering audio</span>
-<span class="doccomment">//! Audio can be rendered with the `ContextualAudioRenderer` trait that is generic over the floating</span>
-<span class="doccomment">//! point type (`f32` or `f64`). There is an additional parameter `context` that is used by the</span>
+<span class="doccomment">//! Audio can be rendered with the [`ContextualAudioRenderer`] trait that is generic over the floating</span>
+<span class="doccomment">//! point type (`f32` or `f64`). The parameter `context` is used by the</span>
 <span class="doccomment">//! host or environment to pass extra data.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! The plugin or application can internally also use the `AudioRenderer` trait, which is similar</span>
-<span class="doccomment">//! to the `ContextualAudioRenderer` trait, but does not have a `context` parameter.</span>
+<span class="doccomment">//! The plugin or application can internally also use the [`AudioRenderer`] trait, which is similar</span>
+<span class="doccomment">//! to the [`ContextualAudioRenderer`] trait, but does not have a `context` parameter.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Meta-data</span>
-<span class="doccomment">//! There are a number of traits that define some meta-data:</span>
+<span class="doccomment">//! There are a number of traits to define some meta-data.</span>
+<span class="doccomment">//! Every plugin should implement these, but it can be tedious, so you can implement these</span>
+<span class="doccomment">//! traits in a more straightforward way by implementing the [`Meta`] trait.</span>
+<span class="doccomment">//! However, you can also implement these trait &quot;by hand&quot;:</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * [`CommonPluginMeta`]</span>
 <span class="doccomment">//!     * Name of the plugin etc</span>
@@ -462,11 +495,9 @@
 <span class="doccomment">//!     * Number of midi ports</span>
 <span class="doccomment">//! * [`CommonAudioPortMeta`]</span>
 <span class="doccomment">//!     * Names of the audio in and out ports</span>
-<span class="doccomment">//! * [CommonPluginMeta`]</span>
+<span class="doccomment">//! * [`CommonPluginMeta`]</span>
 <span class="doccomment">//!     * Name of the plugin or application</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Every plugin should implement these, but it cancan be tedious, so you can implement these</span>
-<span class="doccomment">//! traits in a more straightforward way by implementing the [`Meta`] trait.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Handling events</span>
 <span class="doccomment">//! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]</span>
@@ -524,8 +555,19 @@
 <span class="doccomment">//! [`EventHandler`]: ./event/trait.EventHandler.html</span>
 <span class="doccomment">//! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html</span>
 <span class="doccomment">//! [`SysExEvent`]: ./event/struct.SysExEvent.html</span>
+<span class="doccomment">//! [`Timed&lt;T&gt;`]: ./event/struct.Timed.html</span>
+<span class="doccomment">//! [`Indexed&lt;T&gt;`]: ./event/struct.Indexed.html</span>
 <span class="doccomment">//! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer</span>
 <span class="doccomment">//! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event</span>
+<span class="doccomment">//! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html</span>
+<span class="doccomment">//! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html</span>
+<span class="doccomment">//! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html</span>
+<span class="doccomment">//! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html</span>
+<span class="doccomment">//! [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">//! [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
+<span class="doccomment">//! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html</span>
+<span class="doccomment">//! [`EventHandler`]: ./event/trait.EventHandler.html</span>
+
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
@@ -666,22 +708,24 @@
 <span class="comment">//</span>
 <span class="comment">// Events</span>
 <span class="comment">// ------</span>
-<span class="comment">// Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more</span>
-<span class="comment">// than one MIDI-port).</span>
+<span class="comment">// Currently, backends that support one MIDI-port use the `Timed&lt;RawMidiEvent&gt;` type</span>
+<span class="comment">// and backends that support moree MIDI-ports use the `Indexed&lt;Timed&lt;RawMidiEvent&gt;&gt;` type.</span>
 
 <span class="doccomment">/// Define the maximum number of audioinputs and the maximum number of audio outputs.</span>
-<span class="doccomment">/// Also defines how sample rate changes are handled.</span>
-<span class="doccomment">/// This trait can be more conveniently implemented by implementing the `Meta` trait.</span>
+<span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of audio inputs supported.</span>
-    <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
+    <span class="doccomment">/// This method should return the same value every time it is called.</span>
     <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
 
     <span class="doccomment">/// The maximum number of audio outputs supported.</span>
-    <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
+    <span class="doccomment">/// This method should return the same value every time it is called.</span>
     <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
 }
 
+<span class="doccomment">/// Define how sample-rate changes are handled.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandler</span>: <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// Called when the sample-rate changes.</span>
     <span class="doccomment">/// The backend should ensure that this function is called before</span>
@@ -689,8 +733,8 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">/// `sample_rate`: The new sample rate in frames per second (Hz).</span>
-    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, commonly used for video</span>
-    <span class="doccomment">/// production.</span>
+    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, </span>
+    <span class="doccomment">/// commonly used for video production.</span>
     <span class="comment">// TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that</span>
     <span class="comment">// TODO: there are no fractional sample rates. Maybe change the data type into u32?</span>
     <span class="kw">fn</span> <span class="ident">set_sample_rate</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">sample_rate</span>: <span class="ident">f64</span>);
@@ -698,6 +742,8 @@
 
 <span class="doccomment">/// Define the maximum number of midi inputs and the maximum number of midi outputs.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">MidiHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of midi inputs supported.</span>
     <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
@@ -740,6 +786,8 @@
 <span class="doccomment">/// Provides common meta-data of the plugin or application to the host.</span>
 <span class="doccomment">/// This trait is common for all backends that need this info.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonPluginMeta</span> {
     <span class="doccomment">/// The name of the plugin or application.</span>
     <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>;
@@ -747,12 +795,16 @@
 
 <span class="doccomment">/// Provides some meta-data of the audio-ports used by the plugin or application to the host.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonAudioPortMeta</span>: <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The name of the audio input with the given index.</span>
     <span class="doccomment">/// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Note</span>
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs</span>
     <span class="kw">fn</span> <span class="ident">audio_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;audio in {}&quot;</span>, <span class="ident">index</span>)
     }
@@ -762,6 +814,8 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Note</span>
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs</span>
     <span class="kw">fn</span> <span class="ident">audio_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;audio out {}&quot;</span>, <span class="ident">index</span>)
     }
@@ -769,12 +823,16 @@
 
 <span class="doccomment">/// Provides some meta-data of the midi-ports used by the plugin or application to the host.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonMidiPortMeta</span>: <span class="ident">MidiHandlerMeta</span> {
     <span class="doccomment">/// The name of the midi input with the given index.</span>
     <span class="doccomment">/// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Note</span>
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs</span>
     <span class="kw">fn</span> <span class="ident">midi_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;midi in {}&quot;</span>, <span class="ident">index</span>)
     }
@@ -784,6 +842,8 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Note</span>
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs</span>
     <span class="kw">fn</span> <span class="ident">midi_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;midi out {}&quot;</span>, <span class="ident">index</span>)
     }

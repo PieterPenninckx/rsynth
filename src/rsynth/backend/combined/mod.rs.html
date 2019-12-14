@@ -679,11 +679,6 @@
 <span id="679">679</span>
 <span id="680">680</span>
 <span id="681">681</span>
-<span id="682">682</span>
-<span id="683">683</span>
-<span id="684">684</span>
-<span id="685">685</span>
-<span id="686">686</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">dev_utilities</span>::<span class="ident">chunk</span>::{<span class="ident">buffers_as_mut_slice</span>, <span class="ident">buffers_as_slice</span>, <span class="ident">AudioChunk</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::<span class="ident">event_queue</span>::{<span class="ident">AlwaysInsertNewAfterOld</span>, <span class="ident">EventQueue</span>};
@@ -702,11 +697,6 @@
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioReader</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">number_of_channels</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
     <span class="kw">fn</span> <span class="ident">frames_per_second</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">u64</span>;
-    <span class="comment">/*
-    fn frames_per_microsecond(&amp;self) -&gt; f64 {
-        (self.frames_per_second() as f64) / (MICROSECONDS_PER_SECOND as f64)
-    }
-    */</span>
 
     <span class="doccomment">/// Fill the buffers. Return the number of frames that have been written.</span>
     <span class="doccomment">/// If it is `&lt;` the number of frames in the input, now more frames can be expected.</span>
