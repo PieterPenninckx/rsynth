@@ -107,7 +107,6 @@
 //! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
 
-
 #[macro_use]
 extern crate log;
 extern crate asprim;
