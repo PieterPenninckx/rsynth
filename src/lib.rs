@@ -272,7 +272,7 @@ pub trait AudioHandler: AudioHandlerMeta {
     ///
     /// # Parameters
     /// `sample_rate`: The new sample rate in frames per second (Hz).
-    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, 
+    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz,
     /// commonly used for video production.
     // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
     // TODO: there are no fractional sample rates. Maybe change the data type into u32?
