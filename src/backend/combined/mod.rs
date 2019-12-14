@@ -15,11 +15,6 @@ pub mod rimd; // TODO: choose better naming.
 pub trait AudioReader<F> {
     fn number_of_channels(&self) -> usize;
     fn frames_per_second(&self) -> u64;
-    /*
-    fn frames_per_microsecond(&self) -> f64 {
-        (self.frames_per_second() as f64) / (MICROSECONDS_PER_SECOND as f64)
-    }
-    */
 
     /// Fill the buffers. Return the number of frames that have been written.
     /// If it is `<` the number of frames in the input, now more frames can be expected.

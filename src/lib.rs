@@ -13,15 +13,18 @@
 //! See the documentation of each back-end for more information.
 //!
 //! ## Rendering audio
-//! Audio can be rendered with the `ContextualAudioRenderer` trait that is generic over the floating
-//! point type (`f32` or `f64`). There is an additional parameter `context` that is used by the
+//! Audio can be rendered with the [`ContextualAudioRenderer`] trait that is generic over the floating
+//! point type (`f32` or `f64`). The parameter `context` is used by the
 //! host or environment to pass extra data.
 //!
-//! The plugin or application can internally also use the `AudioRenderer` trait, which is similar
-//! to the `ContextualAudioRenderer` trait, but does not have a `context` parameter.
+//! The plugin or application can internally also use the [`AudioRenderer`] trait, which is similar
+//! to the [`ContextualAudioRenderer`] trait, but does not have a `context` parameter.
 //!
 //! ## Meta-data
-//! There are a number of traits that define some meta-data:
+//! There are a number of traits to define some meta-data.
+//! Every plugin should implement these, but it can be tedious, so you can implement these
+//! traits in a more straightforward way by implementing the [`Meta`] trait.
+//! However, you can also implement these trait "by hand":
 //!
 //! * [`CommonPluginMeta`]
 //!     * Name of the plugin etc
@@ -31,11 +34,9 @@
 //!     * Number of midi ports
 //! * [`CommonAudioPortMeta`]
 //!     * Names of the audio in and out ports
-//! * [CommonPluginMeta`]
+//! * [`CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
-//! Every plugin should implement these, but it cancan be tedious, so you can implement these
-//! traits in a more straightforward way by implementing the [`Meta`] trait.
 //!
 //! ## Handling events
 //! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
@@ -93,8 +94,18 @@
 //! [`EventHandler`]: ./event/trait.EventHandler.html
 //! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
 //! [`SysExEvent`]: ./event/struct.SysExEvent.html
+//! [`Timed<T>`]: ./event/struct.Timed.html
+//! [`Indexed<T>`]: ./event/struct.Indexed.html
 //! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer
 //! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event
+//! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html
+//! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
+//! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html
+//! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html
+//! [`Meta`]: ./metaconfig/trait.Meta.html
+//! [`AudioRenderer`]: ./trait.AudioRenderer.html
+//! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
+//! [`EventHandler`]: ./event/trait.EventHandler.html
 
 #[macro_use]
 extern crate log;
@@ -235,22 +246,24 @@ pub mod metaconfig;
 //
 // Events
 // ------
-// Currently, only one MIDI-port is supported. This should be changed (e.g. Jack supports more
-// than one MIDI-port).
+// Currently, backends that support one MIDI-port use the `Timed<RawMidiEvent>` type
+// and backends that support moree MIDI-ports use the `Indexed<Timed<RawMidiEvent>>` type.
 
 /// Define the maximum number of audioinputs and the maximum number of audio outputs.
-/// Also defines how sample rate changes are handled.
-/// This trait can be more conveniently implemented by implementing the `Meta` trait.
+/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+///
+/// [`Meta`]: ./metaconfig/trait.Meta.html
 pub trait AudioHandlerMeta {
     /// The maximum number of audio inputs supported.
-    /// This method should return the same value for subsequent calls.
+    /// This method should return the same value every time it is called.
     fn max_number_of_audio_inputs(&self) -> usize;
 
     /// The maximum number of audio outputs supported.
-    /// This method should return the same value for subsequent calls.
+    /// This method should return the same value every time it is called.
     fn max_number_of_audio_outputs(&self) -> usize;
 }
 
+/// Define how sample-rate changes are handled.
 pub trait AudioHandler: AudioHandlerMeta {
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
@@ -258,8 +271,8 @@ pub trait AudioHandler: AudioHandlerMeta {
     ///
     /// # Parameters
     /// `sample_rate`: The new sample rate in frames per second (Hz).
-    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, commonly used for video
-    /// production.
+    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz,
+    /// commonly used for video production.
     // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
     // TODO: there are no fractional sample rates. Maybe change the data type into u32?
     fn set_sample_rate(&mut self, sample_rate: f64);
@@ -267,6 +280,8 @@ pub trait AudioHandler: AudioHandlerMeta {
 
 /// Define the maximum number of midi inputs and the maximum number of midi outputs.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+///
+/// [`Meta`]: ./metaconfig/trait.Meta.html
 pub trait MidiHandlerMeta {
     /// The maximum number of midi inputs supported.
     /// This method should return the same value for subsequent calls.
@@ -309,6 +324,8 @@ pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
 /// Provides common meta-data of the plugin or application to the host.
 /// This trait is common for all backends that need this info.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+///
+/// [`Meta`]: ./metaconfig/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
     fn name<'a>(&'a self) -> &'a str;
@@ -316,12 +333,16 @@ pub trait CommonPluginMeta {
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+///
+/// [`Meta`]: ./metaconfig/trait.Meta.html
 pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// The name of the audio input with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
+    ///
+    /// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs
     fn audio_input_name(&self, index: usize) -> String {
         format!("audio in {}", index)
     }
@@ -331,6 +352,8 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
+    ///
+    /// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs
     fn audio_output_name(&self, index: usize) -> String {
         format!("audio out {}", index)
     }
@@ -338,12 +361,16 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
 
 /// Provides some meta-data of the midi-ports used by the plugin or application to the host.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
+///
+/// [`Meta`]: ./metaconfig/trait.Meta.html
 pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// The name of the midi input with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
+    ///
+    /// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs
     fn midi_input_name(&self, index: usize) -> String {
         format!("midi in {}", index)
     }
@@ -353,6 +380,8 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     ///
     /// # Note
     /// When using the Jack backend, this function should not return an empty string.
+    ///
+    /// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs
     fn midi_output_name(&self, index: usize) -> String {
         format!("midi out {}", index)
     }
