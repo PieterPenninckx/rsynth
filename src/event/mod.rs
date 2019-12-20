@@ -1,5 +1,16 @@
+//! Event handling
+//!
 //! This module defines the `EventHandler` trait and some event types: `RawMidiEvent`,
 //! `SysExEvent`, ...
+//!
+//! Custom events
+//! =============
+//!
+//! Implement `Copy` if possible
+//! ----------------------------
+//!
+//! If possible, implement the `Copy` trait for the event,
+//! so that the event can be dispatched to different voices in a polyphonic context.
 use std::convert::{AsMut, AsRef};
 use std::fmt::{Debug, Error, Formatter};
 

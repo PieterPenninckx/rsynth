@@ -1,36 +1,4 @@
 //! Utilities to be used when developing backends and middleware.
-//!
-//! Writing a backend
-//! =================
-//!
-//! Custom backends do not need to be in the `rsynth` crate, you can write
-//! a backend in a separate crate. If you encounter problems that prevent you
-//! from writing your backend in a separate crate (e.g., we have forgotten to
-//! mark something as `pub`), let us know by opening an issue.
-//!
-//! Writing custom events
-//! ---------------------
-//!
-//! See ["Writing events" below].
-//!
-//! Publishing a backend crate
-//! --------------------------
-//!
-//! When you publish a backend crate, let us know by opening an issue or pull request
-//! so that we can link to it in the documentation of rsynth.
-//!
-//!
-//! Writing events
-//! ==============
-//!
-//! Implement `Copy` if possible
-//! ----------------------------
-//!
-//! If possible, implement the `Copy` trait for the event,
-//! so that the `Polyphonic` middleware can dispatch this event to all the voices.
-//!
-//!
-//! ["Writing events" below]: ./index.html#writing-events
 use crate::dev_utilities::chunk::AudioChunk;
 use crate::event::EventHandler;
 use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer, ContextualAudioRenderer};

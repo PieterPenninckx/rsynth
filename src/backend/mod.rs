@@ -1,4 +1,30 @@
-//! Defines the different backends.
+//! Backends.
+//!
+//! Pre-defined backends
+//! ====================
+//! `rsynth` currently supports the following back-ends:
+//! * [`combined`] reading and writing audio and midi files, or working in-memory (behind various features)
+//! * [`jack`] (behind the `backend-jack` feature)
+//! * [`vst`] (behind the backend-vst)
+//!
+//! These backends are currently in the `rsynth` crate, but we may eventually move them to
+//! separate crates.
+//!
+//! Custom backends
+//! ===============
+//! You can write a backend in a separate crate. If you encounter problems that prevent you
+//! from writing your backend in a separate crate (e.g., we have forgotten to
+//! mark something as `pub`), let us know by opening an issue.
+//!
+//! Publishing a backend crate
+//! --------------------------
+//!
+//! When you publish a backend crate, let us know by opening an issue or pull request
+//! so that we can link to it in the documentation of rsynth.
+//!
+//! [`jack`]: ./jack_backend/index.html
+//! [`vst`]: ./bvst_backend/index.html
+//! [`combined`]: ./combined/index.html
 #[cfg(feature = "backend-combined")]
 pub mod combined;
 #[cfg(feature = "backend-jack")]
@@ -15,8 +41,8 @@ pub trait HostInterface {
     /// # Example
     ///
     /// The following example illustrates how `output_initialized()` can be used in
-    /// combination with `rsynth::utilities::zero_init` to initialize the output
-    /// buffers to zero in an implementation of the `ContextualAudioRenderer` trait.
+    /// combination with [`rsynth::utilities::zero_init`] to initialize the output
+    /// buffers to zero in an implementation of the [`ContextualAudioRenderer`] trait.
     ///
     /// ```
     /// use rsynth::ContextualAudioRenderer;
@@ -48,5 +74,8 @@ pub trait HostInterface {
     ///     }
     /// }
     /// ```
+    ///
+    /// [`ContextualEventHandler`]: ../event/trait.ContextualEventHandler.html
+    /// [`rsynth::utilities::zero_init`]: ../utilities/fn.initialize_to_zero.html
     fn output_initialized(&self) -> bool;
 }
