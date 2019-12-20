@@ -9,7 +9,8 @@ Rsynth has the following components:
 * An API abstraction layer
 * Glue code for different API's (called back-ends). Currently supported are
   * [rust-vst](https://github.com/RustAudio/vst-rs)
-  * Jack
+  * [Jack](https://crates.io/crates/jack)
+  * offline audio rendering (from/to `.wav` and `.mid` files)
 * Middleware components that you can put between your code and the abstraction layer to provide 
   various functionalities:
   * polyphony
@@ -19,8 +20,8 @@ Rsynth has the following components:
 
 The documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
-* [on GitHub pages](https://pieterpenninckx.github.io/rsynth) for an irregularly updated documentation of the master branch
-* on your local machine after running `cargo rustdoc --features backend-jack,backend-vst` for the most up-to-date documentation 
+* [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for an irregularly updated documentation of the master branch
+* on your local machine after running `cargo rustdoc --features all` for the most up-to-date documentation 
 
 # Examples
 There are full examples in 
@@ -29,7 +30,7 @@ There are full examples in
 
 # Current State
 
-rsynth is in its early stage of development and many changes are breaking changes.
+`rsynth` is in its early stage of development and many changes are breaking changes.
 There is currently no support for GUI's.
 The team behind it is very small, so progress is slow.
 
@@ -40,23 +41,14 @@ This helps to ensure that the features that we provide, can actually be used in 
 So if you want to use a particular feature that isn't there yet, feel free to open an issue (if
 needed) and you can volunteer to test the feature before it is merged. 
 
-Features that are likely to be realized:
-
-- Add a back-end for testing
-
-Features that are likely going to be postponed for a long time, depending on the capacity of the
-team and other issues (unless somebody joins to help with these)
-
-- Support for LV2
-
-In the long term, rsynth can be split into multiple crates for maximum reusability
+In the long term, `rsynth` can be split into multiple crates for maximum re-usability
 and for license clarity (e.g. when one back-end requires a different license).
 We're currently keeping everything together because it's easier to coordinate breaking changes
 over the various components in this way.
 
 # Contributing
 
-Contributions and suggestions are welcome.
+Contributions and suggestions are welcome!
 
 In order to avoid pull requests from being broken by other changes, please open an issue or
 have an issue assigned to you before you start working on something. 
@@ -64,13 +56,16 @@ In this way, we can coordinate development.
 Issues labeled with "good first issue" should not conflict too much with other changes
 that are in flight, but better check before you start working on one.
 
-Pull requests should be opened against the `master` branch.
+Don't worry if you only have a partial solution. You can still open a pull request for that. 
+You can definitely split the solution for an issue into different pull requests. 
+
+Pull requests should be opened against the `master` branch. 
 
 ## Testing
 
 In order to run all tests, run the following:
 ```bash
-cargo test --features backend-jack,backend-vst
+cargo test --features all
 ```
 
 If you have trouble running this locally because you do not have jack-related libraries installed,
