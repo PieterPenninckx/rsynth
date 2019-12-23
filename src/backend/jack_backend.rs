@@ -42,7 +42,11 @@ impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, '
             };
             midi_out_port.write(&raw_midi);
         } else {
-            // TODO: log an error.
+            error!(
+                "midi port out of bounds: port index is {}, but only {} ports are available",
+                index,
+                self.midi_out_ports.len()
+            );
         }
     }
 }
@@ -57,7 +61,11 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
             };
             midi_out_port.write(&raw_midi);
         } else {
-            // TODO: log an error.
+            error!(
+                "midi port out of bounds: port index is {}, but only {} ports are available",
+                index,
+                self.midi_out_ports.len()
+            );
         }
     }
 }
@@ -177,8 +185,9 @@ struct JackProcessHandler<P> {
 impl<P> JackProcessHandler<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
@@ -244,8 +253,9 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
@@ -273,8 +283,9 @@ where
         let mut outputs = self.outputs.vec_guard();
         let number_of_frames = process_scope.n_frames();
         for i in 0..cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
-            // We need to use some unsafe here because otherwise, the compiler believes
-            // we are borrowing `self.audio_out_ports` multiple times.
+            // We need to use some unsafe here because
+            // * we call `from_raw_parts_mut`
+            // * otherwise, the compiler believes we are borrowing `self.audio_out_ports` multiple times.
             let buffer = unsafe {
                 slice::from_raw_parts_mut(
                     self.audio_out_ports[i].buffer(number_of_frames) as *mut f32,
@@ -294,8 +305,9 @@ where
 pub fn run<P>(mut plugin: P) -> Option<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + Sync + 'static,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P:
+        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
