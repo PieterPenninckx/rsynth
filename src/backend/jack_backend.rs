@@ -185,9 +185,8 @@ struct JackProcessHandler<P> {
 impl<P> JackProcessHandler<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c, 'mp, 'mw> P:
-        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
@@ -253,9 +252,8 @@ where
 impl<P> ProcessHandler for JackProcessHandler<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c, 'mp, 'mw> P:
-        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
@@ -305,9 +303,8 @@ where
 pub fn run<P>(mut plugin: P) -> Option<P>
 where
     P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + Sync + 'static,
-    for<'c, 'mp, 'mw> P:
-        ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-            + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
