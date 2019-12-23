@@ -7,7 +7,7 @@
 //! `rsynth` currently supports the following back-ends:
 //!
 //! * [`combined`] combine different back-ends for audio input, audio output, midi input and
-////!     midi output, mostly for offline rendering and testing (behind various features)
+//!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
 //! * [`vst`] (behind the backend-vst)
 //!
