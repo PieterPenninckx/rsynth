@@ -3,7 +3,8 @@
 //! Pre-defined backends
 //! ====================
 //! `rsynth` currently supports the following back-ends:
-//! * [`combined`] reading and writing audio and midi files, or working in-memory (behind various features)
+//! * [`combined`] combine different back-ends for audio input, audio output, midi input and
+//!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
 //! * [`vst`] (behind the backend-vst)
 //!
