@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../rsynth/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -467,9 +467,10 @@
 <span class="doccomment">//! ## Back-ends</span>
 <span class="doccomment">//! `rsynth` currently supports the following back-ends:</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! * [`jack`]</span>
-<span class="doccomment">//! * [`vst`]</span>
-<span class="doccomment">//! * [`combined`] (reading and writing audio and midi files, or working in-memory)</span>
+<span class="doccomment">//! * [`combined`] combine different back-ends for audio input, audio output, midi input and</span>
+<span class="doccomment">//!     midi output, mostly for offline rendering and testing (behind various features)</span>
+<span class="doccomment">//! * [`jack`] (behind the `backend-jack` feature)</span>
+<span class="doccomment">//! * [`vst`] (behind the backend-vst)</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! See the documentation of each back-end for more information.</span>
 <span class="doccomment">//!</span>
@@ -563,11 +564,10 @@
 <span class="doccomment">//! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html</span>
 <span class="doccomment">//! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html</span>
 <span class="doccomment">//! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html</span>
-<span class="doccomment">//! [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">//! [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="doccomment">//! [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
 <span class="doccomment">//! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html</span>
 <span class="doccomment">//! [`EventHandler`]: ./event/trait.EventHandler.html</span>
-
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
@@ -587,19 +587,19 @@
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">doc_comment</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">metaconfig</span>::{<span class="ident">AudioPort</span>, <span class="ident">General</span>, <span class="ident">Meta</span>, <span class="ident">MidiPort</span>, <span class="ident">Name</span>, <span class="ident">Port</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">meta</span>::{<span class="ident">AudioPort</span>, <span class="ident">General</span>, <span class="ident">Meta</span>, <span class="ident">MidiPort</span>, <span class="ident">Name</span>, <span class="ident">Port</span>};
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">dev_utilities</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">buffer</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">backend</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">envelope</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">event</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">meta</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">middleware</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">test_utilities</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">utilities</span>;
 
 <span class="macro">doctest</span><span class="macro">!</span>(<span class="string">&quot;../README.md&quot;</span>);
-
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">metaconfig</span>;
 
 <span class="comment">// Notes about the design</span>
 <span class="comment">// ======================</span>
@@ -714,15 +714,15 @@
 <span class="doccomment">/// Define the maximum number of audioinputs and the maximum number of audio outputs.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of audio inputs supported.</span>
     <span class="doccomment">/// This method should return the same value every time it is called.</span>
-    <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
 
     <span class="doccomment">/// The maximum number of audio outputs supported.</span>
     <span class="doccomment">/// This method should return the same value every time it is called.</span>
-    <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
 }
 
 <span class="doccomment">/// Define how sample-rate changes are handled.</span>
@@ -733,7 +733,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">/// `sample_rate`: The new sample rate in frames per second (Hz).</span>
-    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz, </span>
+    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz,</span>
     <span class="doccomment">/// commonly used for video production.</span>
     <span class="comment">// TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that</span>
     <span class="comment">// TODO: there are no fractional sample rates. Maybe change the data type into u32?</span>
@@ -743,14 +743,14 @@
 <span class="doccomment">/// Define the maximum number of midi inputs and the maximum number of midi outputs.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">MidiHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of midi inputs supported.</span>
     <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
-    <span class="kw">fn</span> <span class="ident">max_number_of_midi_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+    <span class="kw">fn</span> <span class="ident">max_number_of_midi_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
     <span class="doccomment">/// The maximum number of midi outputs supported.</span>
     <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
-    <span class="kw">fn</span> <span class="ident">max_number_of_midi_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+    <span class="kw">fn</span> <span class="ident">max_number_of_midi_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
 }
 
 <span class="doccomment">/// Defines how audio is rendered.</span>
@@ -787,16 +787,16 @@
 <span class="doccomment">/// This trait is common for all backends that need this info.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonPluginMeta</span> {
     <span class="doccomment">/// The name of the plugin or application.</span>
-    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>;
+    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>;
 }
 
 <span class="doccomment">/// Provides some meta-data of the audio-ports used by the plugin or application to the host.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonAudioPortMeta</span>: <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The name of the audio input with the given index.</span>
     <span class="doccomment">/// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].</span>
@@ -805,7 +805,7 @@
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs</span>
-    <span class="kw">fn</span> <span class="ident">audio_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">audio_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;audio in {}&quot;</span>, <span class="ident">index</span>)
     }
 
@@ -816,7 +816,7 @@
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs</span>
-    <span class="kw">fn</span> <span class="ident">audio_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">audio_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;audio out {}&quot;</span>, <span class="ident">index</span>)
     }
 }
@@ -824,7 +824,7 @@
 <span class="doccomment">/// Provides some meta-data of the midi-ports used by the plugin or application to the host.</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`Meta`]: ./metaconfig/trait.Meta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonMidiPortMeta</span>: <span class="ident">MidiHandlerMeta</span> {
     <span class="doccomment">/// The name of the midi input with the given index.</span>
     <span class="doccomment">/// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].</span>
@@ -833,7 +833,7 @@
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs</span>
-    <span class="kw">fn</span> <span class="ident">midi_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">midi_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;midi in {}&quot;</span>, <span class="ident">index</span>)
     }
 
@@ -844,7 +844,7 @@
     <span class="doccomment">/// When using the Jack backend, this function should not return an empty string.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs</span>
-    <span class="kw">fn</span> <span class="ident">midi_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">midi_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;midi out {}&quot;</span>, <span class="ident">index</span>)
     }
 }
@@ -853,9 +853,9 @@
 <span class="kw">where</span>
     <span class="ident">T</span>: <span class="ident">Meta</span>,
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">General</span>,
-    <span class="op">&lt;&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">General</span><span class="op">&gt;</span>::<span class="ident">GeneralData</span>: <span class="ident">Name</span>,
+    <span class="op">&lt;</span><span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">General</span><span class="op">&gt;</span>::<span class="ident">GeneralData</span>: <span class="ident">Name</span>,
 {
-    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span> {
+    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">general</span>().<span class="ident">name</span>()
     }
 }
@@ -865,11 +865,11 @@
     <span class="ident">T</span>: <span class="ident">Meta</span>,
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">AudioPort</span><span class="op">&gt;</span>,
 {
-    <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">in_ports</span>().<span class="ident">len</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">fn</span> <span class="ident">max_number_of_audio_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">out_ports</span>().<span class="ident">len</span>()
     }
 }
@@ -878,13 +878,13 @@
 <span class="kw">where</span>
     <span class="ident">T</span>: <span class="ident">Meta</span>,
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">AudioPort</span><span class="op">&gt;</span>,
-    <span class="op">&lt;&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">AudioPort</span><span class="op">&gt;&gt;</span>::<span class="ident">PortData</span>: <span class="ident">Name</span>,
+    <span class="op">&lt;</span><span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">AudioPort</span><span class="op">&gt;</span><span class="op">&gt;</span>::<span class="ident">PortData</span>: <span class="ident">Name</span>,
 {
-    <span class="kw">fn</span> <span class="ident">audio_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">audio_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">in_ports</span>()[<span class="ident">index</span>].<span class="ident">name</span>().<span class="ident">to_string</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">audio_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">audio_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">out_ports</span>()[<span class="ident">index</span>].<span class="ident">name</span>().<span class="ident">to_string</span>()
     }
 }
@@ -894,11 +894,11 @@
     <span class="ident">T</span>: <span class="ident">Meta</span>,
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">MidiPort</span><span class="op">&gt;</span>,
 {
-    <span class="kw">fn</span> <span class="ident">max_number_of_midi_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">fn</span> <span class="ident">max_number_of_midi_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">in_ports</span>().<span class="ident">len</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">max_number_of_midi_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">fn</span> <span class="ident">max_number_of_midi_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">out_ports</span>().<span class="ident">len</span>()
     }
 }
@@ -907,17 +907,17 @@
 <span class="kw">where</span>
     <span class="ident">T</span>: <span class="ident">Meta</span>,
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">MidiPort</span><span class="op">&gt;</span>,
-    <span class="op">&lt;&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">MidiPort</span><span class="op">&gt;&gt;</span>::<span class="ident">PortData</span>: <span class="ident">Name</span>,
+    <span class="op">&lt;</span><span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">Port</span><span class="op">&lt;</span><span class="ident">MidiPort</span><span class="op">&gt;</span><span class="op">&gt;</span>::<span class="ident">PortData</span>: <span class="ident">Name</span>,
 {
-    <span class="kw">fn</span> <span class="ident">midi_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">midi_input_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="comment">// TODO: It doesn&#39;t feel right that we have to do a `to_string` here.</span>
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">in_ports</span>()[<span class="ident">index</span>].<span class="ident">name</span>().<span class="ident">to_string</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">midi_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">midi_output_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="comment">// TODO: It doesn&#39;t feel right that we have to do a `to_string` here.</span>
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">out_ports</span>()[<span class="ident">index</span>].<span class="ident">name</span>().<span class="ident">to_string</span>()
     }
 }
 </pre></div>
-</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "rsynth";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script src="../../source-files.js"></script><script src="../../source-script.js"></script><script defer src="../../search-index.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "rsynth";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

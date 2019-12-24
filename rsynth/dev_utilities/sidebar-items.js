@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["chunk",""]],"struct":[["TestPlugin","A plugin useful for writing automated tests."]]});
