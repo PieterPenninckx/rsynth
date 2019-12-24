@@ -49,7 +49,7 @@ pub trait HostInterface {
     /// use rsynth::ContextualAudioRenderer;
     /// # use rsynth::{AudioHandlerMeta, AudioHandler};
     /// use rsynth::backend::HostInterface;
-    /// use rsynth::utilities::initialize_to_zero;
+    /// use rsynth::buffer::initialize_to_zero;
     /// # struct MyPlugin {}
     /// # impl AudioHandlerMeta for MyPlugin {
     /// #    fn max_number_of_audio_inputs(&self) -> usize { 0 }

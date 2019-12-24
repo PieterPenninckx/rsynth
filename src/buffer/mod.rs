@@ -200,3 +200,12 @@ pub fn buffers_as_mut_slice<'a, F>(
 ) -> Vec<&'a mut [F]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
 }
+
+/// Initialize a slice of buffers to zero.
+pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
+    for buffer in buffers.iter_mut() {
+        for sample in buffer.iter_mut() {
+            *sample = F::zero();
+        }
+    }
+}
