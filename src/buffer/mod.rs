@@ -135,7 +135,7 @@ macro_rules! audio_chunk {
             ]
         )*
     ] => {
-        $crate::dev_utilities::chunk::AudioChunk::from_channels(
+        $crate::buffer::AudioChunk::from_channels(
             vec![
                 vec![
                     $head_head

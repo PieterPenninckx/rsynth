@@ -209,7 +209,7 @@ where
         assert!(self.number_of_channels > 0);
         let length = inputs[0].len();
         for input in inputs.iter() {
-            assert_eq!(inputs.len(), length);
+            assert_eq!(input.len(), length);
         }
 
         let mut frame_index = 0;

@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter};
-use crate::dev_utilities::chunk::AudioChunk;
+use crate::buffer::AudioChunk;
 
 pub struct AudioBufferReader<'b, F> {
     frames_per_second: u64,
@@ -51,7 +51,7 @@ mod AudioBufferReaderTests {
     mod fill_buffer {
         use super::super::super::AudioReader;
         use super::super::AudioBufferReader;
-        use crate::dev_utilities::chunk::AudioChunk;
+        use crate::buffer::AudioChunk;
 
         #[test]
         fn works_as_expected() {

@@ -1,13 +1,12 @@
-//! Utilities to be used when developing backends and middleware.
-use crate::dev_utilities::chunk::AudioChunk;
+//! Utilities for testing.
+
+use crate::buffer::AudioChunk;
 use crate::event::EventHandler;
-use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer, ContextualAudioRenderer};
+use crate::{AudioHandler, AudioHandlerMeta, ContextualAudioRenderer};
 use std::fmt::Debug;
 
-#[macro_use]
-pub mod chunk;
-
 /// A plugin useful for writing automated tests.
+// TODO: Add more documentation.
 pub struct TestPlugin<F, E, M: AudioHandlerMeta> {
     expected_inputs: Vec<AudioChunk<F>>,
     provided_outputs: Vec<AudioChunk<F>>,
