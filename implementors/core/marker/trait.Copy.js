@@ -6,5 +6,4 @@ implementors["rsynth"] = [{text:"impl&lt;E:&nbsp;<a class=\"trait\" href=\"https
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -1,3 +1,2 @@
 var ALIASES = {};
-ALIASES['rsynth'] = {};
-ALIASES['rsynth'] = {};
+ALIASES["rsynth"] = {};
