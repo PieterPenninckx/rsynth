@@ -33,6 +33,11 @@
 //! }
 //! ```
 
+/// Define the meta-data for an application or plug-in.
+///
+/// See the [module level documentation] for more details.
+///
+/// [module level documentation]: ./index.html
 pub trait Meta {
     type MetaData;
     fn meta(&self) -> &Self::MetaData;
