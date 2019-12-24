@@ -1,7 +1,7 @@
 //! Example
 //! -------
 //! ```
-//! use rsynth::metaconfig::{Meta, MetaData, InOut};
+//! use rsynth::meta::{Meta, MetaData, InOut};
 //! struct MyPlugin {
 //!     meta: MetaData<&'static str, &'static str, &'static str>
 //! /* ... */
@@ -32,8 +32,6 @@
 //!     }
 //! }
 //! ```
-
-use crate::{AudioHandlerMeta, CommonPluginMeta, MidiHandlerMeta};
 
 pub trait Meta {
     type MetaData;

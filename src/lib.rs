@@ -103,7 +103,7 @@
 //! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
 //! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html
 //! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html
-//! [`Meta`]: ./metaconfig/trait.Meta.html
+//! [`Meta`]: ./meta/trait.Meta.html
 //! [`AudioRenderer`]: ./trait.AudioRenderer.html
 //! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
@@ -126,19 +126,19 @@ extern crate vst;
 #[macro_use]
 extern crate doc_comment;
 
-use crate::metaconfig::{AudioPort, General, Meta, MidiPort, Name, Port};
+use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 #[macro_use]
-pub mod dev_utilities;
+pub mod buffer;
 pub mod backend;
 pub mod envelope;
 pub mod event;
+pub mod meta;
 pub mod middleware;
+pub mod test_utilities;
 pub mod utilities;
 
 doctest!("../README.md");
-
-pub mod metaconfig;
 
 // Notes about the design
 // ======================
@@ -253,7 +253,7 @@ pub mod metaconfig;
 /// Define the maximum number of audioinputs and the maximum number of audio outputs.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
-/// [`Meta`]: ./metaconfig/trait.Meta.html
+/// [`Meta`]: ./meta/trait.Meta.html
 pub trait AudioHandlerMeta {
     /// The maximum number of audio inputs supported.
     /// This method should return the same value every time it is called.
@@ -282,7 +282,7 @@ pub trait AudioHandler: AudioHandlerMeta {
 /// Define the maximum number of midi inputs and the maximum number of midi outputs.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
-/// [`Meta`]: ./metaconfig/trait.Meta.html
+/// [`Meta`]: ./meta/trait.Meta.html
 pub trait MidiHandlerMeta {
     /// The maximum number of midi inputs supported.
     /// This method should return the same value for subsequent calls.
@@ -326,7 +326,7 @@ pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
 /// This trait is common for all backends that need this info.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
-/// [`Meta`]: ./metaconfig/trait.Meta.html
+/// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
     fn name<'a>(&'a self) -> &'a str;
@@ -335,7 +335,7 @@ pub trait CommonPluginMeta {
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
-/// [`Meta`]: ./metaconfig/trait.Meta.html
+/// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// The name of the audio input with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].
@@ -363,7 +363,7 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
 /// Provides some meta-data of the midi-ports used by the plugin or application to the host.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
-/// [`Meta`]: ./metaconfig/trait.Meta.html
+/// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// The name of the midi input with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].

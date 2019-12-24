@@ -1,4 +1,4 @@
-use crate::event::event_queue::{AlwaysIgnoreNew, AlwaysInsertNewAfterOld, EventQueue};
+use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::Timed;
 use asprim::AsPrim;
 use num_traits::Float;

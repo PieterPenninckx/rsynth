@@ -165,7 +165,7 @@ where
 // So we solve this by creating a data type that is guaranteed to have the same alignment and
 // size as a `MidiWriter`.
 struct MidiWriterWrapper {
-    inner: jack::MidiWriter<'static>,
+    _inner: jack::MidiWriter<'static>,
 }
 
 unsafe impl Send for MidiWriterWrapper {}

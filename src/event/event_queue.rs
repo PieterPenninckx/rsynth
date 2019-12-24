@@ -19,7 +19,7 @@ pub trait HandleEventCollision<T> {
 pub struct AlwaysInsertNewBeforeOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
     #[inline(always)]
-    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+    fn decide_on_collision(&self, _old_event: &T, _new_event: &T) -> EventCollisionHandling {
         EventCollisionHandling::InsertNewBeforeOld
     }
 }
@@ -27,7 +27,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
 pub struct AlwaysInsertNewAfterOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
     #[inline(always)]
-    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+    fn decide_on_collision(&self, _old_event: &T, _new_event: &T) -> EventCollisionHandling {
         EventCollisionHandling::InsertNewAfterOld
     }
 }
@@ -35,7 +35,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
 pub struct AlwaysIgnoreNew;
 impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
     #[inline(always)]
-    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+    fn decide_on_collision(&self, _old_event: &T, _new_event: &T) -> EventCollisionHandling {
         EventCollisionHandling::IgnoreNew
     }
 }
@@ -43,7 +43,7 @@ impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
 pub struct AlwaysRemoveOld;
 impl<T> HandleEventCollision<T> for AlwaysRemoveOld {
     #[inline(always)]
-    fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling {
+    fn decide_on_collision(&self, _old_event: &T, _new_event: &T) -> EventCollisionHandling {
         EventCollisionHandling::RemoveOld
     }
 }

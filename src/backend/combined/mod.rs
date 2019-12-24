@@ -1,7 +1,7 @@
-use crate::dev_utilities::chunk::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
+use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
-use crate::{AudioRenderer, ContextualAudioRenderer};
+use crate::ContextualAudioRenderer;
 use num_traits::Zero;
 use std::fmt::Debug;
 
@@ -386,9 +386,10 @@ mod tests {
             DeltaEvent, TestReader, TestWriter,
         };
         use crate::backend::combined::{TestMidiReader, TestMidiWriter};
-        use crate::dev_utilities::{chunk::AudioChunk, TestPlugin};
-        use crate::event::{EventHandler, RawMidiEvent, Timed};
-        use crate::{AudioHandler, AudioHandlerMeta, AudioRenderer};
+        use crate::buffer::AudioChunk;
+        use crate::event::{RawMidiEvent, Timed};
+        use crate::test_utilities::TestPlugin;
+        use crate::{AudioHandler, AudioHandlerMeta};
 
         struct DummyMeta;
 

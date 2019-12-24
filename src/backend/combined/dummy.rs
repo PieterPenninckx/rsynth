@@ -23,13 +23,13 @@ impl<F> AudioReader<F> for AudioDummy<F> {
         44100
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> usize {
+    fn fill_buffer(&mut self, _output: &mut [&mut [F]]) -> usize {
         0
     }
 }
 
 impl<F> AudioWriter<F> for AudioDummy<F> {
-    fn write_buffer(&mut self, buffer: &[&[F]]) {}
+    fn write_buffer(&mut self, _buffer: &[&[F]]) {}
 }
 
 pub struct MidiDummy {}
@@ -47,5 +47,5 @@ impl MidiReader for MidiDummy {
 }
 
 impl MidiWriter for MidiDummy {
-    fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>) {}
+    fn write_event(&mut self, _event: DeltaEvent<RawMidiEvent>) {}
 }
