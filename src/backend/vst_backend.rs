@@ -191,12 +191,12 @@ impl HostInterface for HostCallback {
 /// # extern crate asprim;
 /// # #[macro_use] extern crate vst;
 /// struct MyPlugin {
-///   // Define your fields here
+///   meta: MetaData<&'static str, &'static str, &'static str>
+///   // Define other fields here
 /// }
 ///
 /// use rsynth::{
-///     CommonAudioPortMeta,
-///     CommonPluginMeta,
+///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},
 ///     event::{
 ///         ContextualEventHandler,
 ///         Timed,
@@ -208,47 +208,30 @@ impl HostInterface for HostCallback {
 ///         vst_backend::VstPluginMeta
 ///     },
 ///     ContextualAudioRenderer,
-///     AudioHandlerMeta,
 ///     AudioHandler
 /// };
+///
+/// impl Meta for MyPlugin {
+///    type MetaData = MetaData<&'static str, &'static str, &'static str>;
+///     fn meta(&self) -> &Self::MetaData {
+///         &self.meta
+///     }
+/// }
+///
 /// use vst::plugin::Category;
 /// impl VstPluginMeta for MyPlugin {
-///     // Implementation omitted for brevity.
-/// #    fn plugin_id(&self) -> i32 { 123 }
-/// #    fn category(&self) -> Category { Category::Synth }
+///     fn plugin_id(&self) -> i32 { 123 }
+///     fn category(&self) -> Category { Category::Synth }
 /// }
 ///
 /// use asprim::AsPrim;
 /// use num_traits::Float;
-///
-/// impl AudioHandlerMeta for MyPlugin {
-///      // Implementation omitted for brevity.
-/// #     fn max_number_of_audio_inputs(&self) -> usize { 0 }
-/// #     fn max_number_of_audio_outputs(&self) -> usize { 0 }
-/// }
 ///
 /// impl AudioHandler for MyPlugin {
 ///     // Implementation omitted for brevity.
 /// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
 /// }
 ///
-/// impl CommonPluginMeta for MyPlugin {
-///     // Implementation omitted for brevity.
-/// #    fn name(&self) -> &'static str { "Example" }
-/// }
-/// impl CommonAudioPortMeta for MyPlugin
-/// {
-///     // Implementation omitted for brevity.
-/// #    fn audio_input_name(&self, index: usize) -> String {
-/// #        unimplemented!()
-/// #    }
-/// #
-/// #    fn audio_output_name(&self, index: usize) -> String {
-/// #        unimplemented!()
-/// #    }
-/// #
-/// #
-/// }
 ///
 /// impl<F, H> ContextualAudioRenderer<F, H> for MyPlugin
 /// where
@@ -269,6 +252,7 @@ impl HostInterface for HostCallback {
 /// #    fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
+///
 /// impl<'a, H> ContextualEventHandler<Timed<SysExEvent<'a>>, H> for MyPlugin
 /// where
 ///     H: HostInterface,
@@ -276,9 +260,22 @@ impl HostInterface for HostCallback {
 /// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
 /// }
+///
 /// vst_init!(
 ///    fn init() -> MyPlugin {
-///        MyPlugin{}
+///        MyPlugin {
+///             meta: MetaData {
+///                 general_meta: "my_plugin",
+///                 audio_port_meta: InOut {
+///                     inputs: vec!["audio in 1", "audio in 2"],
+///                     outputs: vec!["audio out 1", "audio out 2"],
+///                 },
+///                 midi_port_meta: InOut {
+///                     inputs: vec!["midi in 1"],
+///                     outputs: vec![],
+///                 },
+///             }
+///        }
 ///    }
 /// );
 /// ```

@@ -3,10 +3,10 @@
 //! `rsynth` uses a hierarchy of different traits that allow your audio application
 //! or plug-in to define various aspects of the meta-data.
 //!
-//! Implementing each of these traits one by one is rather tedious, which is why
-//! `rsynth` provides this module that allows you to put all the meta-data in a
-//! struct (typically of type [`MetaData`]), so that you only have to implement
-//! the [`Meta`] trait.
+//! Implementing each of these traits one by one can be rather tedious.
+//! For this reason, these traits have blanket impls, so that you only need
+//! to implement the [`Meta`] trait and in its implementation, return the
+//! meta-data.
 //!
 //! Example
 //! -------
@@ -64,7 +64,7 @@ pub trait Meta {
     fn meta(&self) -> &Self::MetaData;
 }
 
-/// Define general meta-data of an application or plugin.
+/// Define meta-data of an application or plugin as a whole.
 pub trait General {
     /// The data-type of the general meta-data.
     type GeneralData;
