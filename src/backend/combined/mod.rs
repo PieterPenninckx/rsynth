@@ -1,3 +1,30 @@
+//! Combine different back-ends for audio input, audio output, midi input and
+//! midi output, mostly for offline rendering and testing.
+//! Support is only enabled if `rsynth` is compiled with the "backend-combined"
+//! feature, see [the cargo reference] for more information on setting cargo features.
+//!
+//! Currently: the following back-ends can be combined:
+//!
+//! * [`AudioDummy`]: dummy audio input (generates silence) and output
+//! * [`Mididummy`]: dummy midi input (generates no events) and output
+//! * [`HoundAudioReader`]: audio input from a `.wav` file, behind the "backend-combined-hound" feature
+//! * [`HoundAudioWriter`]: audio output to a `.wav` file, behind the "backend-combined-hound" feature
+//! * [`RimdMidiReader`]: midi input from a `.mid` file, behind the "backend-combined-rimd" feature
+//! * [`RimdMidiWriter`]: midi output to a `.mid` file, behind the "backend-combined-rimd" feature
+//! * [`AudioBufferReader`]: audio input from memory
+//! * [`AudioBufferWriter`]: audio output to memory
+//! * [`TestAudioReader`]: audio input, to be used in tests
+//! * [`TestAudioWriter`]: audio output, to be used in tests
+//!
+//! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
+//! [`Mididummy`]: ./dummy/struct.MidiDummy.html
+//! [`HoundAudioReader`]: ./hound/struct.HoundAudioReader.html
+//! [`HoundAudioWriter`]: ./hound/struct.HoundAudioWriter.html
+//! [`TestAudioReader`]: ./struct.TestAudioReader.html
+//! [`TestAudioWriter`]: ./struct.TestAudioWriter.html
+//! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html
+//! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html
+
 use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{EventHandler, RawMidiEvent, Timed};
@@ -232,16 +259,14 @@ pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     }
 }
 
-#[cfg(test)]
-struct TestReader<'b, F> {
+pub struct TestAudioReader<'b, F> {
     inner: memory::AudioBufferReader<'b, F>,
     expected_channels: usize,
     expected_buffer_sizes: Vec<usize>,
     number_of_calls_to_fill_buffer: usize,
 }
 
-#[cfg(test)]
-impl<'b, F> TestReader<'b, F> {
+impl<'b, F> TestAudioReader<'b, F> {
     fn new(
         reader: memory::AudioBufferReader<'b, F>,
         expected_channels: usize,
@@ -256,8 +281,7 @@ impl<'b, F> TestReader<'b, F> {
     }
 }
 
-#[cfg(test)]
-impl<'b, F> AudioReader<F> for TestReader<'b, F>
+impl<'b, F> AudioReader<F> for TestAudioReader<'b, F>
 where
     F: Copy,
 {
@@ -282,7 +306,7 @@ where
     }
 }
 
-pub struct TestWriter<'w, T, F>
+pub struct TestAudioWriter<'w, T, F>
 where
     T: AudioWriter<F>,
 {
@@ -291,7 +315,7 @@ where
     chunk_index: usize,
 }
 
-impl<'w, T, F> TestWriter<'w, T, F>
+impl<'w, T, F> TestAudioWriter<'w, T, F>
 where
     T: AudioWriter<F>,
 {
@@ -304,7 +328,7 @@ where
     }
 }
 
-impl<'w, T, F> AudioWriter<F> for TestWriter<'w, T, F>
+impl<'w, T, F> AudioWriter<F> for TestAudioWriter<'w, T, F>
 where
     T: AudioWriter<F>,
     F: Debug + PartialEq,
@@ -383,7 +407,7 @@ mod tests {
         use super::super::{
             dummy::MidiDummy,
             memory::{AudioBufferReader, AudioBufferWriter},
-            DeltaEvent, TestReader, TestWriter,
+            DeltaEvent, TestAudioReader, TestAudioWriter,
         };
         use crate::backend::combined::{TestMidiReader, TestMidiWriter};
         use crate::buffer::AudioChunk;
@@ -446,7 +470,7 @@ mod tests {
             super::super::run(
                 &mut test_plugin,
                 BUFFER_SIZE,
-                TestReader::new(
+                TestAudioReader::new(
                     AudioBufferReader::new(&input_data, SAMPLE_RATE),
                     NUMBER_OF_CHANNELS,
                     vec![
@@ -458,7 +482,7 @@ mod tests {
                         BUFFER_SIZE,
                     ],
                 ),
-                TestWriter::new(
+                TestAudioWriter::new(
                     &mut AudioBufferWriter::new(&mut output_buffer),
                     output_data.clone().split(BUFFER_SIZE),
                 ),
@@ -487,12 +511,12 @@ mod tests {
             super::super::run(
                 &mut test_plugin,
                 2,
-                TestReader::new(
+                TestAudioReader::new(
                     AudioBufferReader::new(&input_data, EXPECTED_SAMPLE_RATE as u64),
                     2,
                     vec![buffer_size; 4],
                 ),
-                TestWriter::new(
+                TestAudioWriter::new(
                     &mut AudioBufferWriter::new(&mut output_buffer),
                     output_data.clone().split(buffer_size),
                 ),
@@ -539,7 +563,7 @@ mod tests {
             super::super::run(
                 &mut test_plugin,
                 BUFFER_SIZE,
-                TestReader::new(
+                TestAudioReader::new(
                     AudioBufferReader::new(&input_data, SAMPLE_RATE),
                     NUMBER_OF_CHANNELS,
                     vec![
@@ -551,7 +575,7 @@ mod tests {
                         BUFFER_SIZE,
                     ],
                 ),
-                TestWriter::new(
+                TestAudioWriter::new(
                     &mut AudioBufferWriter::new(&mut output_buffer),
                     output_data.clone().split(BUFFER_SIZE),
                 ),
@@ -600,7 +624,7 @@ mod tests {
             super::super::run(
                 &mut test_plugin,
                 BUFFER_SIZE,
-                TestReader::new(
+                TestAudioReader::new(
                     AudioBufferReader::new(&input_data, SAMPLE_RATE),
                     NUMBER_OF_CHANNELS,
                     vec![
@@ -612,7 +636,7 @@ mod tests {
                         BUFFER_SIZE,
                     ],
                 ),
-                TestWriter::new(
+                TestAudioWriter::new(
                     &mut AudioBufferWriter::new(&mut output_buffer),
                     output_data.clone().split(BUFFER_SIZE),
                 ),
@@ -658,7 +682,7 @@ mod tests {
             super::super::run(
                 &mut test_plugin,
                 BUFFER_SIZE,
-                TestReader::new(
+                TestAudioReader::new(
                     AudioBufferReader::new(&input_data, SAMPLE_RATE),
                     NUMBER_OF_CHANNELS,
                     vec![
@@ -670,7 +694,7 @@ mod tests {
                         BUFFER_SIZE,
                     ],
                 ),
-                TestWriter::new(
+                TestAudioWriter::new(
                     &mut AudioBufferWriter::new(&mut output_buffer),
                     output_data.clone().split(BUFFER_SIZE),
                 ),
