@@ -21,6 +21,7 @@ impl<'b, F> AudioReader<F> for AudioBufferReader<'b, F>
 where
     F: Copy,
 {
+    type Err = std::convert::Infallible;
     fn number_of_channels(&self) -> usize {
         self.buffer.channels().len()
     }
@@ -28,7 +29,7 @@ where
         self.frames_per_second
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> usize {
+    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err> {
         // TODO: better error handling.
         assert_eq!(output.len(), self.number_of_channels());
         // Note: `self.number_of_channels() > 0`
@@ -42,7 +43,7 @@ where
                 .copy_from_slice(&input_channel[self.frame..self.frame + frames_to_copy]);
         }
         self.frame += frames_to_copy;
-        return frames_to_copy;
+        return Ok(frames_to_copy);
     }
 }
 
@@ -60,15 +61,15 @@ mod AudioBufferReaderTests {
             let mut reader = AudioBufferReader::new(&audio_buffer, 16);
             let mut output_buffer = AudioChunk::zero(3, 2);
             let mut buffers = output_buffer.as_mut_slices();
-            assert_eq!(2, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(Ok(2), reader.fill_buffer(buffers.as_mut_slice()));
             assert_eq!(buffers[0], vec![1, 2].as_slice());
             assert_eq!(buffers[1], vec![6, 7].as_slice());
             assert_eq!(buffers[2], vec![11, 12].as_slice());
-            assert_eq!(2, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(Ok(2), reader.fill_buffer(buffers.as_mut_slice()));
             assert_eq!(buffers[0], vec![3, 4].as_slice());
             assert_eq!(buffers[1], vec![8, 9].as_slice());
             assert_eq!(buffers[2], vec![13, 14].as_slice());
-            assert_eq!(1, reader.fill_buffer(buffers.as_mut_slice()));
+            assert_eq!(Ok(1), reader.fill_buffer(buffers.as_mut_slice()));
             assert_eq!(buffers[0], vec![5, 4].as_slice());
             assert_eq!(buffers[1], vec![10, 9].as_slice());
             assert_eq!(buffers[2], vec![15, 14].as_slice());
@@ -90,7 +91,8 @@ impl<'b, F> AudioWriter<F> for AudioBufferWriter<'b, F>
 where
     F: Copy,
 {
-    fn write_buffer(&mut self, buffer: &[&[F]]) {
-        self.buffer.append_sliced_chunk(buffer);
+    type Err = std::convert::Infallible;
+    fn write_buffer(&mut self, buffer: &[&[F]]) -> Result<(), Self::Err> {
+        Ok(self.buffer.append_sliced_chunk(buffer))
     }
 }

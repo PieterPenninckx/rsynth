@@ -227,3 +227,9 @@ impl<E> AsMut<E> for Indexed<E> {
         &mut self.event
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DeltaEvent<E> {
+    pub microseconds_since_previous_event: u64,
+    pub event: E,
+}

@@ -14,7 +14,7 @@
 //! use rsynth::meta::{Meta, MetaData, InOut};
 //! struct MyPlugin {
 //!     meta: MetaData<&'static str, &'static str, &'static str>
-//! /* ... */
+//!     /* ... */
 //! }
 //!
 //! impl MyPlugin {

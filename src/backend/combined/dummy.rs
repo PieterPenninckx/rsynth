@@ -1,5 +1,5 @@
-use super::{AudioReader, AudioWriter, DeltaEvent, MidiReader, MidiWriter};
-use crate::event::RawMidiEvent;
+use super::{AudioReader, AudioWriter, MidiReader, MidiWriter};
+use crate::event::{DeltaEvent, RawMidiEvent};
 use std::marker::PhantomData;
 
 pub struct AudioDummy<F> {
@@ -15,6 +15,7 @@ impl<F> AudioDummy<F> {
 }
 
 impl<F> AudioReader<F> for AudioDummy<F> {
+    type Err = std::convert::Infallible;
     fn number_of_channels(&self) -> usize {
         0
     }
@@ -23,13 +24,16 @@ impl<F> AudioReader<F> for AudioDummy<F> {
         44100
     }
 
-    fn fill_buffer(&mut self, _output: &mut [&mut [F]]) -> usize {
-        0
+    fn fill_buffer(&mut self, _output: &mut [&mut [F]]) -> Result<usize, Self::Err> {
+        Ok(0) // TODO: Have a look at this implementation again: is this logical?
     }
 }
 
 impl<F> AudioWriter<F> for AudioDummy<F> {
-    fn write_buffer(&mut self, _buffer: &[&[F]]) {}
+    type Err = std::convert::Infallible;
+    fn write_buffer(&mut self, _buffer: &[&[F]]) -> Result<(), Self::Err> {
+        Ok(())
+    }
 }
 
 pub struct MidiDummy {}
