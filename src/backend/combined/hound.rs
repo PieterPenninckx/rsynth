@@ -67,6 +67,8 @@ impl<'wr, F> AudioReader<F> for HoundAudioReader<'wr, F>
 where
     F: FromSample<f32> + FromSample<i32> + FromSample<i16>,
 {
+    type Err = hound::Error;
+
     fn number_of_channels(&self) -> usize {
         self.number_of_channels
     }
@@ -75,7 +77,7 @@ where
         self.frames_per_second
     }
 
-    fn fill_buffer(&mut self, outputs: &mut [&mut [F]]) -> usize {
+    fn fill_buffer(&mut self, outputs: &mut [&mut [F]]) -> Result<usize, Self::Err> {
         assert_eq!(outputs.len(), self.number_of_channels());
         assert!(self.number_of_channels() > 0);
         let length = outputs[0].len();
@@ -85,20 +87,20 @@ where
         let mut frame_index = 0;
         while frame_index < length {
             for output in outputs.iter_mut() {
-                if let Some(sample) = self.hound_sample_reader.read_sample() {
+                if let Some(sample) = self.hound_sample_reader.read_sample()? {
                     output[frame_index] = sample;
                 } else {
-                    return frame_index;
+                    return Ok(frame_index);
                 }
             }
             frame_index += 1;
         }
-        return frame_index;
+        return Ok(frame_index);
     }
 }
 
 trait HoundSampleReader<F> {
-    fn read_sample(&mut self) -> Option<F>;
+    fn read_sample(&mut self) -> Result<Option<F>, hound::Error>;
 }
 
 struct F32SampleReader<'wr, R: Read> {
@@ -109,11 +111,11 @@ impl<'wr, R: Read, F> HoundSampleReader<F> for F32SampleReader<'wr, R>
 where
     F: FromSample<f32>,
 {
-    fn read_sample(&mut self) -> Option<F> {
+    fn read_sample(&mut self) -> Result<Option<F>, hound::Error> {
         if let Some(n) = self.samples.next() {
-            n.map(|n| F::from_sample_(n)).ok()
+            Ok(Some(F::from_sample_(n?)))
         } else {
-            None
+            Ok(None)
         }
     }
 }
@@ -126,11 +128,11 @@ impl<'wr, R: Read, F> HoundSampleReader<F> for I32SampleReader<'wr, R>
 where
     F: FromSample<i32>,
 {
-    fn read_sample(&mut self) -> Option<F> {
+    fn read_sample(&mut self) -> Result<Option<F>, hound::Error> {
         if let Some(n) = self.samples.next() {
-            n.map(|n| F::from_sample_(n)).ok()
+            Ok(Some(F::from_sample_(n?)))
         } else {
-            None
+            Ok(None)
         }
     }
 }
@@ -143,11 +145,11 @@ impl<'wr, R: Read, F> HoundSampleReader<F> for I16SampleReader<'wr, R>
 where
     F: FromSample<i16>,
 {
-    fn read_sample(&mut self) -> Option<F> {
+    fn read_sample(&mut self) -> Result<Option<F>, hound::Error> {
         if let Some(n) = self.samples.next() {
-            n.map(|n| F::from_sample_(n)).ok()
+            Ok(Some(F::from_sample_(n?)))
         } else {
-            None
+            Ok(None)
         }
     }
 }
@@ -204,7 +206,9 @@ impl<'ww, F> AudioWriter<F> for HoundAudioWriter<'ww, F>
 where
     F: ToSample<f32> + ToSample<i32> + ToSample<i16> + Copy,
 {
-    fn write_buffer(&mut self, inputs: &[&[F]]) {
+    type Err = hound::Error;
+
+    fn write_buffer(&mut self, inputs: &[&[F]]) -> Result<(), Self::Err> {
         assert_eq!(inputs.len(), self.number_of_channels);
         assert!(self.number_of_channels > 0);
         let length = inputs[0].len();
@@ -215,18 +219,18 @@ where
         let mut frame_index = 0;
         while frame_index < length {
             for input in inputs.iter() {
-                self.hound_sample_writer.write_sample(input[frame_index]);
+                self.hound_sample_writer.write_sample(input[frame_index])?;
             }
             frame_index += 1;
         }
 
-        self.hound_sample_writer.flush();
+        self.hound_sample_writer.flush()
     }
 }
 
 trait HoundSampleWriter<F> {
-    fn write_sample(&mut self, sample: F);
-    fn flush(&mut self);
+    fn write_sample(&mut self, sample: F) -> Result<(), hound::Error>;
+    fn flush(&mut self) -> Result<(), hound::Error>;
 }
 
 struct F32SampleWriter<'ww, W>
@@ -241,11 +245,11 @@ where
     F: ToSample<f32>,
     W: Write + Seek,
 {
-    fn write_sample(&mut self, sample: F) {
-        self.writer.write_sample::<f32>(sample.to_sample_());
+    fn write_sample(&mut self, sample: F) -> Result<(), hound::Error> {
+        self.writer.write_sample::<f32>(sample.to_sample_())
     }
-    fn flush(&mut self) {
-        self.writer.flush();
+    fn flush(&mut self) -> Result<(), hound::Error> {
+        self.writer.flush()
     }
 }
 
@@ -261,12 +265,12 @@ where
     F: ToSample<i32>,
     W: Write + Seek,
 {
-    fn write_sample(&mut self, sample: F) {
-        self.writer.write_sample::<i32>(sample.to_sample_());
+    fn write_sample(&mut self, sample: F) -> Result<(), hound::Error> {
+        self.writer.write_sample::<i32>(sample.to_sample_())
     }
 
-    fn flush(&mut self) {
-        self.writer.flush();
+    fn flush(&mut self) -> Result<(), hound::Error> {
+        self.writer.flush()
     }
 }
 
@@ -282,11 +286,11 @@ where
     F: ToSample<i16>,
     W: Write + Seek,
 {
-    fn write_sample(&mut self, sample: F) {
-        self.writer.write_sample::<i16>(sample.to_sample_());
+    fn write_sample(&mut self, sample: F) -> Result<(), hound::Error> {
+        self.writer.write_sample::<i16>(sample.to_sample_())
     }
 
-    fn flush(&mut self) {
-        self.writer.flush();
+    fn flush(&mut self) -> Result<(), hound::Error> {
+        self.writer.flush()
     }
 }

@@ -1,6 +1,6 @@
-use super::{DeltaEvent, MidiReader, MICROSECONDS_PER_SECOND};
+use super::{MidiReader, MICROSECONDS_PER_SECOND};
 use crate::backend::combined::MidiWriter;
-use crate::event::RawMidiEvent;
+use crate::event::{DeltaEvent, RawMidiEvent};
 use rimd::{Event, MetaCommand, MetaEvent, MidiMessage, SMFBuilder, TrackEvent, SMF};
 
 const SECONDS_PER_MINUTE: u64 = 60;
