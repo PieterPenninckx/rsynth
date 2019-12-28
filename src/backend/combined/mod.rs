@@ -1,20 +1,19 @@
 //! Combine different back-ends for audio input, audio output, midi input and
 //! midi output, mostly for offline rendering and testing.
+//!
 //! Support is only enabled if `rsynth` is compiled with the "backend-combined"
 //! feature, see [the cargo reference] for more information on setting cargo features.
 //!
-//! Currently: the following back-ends can be combined:
+//! The [`run`] function can be used to run a plugin and read audio and midi from the
+//! inputs and write audio and midi to the outputs.
 //!
-//! * [`AudioDummy`]: dummy audio input (generates silence) and output
-//! * [`Mididummy`]: dummy midi input (generates no events) and output
-//! * [`HoundAudioReader`]: audio input from a `.wav` file, behind the "backend-combined-hound" feature
-//! * [`HoundAudioWriter`]: audio output to a `.wav` file, behind the "backend-combined-hound" feature
-//! * [`RimdMidiReader`]: midi input from a `.mid` file, behind the "backend-combined-rimd" feature
-//! * [`RimdMidiWriter`]: midi output to a `.mid` file, behind the "backend-combined-rimd" feature
-//! * [`AudioBufferReader`]: audio input from memory
-//! * [`AudioBufferWriter`]: audio output to memory
-//! * [`TestAudioReader`]: audio input, to be used in tests
-//! * [`TestAudioWriter`]: audio output, to be used in tests
+//! Currently: the following inputs and outputs are available:
+//!
+//! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`Mididummy`]: dummy midi input (generates no events) and output
+//! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
+//! * Rimd: [`RimdMidiReader`] and [`RimdMidiWriter`]: reand and write `.mid` files (behind the "backend-combined-rimd" feature)
+//! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory  
+//! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
 //! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
 //! [`Mididummy`]: ./dummy/struct.MidiDummy.html
@@ -26,6 +25,7 @@
 //! [`TestAudioWriter`]: ./struct.TestAudioWriter.html
 //! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html
 //! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html
+//! [`run`]: ./fn.run.html
 
 use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
@@ -41,19 +41,30 @@ pub mod memory;
 #[cfg(feature = "backend-combined-rimd")]
 pub mod rimd; // TODO: choose better name for this module.
 
+/// Define how audio is read.
+///
+/// This trait is generic over `F`, which represents the data-type used for a sample.
 pub trait AudioReader<F> {
+    /// The type of the error that occurs when reading data.
     type Err;
+
+    /// The number of audio channels that can be read.
     fn number_of_channels(&self) -> usize;
+
+    /// The sampling frequency in frames per second.
     fn frames_per_second(&self) -> u64;
 
     /// Fill the buffers. Return the number of frames that have been written.
-    /// If it is `<` the number of frames in the input, no more frames can be expected.
+    /// If the return value is `<` the number of frames in the input, no more frames can be expected.
     fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err>;
 }
 
+/// Define how audio is written.
+///
+/// This trait is generic over `F`, which represents the data-type used for a sample.
 pub trait AudioWriter<F> {
+    /// The type of the error that occurs when reading data.
     type Err;
-    // TODO: This does not foresee error handling in any way ...
     // TODO: What if the writer gets an unexpected number of channels?
     fn write_buffer(&mut self, buffer: &[&[F]]) -> Result<(), Self::Err>;
 }
@@ -170,11 +181,25 @@ where
     }
 }
 
+/// The error type that represents the errors you can get from the [`run`] function.
+///
+/// [`run`]: ./fn.run.html
 pub enum CombinedError<AudioInErr, AudioOutErr> {
+    /// An error occurred when reading the audio.
     AudioInError(AudioInErr),
+    /// An error occurred when writing the audio.
     AudioOutError(AudioOutErr),
 }
 
+/// Run an audio renderer with the given audio input, audio output, midi input and midi output.
+///
+/// Parameters
+/// ==========
+/// * `buffer_size_in_frames`: the buffer size in frames.
+///
+/// Panics
+/// ======
+/// Panics if `buffer_size_in_frames` is `0` or `> u32::max_value()`.
 pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     plugin: &mut R,
     buffer_size_in_frames: usize,
@@ -195,6 +220,7 @@ where
     assert!(buffer_size_in_frames < u32::max_value() as usize);
 
     let number_of_channels = audio_in.number_of_channels();
+    // TODO: Do not panic in this case.
     assert!(number_of_channels > 0);
 
     let frames_per_second = audio_in.frames_per_second();

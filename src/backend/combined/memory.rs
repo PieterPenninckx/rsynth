@@ -1,13 +1,28 @@
 use super::{AudioReader, AudioWriter};
 use crate::buffer::AudioChunk;
 
-pub struct AudioBufferReader<'b, F> {
+/// An [`AudioReader`] that reads from a given [`AudioChunk`].
+/// The generic parameter type `F` represents the sample type.
+///
+/// [`AudioReader`]: ../trait.AudioReader.html
+/// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
+pub struct AudioBufferReader<'b, F>
+where
+    F: Copy,
+{
     frames_per_second: u64,
     frame: usize,
     buffer: &'b AudioChunk<F>,
 }
 
-impl<'b, F> AudioBufferReader<'b, F> {
+impl<'b, F> AudioBufferReader<'b, F>
+where
+    F: Copy,
+{
+    /// Construct a new `AudioBufferReader` with the given [`AudioChunk`] and
+    /// sample rate in frames per second.
+    ///
+    /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
     pub fn new(buffer: &'b AudioChunk<F>, frames_per_second: u64) -> Self {
         Self {
             buffer,
@@ -77,6 +92,16 @@ mod AudioBufferReaderTests {
     }
 }
 
+/// An [`AudioWriter`] that appends to a given [`AudioChunk`].
+/// The generic parameter type `F` represents the sample type.
+///
+/// Note about using in a real-time context
+/// =======================================
+/// Because this appends to an [`AudioChunk`], it may allocate memory
+/// when the capacity of the [`AudioChunk`] is exceeded.
+///
+/// [`AudioWriter`]: ../trait.AudioWriter.html
+/// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
 pub struct AudioBufferWriter<'b, F> {
     buffer: &'b mut AudioChunk<F>,
 }

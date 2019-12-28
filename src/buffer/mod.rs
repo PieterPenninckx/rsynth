@@ -1,3 +1,36 @@
+//! Audio buffers.
+//!
+//! ## Some audio concepts
+//! A *sample* is a single number representing the air pressure at a given time.
+//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other
+//! types are possible as well.
+//!
+//! A *channel* usually corresponds with a speaker or a number of speakers.
+//! E.g. in a stereo setup, there is a "left" channel and a "right" channel.
+//!
+//! A *frame* consists of the samples for all the channels at a given time.
+//!
+//! A *buffer* consists of subsequent samples for a given channel and corresponds
+//! to a certain time period.
+//! (Non-standard terminology.)
+//!
+//! A *chunk* consists of the buffers for all channels for a given time period.
+//! (Non-standard terminology.)
+//!
+//!```text
+//!                         ┌ chunk     ┌ frame
+//!             ┌ sample    ↓           ↓
+//!             │      ┌─────────┐     ┌─┐
+//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
+//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
+//!          └─────────┼─────────┼─────┼─┼───────────────────┘
+//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
+//!                    │         │     │ │   ┌───────┐
+//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
+//!                    └─────────┘     └─┘   └───────┘
+//!                                            ↑
+//!                                            └ buffer
+//! ```
 use num_traits::Zero;
 use std::mem;
 
@@ -5,10 +38,15 @@ use std::mem;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct AudioChunk<F> {
     // Invariant: channels is not empty.
+    // TODO: This variant is currently not upheld and it's also not clear if we really need this.
     channels: Vec<Vec<F>>,
 }
 
 impl<F> AudioChunk<F> {
+    // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
     pub fn zero(number_of_channels: usize, number_of_frames: usize) -> Self
     where
         F: Zero,
@@ -35,6 +73,9 @@ impl<F> AudioChunk<F> {
         Self { channels }
     }
 
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
     pub fn new(number_of_channels: usize) -> Self {
         assert!(number_of_channels > 0);
         let mut channels = Vec::with_capacity(number_of_channels);
@@ -45,10 +86,31 @@ impl<F> AudioChunk<F> {
         Self { channels }
     }
 
+    /// Create a new `AudioChunk` in which each channel has the given capacity.
+    /// This allows to append `capacity` frames to the `AudioChunk` (e.g. by calling
+    /// `append_sliced_chunk`).
+    ///
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
+    pub fn with_capacity(number_of_channels: usize, capacity: usize) -> Self {
+        assert!(number_of_channels > 0);
+        let mut channels = Vec::with_capacity(number_of_channels);
+        for _ in 0..number_of_channels {
+            channels.push(Vec::with_capacity(capacity));
+        }
+
+        Self { channels }
+    }
+
     pub fn channels(&self) -> &Vec<Vec<F>> {
         &self.channels
     }
 
+    /// Note about using in a real-time context
+    /// ---------------------------------------
+    /// This method will allocate memory if the capacity of the chunk is exceeded and cannot
+    /// be used in a real-time context in that case.
     pub fn append_sliced_chunk(&mut self, chunk: &[&[F]])
     where
         F: Clone,
@@ -67,6 +129,9 @@ impl<F> AudioChunk<F> {
         self.channels
     }
 
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_slices<'a>(&'a self) -> Vec<&[F]> {
         self.channels
             .iter()
@@ -74,6 +139,9 @@ impl<F> AudioChunk<F> {
             .collect()
     }
 
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_mut_slices<'a>(&'a mut self) -> Vec<&mut [F]> {
         self.channels
             .iter_mut()
@@ -81,6 +149,9 @@ impl<F> AudioChunk<F> {
             .collect()
     }
 
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
     pub fn split(mut self, number_of_frames_per_chunk: usize) -> Vec<Self> {
         assert!(number_of_frames_per_chunk > 0);
 
@@ -202,6 +273,7 @@ pub fn buffers_as_mut_slice<'a, F>(
 }
 
 /// Initialize a slice of buffers to zero.
+// TODO: what we really want is silence (equilibrium).
 pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
     for buffer in buffers.iter_mut() {
         for sample in buffer.iter_mut() {
