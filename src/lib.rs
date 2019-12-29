@@ -56,38 +56,6 @@
 //! * polyphony: managing of different voices
 //! * timesplitting: split the audio buffer at the events
 //!
-//! ## Some audio concepts
-//! A *sample* is a single number representing the air pressure at a given time.
-//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other
-//! types are possible as well.
-//!
-//! A *channel* usually corresponds with a speaker or a number of speakers.
-//! E.g. in a stereo setup, there is a "left" channel and a "right" channel.
-//!
-//! A *frame* consists of the samples for all the channels at a given time.
-//!
-//! A *buffer* consists of subsequent samples for a given channel and corresponds
-//! to a certain time period.
-//! (Non-standard terminology.)
-//!
-//! A *chunk* consists of the buffers for all channels for a given time period.
-//! (Non-standard terminology.)
-//!
-//!```text
-//!                         ┌ chunk     ┌ frame
-//!             ┌ sample    ↓           ↓
-//!             │      ┌─────────┐     ┌─┐
-//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
-//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
-//!          └─────────┼─────────┼─────┼─┼───────────────────┘
-//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
-//!                    │         │     │ │   ┌───────┐
-//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
-//!                    └─────────┘     └─┘   └───────┘
-//!                                            ↑
-//!                                            └ buffer
-//! ```
-//!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
