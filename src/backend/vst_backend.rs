@@ -13,6 +13,7 @@
 //! [`vst_init`]: ../../macro.vst_init.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
+use crate::buffer::{InputChunk, OutputChunk};
 use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
 use crate::{AudioHandlerMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
 use core::cmp;
@@ -79,6 +80,7 @@ where
     }
 
     pub fn process<'b>(&mut self, buffer: &mut AudioBuffer<'b, f32>) {
+        let number_of_frames = buffer.samples();
         let (input_buffers, output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f32.vec_guard();
@@ -94,10 +96,11 @@ where
         }
 
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(InputChunk::new(number_of_frames, inputs.as_slice()), OutputChunk::new(number_of_frames, outputs.as_mut_slice()), &mut self.host);
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
+        let number_of_frames = buffer.samples();
         let (input_buffers, output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f64.vec_guard();
@@ -113,7 +116,7 @@ where
         }
 
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut self.host);
+            .render_buffer(InputChunk::new(number_of_frames, inputs.as_slice()), OutputChunk::new(number_of_frames, outputs.as_mut_slice()), &mut self.host);
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {

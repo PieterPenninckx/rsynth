@@ -11,6 +11,7 @@
 use crate::event::{EventHandler, Indexed};
 use crate::{
     backend::HostInterface,
+    buffer::{InputChunk, OutputChunk},
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
     CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta, ContextualAudioRenderer,
 };
@@ -290,9 +291,11 @@ where
             };
             outputs.push(buffer);
         }
-
+        {
+        let out = OutputChunk::new(number_of_frames as usize, &mut *outputs.as_mut_slice());
         self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut jack_host);
+            .render_buffer(InputChunk::new(number_of_frames as usize, inputs.as_slice()), out, &mut jack_host);
+        }
         Control::Continue
     }
 }

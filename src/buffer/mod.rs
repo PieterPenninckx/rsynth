@@ -33,6 +33,7 @@
 //! ```
 use num_traits::Zero;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 
 // Alternative name: "packet"?
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -279,5 +280,57 @@ pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
         for sample in buffer.iter_mut() {
             *sample = F::zero();
         }
+    }
+}
+
+pub struct InputChunk<'a, S> {
+    number_of_frames: usize,
+    channels: &'a [&'a [S]],
+}
+
+impl<'a, S> InputChunk<'a, S> {
+    pub fn new(number_of_frames: usize, channels: &'a [&'a [S]]) -> Self {
+        Self {number_of_frames, channels}
+    }
+    
+    pub fn number_of_frames(&self) -> usize {
+        self.number_of_frames
+    }
+}
+
+impl<'a, S> Deref for InputChunk<'a, S> {
+    type Target = &'a [&'a [S]];
+    
+    fn deref(&self) -> &Self::Target {
+        &self.channels
+    }
+}
+
+pub struct OutputChunk<'a, S> {
+    number_of_frames: usize,
+    channels: &'a mut [&'a mut [S]],
+}
+
+impl<'a, S> OutputChunk<'a, S> {
+    pub fn new(number_of_frames: usize, channels: &'a mut [&'a mut [S]]) -> Self {
+        Self {number_of_frames, channels}
+    }
+    
+    pub fn number_of_frames(&self) -> usize {
+        self.number_of_frames
+    }
+}
+
+impl<'a, S> Deref for OutputChunk<'a, S> {
+    type Target = &'a mut [&'a mut [S]];
+    
+    fn deref(&self) -> &Self::Target {
+        &self.channels
+    }
+}
+
+impl<'a, S> DerefMut for OutputChunk<'a, S> {
+    fn deref_mut(&mut self) -> &mut &'a mut [&'a mut [S]] {
+        &mut self.channels
     }
 }

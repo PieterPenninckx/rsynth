@@ -28,6 +28,7 @@
 //! [`run`]: ./fn.run.html
 
 use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
+use crate::buffer::{InputChunk, OutputChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
@@ -277,8 +278,8 @@ where
         }
 
         plugin.render_buffer(
-            &buffers_as_slice(&input_buffers, frames_read),
-            &mut buffers_as_mut_slice(&mut output_buffers, frames_read),
+            InputChunk::new(frames_read, buffers_as_slice(&input_buffers, frames_read).as_slice()),
+            OutputChunk::new(frames_read, buffers_as_mut_slice(&mut output_buffers, frames_read).as_mut_slice()),
             &mut writer,
         );
 
@@ -297,16 +298,20 @@ where
     Ok(())
 }
 
-pub struct TestAudioReader<'b, F> {
-    inner: memory::AudioBufferReader<'b, F>,
+pub struct TestAudioReader<'b, S> 
+where S: Copy
+{
+    inner: memory::AudioBufferReader<'b, S>,
     expected_channels: usize,
     expected_buffer_sizes: Vec<usize>,
     number_of_calls_to_fill_buffer: usize,
 }
 
-impl<'b, F> TestAudioReader<'b, F> {
+impl<'b, S> TestAudioReader<'b, S> 
+where S: Copy
+{
     fn new(
-        reader: memory::AudioBufferReader<'b, F>,
+        reader: memory::AudioBufferReader<'b, S>,
         expected_channels: usize,
         expected_buffer_sizes: Vec<usize>,
     ) -> Self {
@@ -319,9 +324,9 @@ impl<'b, F> TestAudioReader<'b, F> {
     }
 }
 
-impl<'b, F> AudioReader<F> for TestAudioReader<'b, F>
+impl<'b, S> AudioReader<S> for TestAudioReader<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     type Err = std::convert::Infallible;
 
@@ -333,7 +338,7 @@ where
         self.inner.frames_per_second()
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err> {
+    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
         assert_eq!(output.len(), self.expected_channels);
         for channel in output.iter() {
             assert_eq!(
@@ -346,20 +351,22 @@ where
     }
 }
 
-pub struct TestAudioWriter<'w, T, F>
+pub struct TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
+    T: AudioWriter<S>,
+    S: Copy
 {
     inner: &'w mut T,
-    expected_chunks: Vec<AudioChunk<F>>,
+    expected_chunks: Vec<AudioChunk<S>>,
     chunk_index: usize,
 }
 
-impl<'w, T, F> TestAudioWriter<'w, T, F>
+impl<'w, T, S> TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
+    T: AudioWriter<S>,
+    S: Copy,
 {
-    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<F>>) -> Self {
+    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<S>>) -> Self {
         Self {
             inner: writer,
             expected_chunks,
@@ -368,14 +375,14 @@ where
     }
 }
 
-impl<'w, T, F> AudioWriter<F> for TestAudioWriter<'w, T, F>
+impl<'w, T, S> AudioWriter<S> for TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
-    F: Debug + PartialEq,
+    T: AudioWriter<S>,
+    S: Copy + Debug + PartialEq,
 {
     type Err = std::convert::Infallible;
 
-    fn write_buffer(&mut self, chunk: &[&[F]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, chunk: &[&[S]]) -> Result<(), Self::Err> {
         assert!(self.chunk_index < self.expected_chunks.len());
         let expected_chunk = &self.expected_chunks[self.chunk_index];
         assert_eq!(chunk, expected_chunk.as_slices().as_slice());
