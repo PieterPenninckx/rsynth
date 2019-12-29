@@ -12,7 +12,7 @@
 //! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`Mididummy`]: dummy midi input (generates no events) and output
 //! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
 //! * Rimd: [`RimdMidiReader`] and [`RimdMidiWriter`]: reand and write `.mid` files (behind the "backend-combined-rimd" feature)
-//! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory  
+//! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
 //! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
