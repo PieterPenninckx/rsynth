@@ -71,7 +71,12 @@ where
     F: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
-    fn render_buffer(&mut self, inputs: InputChunk<F>, outputs: OutputChunk<F>, context: &mut C) {
+    fn render_buffer(
+        &mut self,
+        inputs: InputChunk<F>,
+        mut outputs: OutputChunk<F>,
+        context: &mut C,
+    ) {
         assert!(
             self.buffer_index < self.expected_inputs.len(),
             "`render_buffer` called more often than expected: expected only {} times",

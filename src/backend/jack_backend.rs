@@ -292,7 +292,7 @@ where
             outputs.push(buffer);
         }
         {
-        let out = OutputChunk::new(number_of_frames as usize, &mut *outputs.as_mut_slice());
+        let out = OutputChunk::new(number_of_frames as usize, outputs.as_mut_slice());
         self.plugin
             .render_buffer(InputChunk::new(number_of_frames as usize, inputs.as_slice()), out, &mut jack_host);
         }

@@ -17,6 +17,7 @@ use rsynth::{
 };
 use std::default::Default;
 
+use rsynth::buffer::{InputChunk, OutputChunk};
 use rsynth::event::raw_midi_event_event_types::*;
 
 // The total number of samples to pre-calculate.
@@ -62,7 +63,7 @@ impl Noise {
     // Here, we use one implementation over all floating point types.
     // If you want to use SIMD optimization, you can have separate implementations
     // for `f32` and `f64`.
-    fn render_audio_buffer<F>(&mut self, outputs: &mut [&mut [F]])
+    fn render_audio_buffer<F>(&mut self, outputs: &mut OutputChunk<F>)
     where
         F: AsPrim + Float,
     {
@@ -71,7 +72,7 @@ impl Noise {
         }
         assert_eq!(2, outputs.len());
         // for every output
-        for output in outputs {
+        for output in outputs.iter_mut() {
             // for each value in the buffer
             for sample in output.iter_mut() {
                 // We "add" to the output.
@@ -192,18 +193,18 @@ impl CommonMidiPortMeta for NoisePlayer {
 }
 
 #[allow(unused_variables)]
-impl<F, Context> ContextualAudioRenderer<F, Context> for NoisePlayer
+impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
 where
-    F: AsPrim + Float,
+    S: AsPrim + Float,
 {
-    fn render_buffer(
+    fn render_buffer<'i, 'o1, 'o2>(
         &mut self,
-        _inputs: &[&[F]],
-        outputs: &mut [&mut [F]],
+        _inputs: InputChunk<'i, S>,
+        mut outputs: OutputChunk<'o1, 'o2, S>,
         _context: &mut Context,
     ) {
         for noise in self.voices.iter_mut() {
-            noise.render_audio_buffer(outputs);
+            noise.render_audio_buffer(&mut outputs);
         }
     }
 }

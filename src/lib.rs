@@ -106,9 +106,8 @@ pub mod utilities;
 
 doctest!("../README.md");
 
-use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 use crate::buffer::{InputChunk, OutputChunk};
-
+use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 // Notes about the design
 // ======================
@@ -277,7 +276,11 @@ pub trait AudioRenderer<S>: AudioHandler {
     /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
     /// are all guaranteed to equal to each other.
     /// This shared length can however be different for subsequent calls to `render_buffer`.
-    fn render_buffer(&mut self, inputs: InputChunk<S>, outputs: OutputChunk<S>);
+    fn render_buffer<'i, 'o1, 'o2>(
+        &mut self,
+        inputs: InputChunk<'i, S>,
+        outputs: OutputChunk<'o1, 'o2, S>,
+    );
 }
 
 /// Defines how audio is rendered, similar to the `AudioRenderer` trait.
@@ -289,7 +292,12 @@ pub trait ContextualAudioRenderer<S, Context>: AudioHandler {
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
     /// see its documentation for more information.
-    fn render_buffer(&mut self, inputs: InputChunk<S>, outputs: OutputChunk<S>, context: &mut Context);
+    fn render_buffer<'i, 'o1, 'o2>(
+        &mut self,
+        inputs: InputChunk<'i, S>,
+        outputs: OutputChunk<'o1, 'o2, S>,
+        context: &mut Context,
+    );
 }
 
 /// Provides common meta-data of the plugin or application to the host.

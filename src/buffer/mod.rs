@@ -273,16 +273,6 @@ pub fn buffers_as_mut_slice<'a, F>(
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
 }
 
-/// Initialize a slice of buffers to zero.
-// TODO: what we really want is silence (equilibrium).
-pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
-    for buffer in buffers.iter_mut() {
-        for sample in buffer.iter_mut() {
-            *sample = F::zero();
-        }
-    }
-}
-
 pub struct InputChunk<'a, S> {
     number_of_frames: usize,
     channels: &'a [&'a [S]],
@@ -290,9 +280,12 @@ pub struct InputChunk<'a, S> {
 
 impl<'a, S> InputChunk<'a, S> {
     pub fn new(number_of_frames: usize, channels: &'a [&'a [S]]) -> Self {
-        Self {number_of_frames, channels}
+        Self {
+            number_of_frames,
+            channels,
+        }
     }
-    
+
     pub fn number_of_frames(&self) -> usize {
         self.number_of_frames
     }
@@ -300,37 +293,54 @@ impl<'a, S> InputChunk<'a, S> {
 
 impl<'a, S> Deref for InputChunk<'a, S> {
     type Target = &'a [&'a [S]];
-    
+
     fn deref(&self) -> &Self::Target {
         &self.channels
     }
 }
 
-pub struct OutputChunk<'a, S> {
+pub struct OutputChunk<'a, 'b, S> {
     number_of_frames: usize,
-    channels: &'a mut [&'a mut [S]],
+    channels: &'a mut [&'b mut [S]],
 }
 
-impl<'a, S> OutputChunk<'a, S> {
-    pub fn new(number_of_frames: usize, channels: &'a mut [&'a mut [S]]) -> Self {
-        Self {number_of_frames, channels}
+impl<'a, 'b, S> OutputChunk<'a, 'b, S> {
+    pub fn new(number_of_frames: usize, channels: &'a mut [&'b mut [S]]) -> Self {
+        Self {
+            number_of_frames,
+            channels,
+        }
     }
-    
+
     pub fn number_of_frames(&self) -> usize {
         self.number_of_frames
     }
 }
 
-impl<'a, S> Deref for OutputChunk<'a, S> {
-    type Target = &'a mut [&'a mut [S]];
-    
+impl<'a, 'b, S> OutputChunk<'a, 'b, S>
+where
+    S: Zero,
+{
+    // TODO: what we really want is silence (equilibrium).
+    pub fn initialize_to_zero(&mut self) {
+        for channel in self.channels.iter_mut() {
+            for sample in channel.iter_mut() {
+                *sample = S::zero();
+            }
+        }
+    }
+}
+
+impl<'a, 'b, S> Deref for OutputChunk<'a, 'b, S> {
+    type Target = &'a mut [&'b mut [S]];
+
     fn deref(&self) -> &Self::Target {
         &self.channels
     }
 }
 
-impl<'a, S> DerefMut for OutputChunk<'a, S> {
-    fn deref_mut(&mut self) -> &mut &'a mut [&'a mut [S]] {
+impl<'a, 'b, S> DerefMut for OutputChunk<'a, 'b, S> {
+    fn deref_mut(&mut self) -> &mut &'a mut [&'b mut [S]] {
         &mut self.channels
     }
 }

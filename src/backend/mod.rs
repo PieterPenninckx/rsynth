@@ -42,14 +42,14 @@ pub trait HostInterface {
     /// # Example
     ///
     /// The following example illustrates how `output_initialized()` can be used in
-    /// combination with [`rsynth::utilities::zero_init`] to initialize the output
+    /// to initialize the output
     /// buffers to zero in an implementation of the [`ContextualAudioRenderer`] trait.
     ///
     /// ```
     /// use rsynth::ContextualAudioRenderer;
     /// # use rsynth::{AudioHandlerMeta, AudioHandler};
     /// use rsynth::backend::HostInterface;
-    /// use rsynth::buffer::initialize_to_zero;
+    /// use rsynth::buffer::{InputChunk, OutputChunk};
     /// # struct MyPlugin {}
     /// # impl AudioHandlerMeta for MyPlugin {
     /// #    fn max_number_of_audio_inputs(&self) -> usize { 0 }
@@ -62,14 +62,14 @@ pub trait HostInterface {
     /// impl<H> ContextualAudioRenderer<f32, H> for MyPlugin
     /// where H: HostInterface
     /// {
-    ///     fn render_buffer(
+    ///     fn render_buffer<'i, 'o1, 'o2>(
     ///         &mut self,
-    ///         inputs: &[&[f32]],
-    ///         outputs: &mut [&mut [f32]],
+    ///         inputs: InputChunk<'i, f32>,
+    ///         mut outputs: OutputChunk<'o1, 'o2, f32>,
     ///         context: &mut H)
     ///     {
     ///         if ! context.output_initialized() {
-    ///             initialize_to_zero(outputs);
+    ///             outputs.initialize_to_zero();
     ///             // The rest of the audio rendering.
     ///         }
     ///     }
@@ -77,6 +77,5 @@ pub trait HostInterface {
     /// ```
     ///
     /// [`ContextualEventHandler`]: ../event/trait.ContextualEventHandler.html
-    /// [`rsynth::utilities::zero_init`]: ../utilities/fn.initialize_to_zero.html
     fn output_initialized(&self) -> bool;
 }

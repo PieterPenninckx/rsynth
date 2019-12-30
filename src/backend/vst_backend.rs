@@ -95,8 +95,11 @@ where
             outputs.push(output_buffers.get_mut(i));
         }
 
-        self.plugin
-            .render_buffer(InputChunk::new(number_of_frames, inputs.as_slice()), OutputChunk::new(number_of_frames, outputs.as_mut_slice()), &mut self.host);
+        self.plugin.render_buffer(
+            InputChunk::new(number_of_frames, inputs.as_slice()),
+            OutputChunk::new(number_of_frames, outputs.as_mut_slice()),
+            &mut self.host,
+        );
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
@@ -115,8 +118,11 @@ where
             outputs.push(output_buffers.get_mut(i));
         }
 
-        self.plugin
-            .render_buffer(InputChunk::new(number_of_frames, inputs.as_slice()), OutputChunk::new(number_of_frames, outputs.as_mut_slice()), &mut self.host);
+        self.plugin.render_buffer(
+            InputChunk::new(number_of_frames, inputs.as_slice()),
+            OutputChunk::new(number_of_frames, outputs.as_mut_slice()),
+            &mut self.host,
+        );
     }
 
     pub fn get_input_info(&self, input_index: i32) -> ChannelInfo {
@@ -229,6 +235,7 @@ impl HostInterface for HostCallback {
 ///
 /// use asprim::AsPrim;
 /// use num_traits::Float;
+/// use rsynth::buffer::{InputChunk, OutputChunk};
 ///
 /// impl AudioHandler for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -242,7 +249,7 @@ impl HostInterface for HostCallback {
 ///     H: HostInterface,
 /// {
 ///     // Implementation omitted for brevity.
-/// #    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
+/// #    fn render_buffer<'i, 'o1, 'o2>(&mut self, inputs: InputChunk<'i, F>, outputs: OutputChunk<'o1, 'o2, F>, context: &mut H)
 /// #    {
 /// #        unimplemented!()
 /// #    }
