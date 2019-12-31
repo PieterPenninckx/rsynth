@@ -61,19 +61,12 @@
 //! it can also borrow some data with additional the `context` parameter.
 //!
 //! ## Events
-//! `rsynth` defines a number of events:
+//! `rsynth` defines a number of event types:
+//!
 //! * [`RawMidiEvent`]: a raw MIDI event
 //! * [`SysExEvent`]: a system exclusive event
 //! * [`Timed<T>`]: a timed event
-
-//! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
-//! for each event type that they support.
-//! Currently supported events are:
-//!
-//! * [`RawMidiEvent`]
-//! * [`SysExEvent`]
-//! * [`Timed<T>`]
-//! * [`Indexed<T>`]
+//! * [`Indexed<T>`]:
 //!
 //! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the
