@@ -14,15 +14,23 @@
 //! See the documentation of each back-end for more information.
 //!
 //! ## Rendering audio
-//! Audio can be rendered with the [`ContextualAudioRenderer`] trait that is generic over the floating
-//! point type (`f32` or `f64`). The parameter `context` is used by the
-//! host or environment to pass extra data.
+//! Audio can be rendered by using a number of traits:
 //!
-//! The plugin or application can internally also use the [`AudioRenderer`] trait, which is similar
-//! to the [`ContextualAudioRenderer`] trait, but does not have a `context` parameter.
+//! * the [`AudioRenderer`] trait
+//! * the [`ContextualAudioRenderer`] trait
+//!
+//! These traits are very similar, the [`ContextualAudioRenderer`] trait adds one extra parameter
+//! that defines a "context" that can be passed to the implementor of the trait, so that the
+//! implementor of the trait does not need to own all data that is needed for rendering the audio;
+//! it can also borrow some data with additional the `context` parameter.
+//!
+//! Both traits are generic over the data type that represents the sample.
+//! For which precise data-type an application or plugin needs to implement the trait, depends on
+//! the back-end. Because the trait is generic, the application or plugin can have a generic implementation
+//! as well that can be used by different back-ends.
 //!
 //! ## Meta-data
-//! There are a number of traits to define some meta-data.
+//! There are a number of traits that an application or plugin needs to implement in order to define meta-data.
 //! Every plugin should implement these, but it can be tedious, so you can implement these
 //! traits in a more straightforward way by implementing the [`Meta`] trait.
 //! However, you can also implement these trait "by hand":
@@ -38,16 +46,27 @@
 //! * [`CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
+//! Additionally, back-ends can require extra trait bounds related to meta-data.
 //!
 //! ## Handling events
-//! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]
-//! for each event type that they support.
-//! Currently supported events are:
+//! Plugins or application can handle events by implementing a number of traits:
 //!
-//! * [`RawMidiEvent`]
-//! * [`SysExEvent`]
-//! * [`Timed<T>`]
-//! * [`Indexed<T>`]
+//! * [`EventHandler`]
+//! * [`ContextualEventHandler`]
+//!
+//! Both traits are generic over the event type.
+//! These traits are very similar, the [`ContextualEventHandler`] trait adds one extra parameter
+//! that defines a "context" that can be passed to the implementor of the trait, so that the
+//! implementor of the trait does not need to own all data that is needed for handling the event;
+//! it can also borrow some data with additional the `context` parameter.
+//!
+//! ## Events
+//! `rsynth` defines a number of event types:
+//!
+//! * [`RawMidiEvent`]: a raw MIDI event
+//! * [`SysExEvent`]: a system exclusive event
+//! * [`Timed<T>`]: a timed event
+//! * [`Indexed<T>`]:
 //!
 //! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the
@@ -212,6 +231,22 @@ doctest!("../README.md");
 //
 // One remaining issue is that the length of the buffer cannot be known when there are 0 inputs and
 // 0 outputs.
+// I tried to solve that by having a custom data _type_ (rather than a custom _trait_): `InputChunk` and
+// `OutputChunk`, where `OutputChunk` is defined as follows:
+// ```
+// struct OutputChunk<'a, 'b, S> {
+//      number_of_frames: usize,
+//      channels: &'a mut [&'b mut [S]]
+// }
+// ```
+//
+// Having a custom data type instead of a custom trait eliminates a number of the lifetime issues.
+// In order to maintain the invariant that all channels
+// have the same length (number_of_frames), `OutputChunk` cannot expose `channels` (because then somebody
+// may use the `&'a mut` reference to replace a slice with a slice of a different length.
+// So either this invariant needs to be given up, or `OutputChunk` needs to encapsulate everything,
+// but this does not give such a straightforward and easy to use API.
+// For this reason, I didn't keep the `OutputChunk` and continued to use the slices.
 //
 // Events
 // ------
