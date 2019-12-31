@@ -2,28 +2,28 @@ use super::{AudioReader, AudioWriter};
 use crate::buffer::AudioChunk;
 
 /// An [`AudioReader`] that reads from a given [`AudioChunk`].
-/// The generic parameter type `F` represents the sample type.
+/// The generic parameter type `S` represents the sample type.
 ///
 /// [`AudioReader`]: ../trait.AudioReader.html
 /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
-pub struct AudioBufferReader<'b, F>
+pub struct AudioBufferReader<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     frames_per_second: u64,
     frame: usize,
-    buffer: &'b AudioChunk<F>,
+    buffer: &'b AudioChunk<S>,
 }
 
-impl<'b, F> AudioBufferReader<'b, F>
+impl<'b, S> AudioBufferReader<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     /// Construct a new `AudioBufferReader` with the given [`AudioChunk`] and
     /// sample rate in frames per second.
     ///
     /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
-    pub fn new(buffer: &'b AudioChunk<F>, frames_per_second: u64) -> Self {
+    pub fn new(buffer: &'b AudioChunk<S>, frames_per_second: u64) -> Self {
         Self {
             buffer,
             frames_per_second,
@@ -32,9 +32,9 @@ where
     }
 }
 
-impl<'b, F> AudioReader<F> for AudioBufferReader<'b, F>
+impl<'b, S> AudioReader<S> for AudioBufferReader<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     type Err = std::convert::Infallible;
     fn number_of_channels(&self) -> usize {
@@ -44,7 +44,7 @@ where
         self.frames_per_second
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err> {
+    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
         // TODO: better error handling.
         assert_eq!(output.len(), self.number_of_channels());
         // Note: `self.number_of_channels() > 0`
@@ -93,7 +93,7 @@ mod AudioBufferReaderTests {
 }
 
 /// An [`AudioWriter`] that appends to a given [`AudioChunk`].
-/// The generic parameter type `F` represents the sample type.
+/// The generic parameter type `S` represents the sample type.
 ///
 /// Note about using in a real-time context
 /// =======================================
@@ -102,22 +102,22 @@ mod AudioBufferReaderTests {
 ///
 /// [`AudioWriter`]: ../trait.AudioWriter.html
 /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
-pub struct AudioBufferWriter<'b, F> {
-    buffer: &'b mut AudioChunk<F>,
+pub struct AudioBufferWriter<'b, S> {
+    buffer: &'b mut AudioChunk<S>,
 }
 
-impl<'b, F> AudioBufferWriter<'b, F> {
-    pub fn new(buffer: &'b mut AudioChunk<F>) -> Self {
+impl<'b, S> AudioBufferWriter<'b, S> {
+    pub fn new(buffer: &'b mut AudioChunk<S>) -> Self {
         Self { buffer }
     }
 }
 
-impl<'b, F> AudioWriter<F> for AudioBufferWriter<'b, F>
+impl<'b, S> AudioWriter<S> for AudioBufferWriter<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     type Err = std::convert::Infallible;
-    fn write_buffer(&mut self, buffer: &[&[F]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, buffer: &[&[S]]) -> Result<(), Self::Err> {
         Ok(self.buffer.append_sliced_chunk(buffer))
     }
 }

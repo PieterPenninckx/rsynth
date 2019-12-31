@@ -36,33 +36,33 @@ use std::mem;
 
 // Alternative name: "packet"?
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct AudioChunk<F> {
+pub struct AudioChunk<S> {
     // Invariant: channels is not empty.
     // TODO: This variant is currently not upheld and it's also not clear if we really need this.
-    channels: Vec<Vec<F>>,
+    channels: Vec<Vec<S>>,
 }
 
-impl<F> AudioChunk<F> {
+impl<S> AudioChunk<S> {
     // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
     /// Note: cannot be used in a real-time context
     /// -------------------------------------
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn zero(number_of_channels: usize, number_of_frames: usize) -> Self
     where
-        F: Zero,
+        S: Zero,
     {
         let mut buffers = Vec::with_capacity(number_of_channels);
         for _ in 0..number_of_channels {
             let mut buffer = Vec::with_capacity(number_of_frames);
             for _ in 0..number_of_frames {
-                buffer.push(F::zero());
+                buffer.push(S::zero());
             }
             buffers.push(buffer);
         }
         Self { channels: buffers }
     }
 
-    pub fn from_channels(channels: Vec<Vec<F>>) -> Self {
+    pub fn from_channels(channels: Vec<Vec<S>>) -> Self {
         assert!(!channels.is_empty());
         let len = channels[0].len();
         assert!(len > 0);
@@ -103,7 +103,7 @@ impl<F> AudioChunk<F> {
         Self { channels }
     }
 
-    pub fn channels(&self) -> &Vec<Vec<F>> {
+    pub fn channels(&self) -> &Vec<Vec<S>> {
         &self.channels
     }
 
@@ -111,9 +111,9 @@ impl<F> AudioChunk<F> {
     /// ---------------------------------------
     /// This method will allocate memory if the capacity of the chunk is exceeded and cannot
     /// be used in a real-time context in that case.
-    pub fn append_sliced_chunk(&mut self, chunk: &[&[F]])
+    pub fn append_sliced_chunk(&mut self, chunk: &[&[S]])
     where
-        F: Clone,
+        S: Clone,
     {
         assert_eq!(self.channels.len(), chunk.len());
         let len = chunk[0].len();
@@ -125,14 +125,14 @@ impl<F> AudioChunk<F> {
         }
     }
 
-    pub fn inner(self) -> Vec<Vec<F>> {
+    pub fn inner(self) -> Vec<Vec<S>> {
         self.channels
     }
 
     /// Note: cannot be used in a real-time context
     /// -------------------------------------
     /// This method allocates memory and cannot be used in a real-time context.
-    pub fn as_slices<'a>(&'a self) -> Vec<&[F]> {
+    pub fn as_slices<'a>(&'a self) -> Vec<&[S]> {
         self.channels
             .iter()
             .map(|element| element.as_slice())
@@ -142,7 +142,7 @@ impl<F> AudioChunk<F> {
     /// Note: cannot be used in a real-time context
     /// -------------------------------------
     /// This method allocates memory and cannot be used in a real-time context.
-    pub fn as_mut_slices<'a>(&'a mut self) -> Vec<&mut [F]> {
+    pub fn as_mut_slices<'a>(&'a mut self) -> Vec<&mut [S]> {
         self.channels
             .iter_mut()
             .map(|element| element.as_mut_slice())
@@ -261,23 +261,23 @@ fn split_works_with_non_dividing_input_length() {
     )
 }
 
-pub fn buffers_as_slice<'a, F>(buffers: &'a Vec<Vec<F>>, slice_len: usize) -> Vec<&'a [F]> {
+pub fn buffers_as_slice<'a, S>(buffers: &'a Vec<Vec<S>>, slice_len: usize) -> Vec<&'a [S]> {
     buffers.iter().map(|b| &b[0..slice_len]).collect()
 }
 
-pub fn buffers_as_mut_slice<'a, F>(
-    buffers: &'a mut Vec<Vec<F>>,
+pub fn buffers_as_mut_slice<'a, S>(
+    buffers: &'a mut Vec<Vec<S>>,
     slice_len: usize,
-) -> Vec<&'a mut [F]> {
+) -> Vec<&'a mut [S]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
 }
 
 /// Initialize a slice of buffers to zero.
 // TODO: what we really want is silence (equilibrium).
-pub fn initialize_to_zero<F: num_traits::Zero>(buffers: &mut [&mut [F]]) {
+pub fn initialize_to_zero<S: num_traits::Zero>(buffers: &mut [&mut [S]]) {
     for buffer in buffers.iter_mut() {
         for sample in buffer.iter_mut() {
-            *sample = F::zero();
+            *sample = S::zero();
         }
     }
 }

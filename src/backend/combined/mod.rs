@@ -43,8 +43,8 @@ pub mod rimd; // TODO: choose better name for this module.
 
 /// Define how audio is read.
 ///
-/// This trait is generic over `F`, which represents the data-type used for a sample.
-pub trait AudioReader<F> {
+/// This trait is generic over `S`, which represents the data-type used for a sample.
+pub trait AudioReader<S> {
     /// The type of the error that occurs when reading data.
     type Err;
 
@@ -54,19 +54,20 @@ pub trait AudioReader<F> {
     /// The sampling frequency in frames per second.
     fn frames_per_second(&self) -> u64;
 
-    /// Fill the buffers. Return the number of frames that have been written.
+    /// Fill the buffers. Return the number of frames that have been read and written
+    /// to the buffer.
     /// If the return value is `<` the number of frames in the input, no more frames can be expected.
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err>;
+    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err>;
 }
 
 /// Define how audio is written.
 ///
-/// This trait is generic over `F`, which represents the data-type used for a sample.
-pub trait AudioWriter<F> {
+/// This trait is generic over `S`, which represents the data-type used for a sample.
+pub trait AudioWriter<S> {
     /// The type of the error that occurs when reading data.
     type Err;
     // TODO: What if the writer gets an unexpected number of channels?
-    fn write_buffer(&mut self, buffer: &[&[F]]) -> Result<(), Self::Err>;
+    fn write_buffer(&mut self, buffer: &[&[S]]) -> Result<(), Self::Err>;
 }
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
@@ -200,21 +201,21 @@ pub enum CombinedError<AudioInErr, AudioOutErr> {
 /// Panics
 /// ======
 /// Panics if `buffer_size_in_frames` is `0` or `> u32::max_value()`.
-pub fn run<F, AudioIn, AudioOut, MidiIn, MidiOut, R>(
+pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     plugin: &mut R,
     buffer_size_in_frames: usize,
     mut audio_in: AudioIn,
     mut audio_out: AudioOut,
     midi_in: MidiIn,
     midi_out: MidiOut,
-) -> Result<(), CombinedError<<AudioIn as AudioReader<F>>::Err, <AudioOut as AudioWriter<F>>::Err>>
+) -> Result<(), CombinedError<<AudioIn as AudioReader<S>>::Err, <AudioOut as AudioWriter<S>>::Err>>
 where
-    AudioIn: AudioReader<F>,
-    AudioOut: AudioWriter<F>,
+    AudioIn: AudioReader<S>,
+    AudioOut: AudioWriter<S>,
     MidiIn: MidiReader,
     MidiOut: MidiWriter,
-    F: Zero,
-    R: ContextualAudioRenderer<F, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
+    S: Zero,
+    R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
     assert!(buffer_size_in_frames < u32::max_value() as usize);
@@ -297,16 +298,16 @@ where
     Ok(())
 }
 
-pub struct TestAudioReader<'b, F> {
-    inner: memory::AudioBufferReader<'b, F>,
+pub struct TestAudioReader<'b, S> {
+    inner: memory::AudioBufferReader<'b, S>,
     expected_channels: usize,
     expected_buffer_sizes: Vec<usize>,
     number_of_calls_to_fill_buffer: usize,
 }
 
-impl<'b, F> TestAudioReader<'b, F> {
+impl<'b, S> TestAudioReader<'b, S> {
     fn new(
-        reader: memory::AudioBufferReader<'b, F>,
+        reader: memory::AudioBufferReader<'b, S>,
         expected_channels: usize,
         expected_buffer_sizes: Vec<usize>,
     ) -> Self {
@@ -319,9 +320,9 @@ impl<'b, F> TestAudioReader<'b, F> {
     }
 }
 
-impl<'b, F> AudioReader<F> for TestAudioReader<'b, F>
+impl<'b, S> AudioReader<S> for TestAudioReader<'b, S>
 where
-    F: Copy,
+    S: Copy,
 {
     type Err = std::convert::Infallible;
 
@@ -333,7 +334,7 @@ where
         self.inner.frames_per_second()
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [F]]) -> Result<usize, Self::Err> {
+    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
         assert_eq!(output.len(), self.expected_channels);
         for channel in output.iter() {
             assert_eq!(
@@ -346,20 +347,20 @@ where
     }
 }
 
-pub struct TestAudioWriter<'w, T, F>
+pub struct TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
+    T: AudioWriter<S>,
 {
     inner: &'w mut T,
-    expected_chunks: Vec<AudioChunk<F>>,
+    expected_chunks: Vec<AudioChunk<S>>,
     chunk_index: usize,
 }
 
-impl<'w, T, F> TestAudioWriter<'w, T, F>
+impl<'w, T, S> TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
+    T: AudioWriter<S>,
 {
-    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<F>>) -> Self {
+    pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<S>>) -> Self {
         Self {
             inner: writer,
             expected_chunks,
@@ -368,14 +369,14 @@ where
     }
 }
 
-impl<'w, T, F> AudioWriter<F> for TestAudioWriter<'w, T, F>
+impl<'w, T, S> AudioWriter<S> for TestAudioWriter<'w, T, S>
 where
-    T: AudioWriter<F>,
-    F: Debug + PartialEq,
+    T: AudioWriter<S>,
+    S: Debug + PartialEq,
 {
     type Err = std::convert::Infallible;
 
-    fn write_buffer(&mut self, chunk: &[&[F]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, chunk: &[&[S]]) -> Result<(), Self::Err> {
         assert!(self.chunk_index < self.expected_chunks.len());
         let expected_chunk = &self.expected_chunks[self.chunk_index];
         assert_eq!(chunk, expected_chunk.as_slices().as_slice());

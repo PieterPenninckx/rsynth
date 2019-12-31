@@ -62,9 +62,9 @@ impl Noise {
     // Here, we use one implementation over all floating point types.
     // If you want to use SIMD optimization, you can have separate implementations
     // for `f32` and `f64`.
-    fn render_audio_buffer<F>(&mut self, outputs: &mut [&mut [F]])
+    fn render_audio_buffer<S>(&mut self, outputs: &mut [&mut [S]])
     where
-        F: AsPrim + Float,
+        S: AsPrim + Float,
     {
         if self.state == SimpleVoiceState::Idle {
             return;
@@ -77,7 +77,7 @@ impl Noise {
                 // We "add" to the output.
                 // In this way, various noises can be heard together.
                 *sample =
-                    *sample + self.white_noise[self.position].as_::<F>() * self.amplitude.as_();
+                    *sample + self.white_noise[self.position].as_::<S>() * self.amplitude.as_();
                 // Increment the position of our sound sample.
                 // We loop this easily by using modulo.
                 self.position = (self.position + 1) % self.white_noise.len();
@@ -192,14 +192,14 @@ impl CommonMidiPortMeta for NoisePlayer {
 }
 
 #[allow(unused_variables)]
-impl<F, Context> ContextualAudioRenderer<F, Context> for NoisePlayer
+impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
 where
-    F: AsPrim + Float,
+    S: AsPrim + Float,
 {
     fn render_buffer(
         &mut self,
-        _inputs: &[&[F]],
-        outputs: &mut [&mut [F]],
+        _inputs: &[&[S]],
+        outputs: &mut [&mut [S]],
         _context: &mut Context,
     ) {
         for noise in self.voices.iter_mut() {

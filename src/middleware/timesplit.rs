@@ -1,18 +1,16 @@
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::Timed;
-use asprim::AsPrim;
-use num_traits::Float;
 
-pub struct TimeChunk<'f, E, F> {
+pub struct TimeChunk<'f, E, S> {
     pub event: Option<E>,
-    pub inputs: &'f [&'f [F]],
-    pub outputs: &'f mut [&'f mut [F]],
+    pub inputs: &'f [&'f [S]],
+    pub outputs: &'f mut [&'f mut [S]],
 }
 
-pub struct TimeChunkIterator<'f, 's, E, F> {
+pub struct TimeChunkIterator<'f, 's, E, S> {
     splitter: &'s TimeSplitter<E>,
-    remaining_input: &'f [&'f [F]],
-    remaining_output: &'f mut [&'f mut [F]],
+    remaining_input: &'f [&'f [S]],
+    remaining_output: &'f mut [&'f mut [S]],
 }
 
 // TODO: Implement iterator for TimeChunkIterator
@@ -32,14 +30,11 @@ impl<E> TimeSplitter<E> {
         self.queue.queue_event(event, AlwaysInsertNewAfterOld)
     }
 
-    pub fn chunk<'f, 's, F>(
+    pub fn chunk<'f, 's, S>(
         &'s self,
-        inputs: &'f [&'f [F]],
-        outptus: &'f mut [&'f mut [F]],
-    ) -> TimeChunkIterator<'f, 's, E, F>
-    where
-        F: Float + AsPrim,
-    {
+        inputs: &'f [&'f [S]],
+        outptus: &'f mut [&'f mut [S]],
+    ) -> TimeChunkIterator<'f, 's, E, S> {
         TimeChunkIterator {
             splitter: self,
             remaining_input: inputs,
