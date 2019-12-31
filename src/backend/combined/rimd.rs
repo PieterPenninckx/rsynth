@@ -68,8 +68,8 @@ impl<'a> MidiReader for RimdMidiReader<'a> {
                 }
                 Event::Meta(MetaEvent {
                     command: MetaCommand::TempoSetting,
-                    length: _,
                     data,
+                    ..
                 }) => {
                     if data.len() != 3 {
                         unimplemented!("better error handling for this error case");
@@ -80,7 +80,7 @@ impl<'a> MidiReader for RimdMidiReader<'a> {
                 Event::Meta(_) => {}
             }
         }
-        return None;
+        None
     }
 }
 
@@ -121,7 +121,7 @@ impl RimdMidiWriter {
         } = self;
         let mut result = writer.result();
         result.division = ticks_per_beat as i16;
-        return result;
+        result
     }
 }
 

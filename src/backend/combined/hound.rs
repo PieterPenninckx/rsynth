@@ -95,7 +95,7 @@ where
             }
             frame_index += 1;
         }
-        return Ok(frame_index);
+        Ok(frame_index)
     }
 }
 
@@ -160,7 +160,6 @@ where
 {
     hound_sample_writer: Box<dyn HoundSampleWriter<S> + 'ww>,
     number_of_channels: usize,
-    sample_rate: f64,
 }
 
 impl<'ww, S> HoundAudioWriter<'ww, S>
@@ -197,7 +196,6 @@ where
         Ok(Self {
             hound_sample_writer,
             number_of_channels: spec.channels as usize,
-            sample_rate: spec.sample_rate as f64,
         })
     }
 }

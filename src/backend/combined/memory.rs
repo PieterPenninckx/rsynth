@@ -58,7 +58,7 @@ where
                 .copy_from_slice(&input_channel[self.frame..self.frame + frames_to_copy]);
         }
         self.frame += frames_to_copy;
-        return Ok(frames_to_copy);
+        Ok(frames_to_copy)
     }
 }
 

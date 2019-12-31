@@ -22,7 +22,10 @@ use std::slice;
 use vecstorage::VecStorage;
 
 pub struct JackHost<'c, 'mp, 'mw> {
-    client: &'c Client,
+    // Note: the `_client` field is currently not used, but is is rather likely that it
+    // will be used in the future. Because it may introduce an extra complexity because of
+    // the lifetime, we keep it, so that we can keep track of this complexity.
+    _client: &'c Client,
     midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
 }
 
@@ -262,7 +265,7 @@ where
             midi_writer_guard.push(midi_output.writer(process_scope));
         }
         let mut jack_host: JackHost = JackHost {
-            client,
+            _client: client,
             midi_out_ports: midi_writer_guard.as_mut_slice(),
         };
         Self::handle_events(
@@ -325,14 +328,15 @@ where
     io::stdin().read_line(&mut user_input).ok();
 
     info!("Deactivating client...");
+
     match active_client.deactivate() {
         Ok((_, _, plugin)) => {
             info!("Client deactivated.");
-            return Some(plugin.plugin);
+            Some(plugin.plugin)
         }
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
-            return None;
+            None
         }
     }
 }

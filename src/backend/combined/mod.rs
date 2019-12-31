@@ -185,6 +185,7 @@ where
 /// The error type that represents the errors you can get from the [`run`] function.
 ///
 /// [`run`]: ./fn.run.html
+#[derive(Debug)]
 pub enum CombinedError<AudioInErr, AudioOutErr> {
     /// An error occurred when reading the audio.
     AudioInError(AudioInErr),
@@ -298,14 +299,20 @@ where
     Ok(())
 }
 
-pub struct TestAudioReader<'b, S> {
+pub struct TestAudioReader<'b, S>
+where
+    S: Copy,
+{
     inner: memory::AudioBufferReader<'b, S>,
     expected_channels: usize,
     expected_buffer_sizes: Vec<usize>,
     number_of_calls_to_fill_buffer: usize,
 }
 
-impl<'b, S> TestAudioReader<'b, S> {
+impl<'b, S> TestAudioReader<'b, S>
+where
+    S: Copy,
+{
     fn new(
         reader: memory::AudioBufferReader<'b, S>,
         expected_channels: usize,
@@ -532,7 +539,8 @@ mod tests {
                 ),
                 TestMidiReader::new(vec![input_event]),
                 MidiDummy::new(),
-            );
+            )
+            .expect("Unexpected error");
             test_plugin.check_last();
         }
 
@@ -566,7 +574,8 @@ mod tests {
                 ),
                 MidiDummy::new(),
                 MidiDummy::new(),
-            );
+            )
+            .expect("Unexpected error.");
             assert_eq!(output_buffer, output_data);
         }
 
@@ -686,7 +695,8 @@ mod tests {
                 ),
                 MidiDummy::new(),
                 TestMidiWriter::new(vec![output_event1, output_event2]),
-            );
+            )
+            .expect("Unexpected error.");
         }
 
         #[test]
@@ -744,7 +754,8 @@ mod tests {
                 ),
                 MidiDummy::new(),
                 TestMidiWriter::new(vec![output_event1, output_event2]),
-            );
+            )
+            .expect("Unexpected error.");
         }
     }
 }

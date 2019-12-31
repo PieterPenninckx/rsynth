@@ -1,5 +1,5 @@
 use super::Timed;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, Index, IndexMut};
 
 pub struct EventQueue<T> {
     queue: Vec<Timed<T>>,
@@ -110,36 +110,34 @@ impl<T> EventQueue<T> {
         for read_event in self.queue.iter_mut() {
             if read_event.time_in_frames < new_event.time_in_frames {
                 insert_index += 1;
-            } else {
-                if read_event.time_in_frames == new_event.time_in_frames {
-                    match collision_decider.decide_on_collision(&read_event.event, &new_event.event)
-                    {
-                        EventCollisionHandling::IgnoreNew => {
-                            return Some(new_event);
-                        }
-                        EventCollisionHandling::InsertNewBeforeOld => {
-                            break;
-                        }
-                        EventCollisionHandling::InsertNewAfterOld => {
-                            insert_index += 1;
-                        }
-                        EventCollisionHandling::RemoveOld => {
-                            std::mem::swap(&mut read_event.event, &mut new_event.event);
-                            return Some(new_event);
-                        }
+            } else if read_event.time_in_frames == new_event.time_in_frames {
+                match collision_decider.decide_on_collision(&read_event.event, &new_event.event) {
+                    EventCollisionHandling::IgnoreNew => {
+                        return Some(new_event);
                     }
-                } else if read_event.time_in_frames > new_event.time_in_frames {
-                    break;
+                    EventCollisionHandling::InsertNewBeforeOld => {
+                        break;
+                    }
+                    EventCollisionHandling::InsertNewAfterOld => {
+                        insert_index += 1;
+                    }
+                    EventCollisionHandling::RemoveOld => {
+                        std::mem::swap(&mut read_event.event, &mut new_event.event);
+                        return Some(new_event);
+                    }
                 }
+            } else if read_event.time_in_frames > new_event.time_in_frames {
+                break;
             }
         }
         self.queue.insert(insert_index, new_event);
-        return result;
+
+        result
     }
 
     /// Remove all events before, but not on, this threshold.
     ///
-    /// # Allocation
+    /// # Note about usage in real-time context
     /// If `T` implements drop, the elements that are removed are dropped.
     /// This may cause memory de-allocation, which you want to avoid in
     /// the real-time part of your library.
@@ -152,7 +150,7 @@ impl<T> EventQueue<T> {
 
     /// Remove all events from the queue.
     ///
-    /// # Allocation
+    /// # Note about usage in real-time context
     /// If `T` implements drop, the elements that are removed are dropped.
     /// This may cause memory de-allocation, which you want to avoid in
     /// the real-time part of your library.
@@ -182,27 +180,15 @@ impl<T> EventQueue<T> {
     pub fn first(&self) -> Option<&Timed<T>> {
         self.queue.get(0)
     }
+}
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, Timed<T>> {
-        Iter {
-            inner: self.queue.iter(),
-        }
+impl<T> Deref for EventQueue<T> {
+    type Target = [Timed<T>];
+
+    fn deref(&self) -> &Self::Target {
+        self.queue.as_slice()
     }
 }
-
-pub struct Iter<'a, T> {
-    inner: std::slice::Iter<'a, T>,
-}
-
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
-    }
-}
-
-// TODO: maybe simply implement `Deref<&[T]>`?
 
 #[test]
 fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_comes_first() {
