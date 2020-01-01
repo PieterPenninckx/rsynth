@@ -332,7 +332,7 @@ pub trait ContextualAudioRenderer<S, Context>: AudioHandler {
 /// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    fn name<'a>(&'a self) -> &'a str;
+    fn name(&self) -> &str;
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
@@ -397,7 +397,7 @@ where
     T::MetaData: General,
     <<T as Meta>::MetaData as General>::GeneralData: Name,
 {
-    fn name<'a>(&'a self) -> &'a str {
+    fn name(&self) -> &str {
         self.meta().general().name()
     }
 }

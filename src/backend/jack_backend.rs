@@ -43,7 +43,7 @@ impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, '
                 time: event.time_in_frames,
                 bytes: event.event.data(),
             };
-            midi_out_port.write(&raw_midi);
+            midi_out_port.write(&raw_midi); // TODO: error handling.
         } else {
             error!(
                 "midi port out of bounds: port index is {}, but only {} ports are available",
@@ -62,7 +62,7 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
                 time: event.time_in_frames,
                 bytes: event.event.data(),
             };
-            midi_out_port.write(&raw_midi);
+            midi_out_port.write(&raw_midi); // TODO: error handling.
         } else {
             error!(
                 "midi port out of bounds: port index is {}, but only {} ports are available",
@@ -219,7 +219,7 @@ where
     }
 
     fn handle_events<'c, 'mp, 'mw>(
-        midi_in_ports: &Vec<Port<MidiIn>>,
+        midi_in_ports: &[Port<MidiIn>],
         plugin: &mut P,
         process_scope: &ProcessScope,
         jack_host: &mut JackHost<'c, 'mp, 'mw>,

@@ -118,6 +118,7 @@ where
 {
     type Err = std::convert::Infallible;
     fn write_buffer(&mut self, buffer: &[&[S]]) -> Result<(), Self::Err> {
-        Ok(self.buffer.append_sliced_chunk(buffer))
+        self.buffer.append_sliced_chunk(buffer);
+        Ok(())
     }
 }

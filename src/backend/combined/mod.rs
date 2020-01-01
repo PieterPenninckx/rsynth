@@ -381,13 +381,13 @@ where
     T: AudioWriter<S>,
     S: Debug + PartialEq,
 {
-    type Err = std::convert::Infallible;
+    type Err = <T as AudioWriter<S>>::Err;
 
     fn write_buffer(&mut self, chunk: &[&[S]]) -> Result<(), Self::Err> {
         assert!(self.chunk_index < self.expected_chunks.len());
         let expected_chunk = &self.expected_chunks[self.chunk_index];
         assert_eq!(chunk, expected_chunk.as_slices().as_slice());
-        self.inner.write_buffer(chunk);
+        self.inner.write_buffer(chunk)?;
         self.chunk_index += 1;
         Ok(())
     }
@@ -410,7 +410,7 @@ impl TestMidiReader {
 impl MidiReader for TestMidiReader {
     fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         if self.event_index < self.provided_events.len() {
-            let result = self.provided_events[self.event_index].clone();
+            let result = self.provided_events[self.event_index];
             self.event_index += 1;
             Some(result)
         } else {

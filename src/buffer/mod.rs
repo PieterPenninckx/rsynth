@@ -261,12 +261,12 @@ fn split_works_with_non_dividing_input_length() {
     )
 }
 
-pub fn buffers_as_slice<'a, S>(buffers: &'a Vec<Vec<S>>, slice_len: usize) -> Vec<&'a [S]> {
+pub fn buffers_as_slice<'a, S>(buffers: &'a [Vec<S>], slice_len: usize) -> Vec<&'a [S]> {
     buffers.iter().map(|b| &b[0..slice_len]).collect()
 }
 
 pub fn buffers_as_mut_slice<'a, S>(
-    buffers: &'a mut Vec<Vec<S>>,
+    buffers: &'a mut [Vec<S>],
     slice_len: usize,
 ) -> Vec<&'a mut [S]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()

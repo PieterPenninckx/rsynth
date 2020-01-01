@@ -1,4 +1,5 @@
 use super::Timed;
+use std::cmp::Ordering;
 use std::ops::{Deref, Index, IndexMut};
 
 pub struct EventQueue<T> {
@@ -74,10 +75,6 @@ impl<T> EventQueue<T> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.queue.len()
-    }
-
     /// Queue a new event.
     /// When the buffer is full, an element may be removed from the queue to make some room.
     /// This element is returned.
@@ -108,26 +105,31 @@ impl<T> EventQueue<T> {
 
         let mut insert_index = 0;
         for read_event in self.queue.iter_mut() {
-            if read_event.time_in_frames < new_event.time_in_frames {
-                insert_index += 1;
-            } else if read_event.time_in_frames == new_event.time_in_frames {
-                match collision_decider.decide_on_collision(&read_event.event, &new_event.event) {
-                    EventCollisionHandling::IgnoreNew => {
-                        return Some(new_event);
-                    }
-                    EventCollisionHandling::InsertNewBeforeOld => {
-                        break;
-                    }
-                    EventCollisionHandling::InsertNewAfterOld => {
-                        insert_index += 1;
-                    }
-                    EventCollisionHandling::RemoveOld => {
-                        std::mem::swap(&mut read_event.event, &mut new_event.event);
-                        return Some(new_event);
+            match read_event.time_in_frames.cmp(&new_event.time_in_frames) {
+                Ordering::Less => {
+                    insert_index += 1;
+                }
+                Ordering::Equal => {
+                    match collision_decider.decide_on_collision(&read_event.event, &new_event.event)
+                    {
+                        EventCollisionHandling::IgnoreNew => {
+                            return Some(new_event);
+                        }
+                        EventCollisionHandling::InsertNewBeforeOld => {
+                            break;
+                        }
+                        EventCollisionHandling::InsertNewAfterOld => {
+                            insert_index += 1;
+                        }
+                        EventCollisionHandling::RemoveOld => {
+                            std::mem::swap(&mut read_event.event, &mut new_event.event);
+                            return Some(new_event);
+                        }
                     }
                 }
-            } else if read_event.time_in_frames > new_event.time_in_frames {
-                break;
+                Ordering::Greater => {
+                    break;
+                }
             }
         }
         self.queue.insert(insert_index, new_event);
