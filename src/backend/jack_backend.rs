@@ -22,7 +22,10 @@ use std::slice;
 use vecstorage::VecStorage;
 
 pub struct JackHost<'c, 'mp, 'mw> {
-    client: &'c Client,
+    // Note: the `_client` field is currently not used, but is is rather likely that it
+    // will be used in the future. Because it may introduce an extra complexity because of
+    // the lifetime, we keep it, so that we can keep track of this complexity.
+    _client: &'c Client,
     midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
 }
 
@@ -40,7 +43,7 @@ impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, '
                 time: event.time_in_frames,
                 bytes: event.event.data(),
             };
-            midi_out_port.write(&raw_midi);
+            midi_out_port.write(&raw_midi); // TODO: error handling.
         } else {
             error!(
                 "midi port out of bounds: port index is {}, but only {} ports are available",
@@ -59,7 +62,7 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
                 time: event.time_in_frames,
                 bytes: event.event.data(),
             };
-            midi_out_port.write(&raw_midi);
+            midi_out_port.write(&raw_midi); // TODO: error handling.
         } else {
             error!(
                 "midi port out of bounds: port index is {}, but only {} ports are available",
@@ -216,7 +219,7 @@ where
     }
 
     fn handle_events<'c, 'mp, 'mw>(
-        midi_in_ports: &Vec<Port<MidiIn>>,
+        midi_in_ports: &[Port<MidiIn>],
         plugin: &mut P,
         process_scope: &ProcessScope,
         jack_host: &mut JackHost<'c, 'mp, 'mw>,
@@ -262,7 +265,7 @@ where
             midi_writer_guard.push(midi_output.writer(process_scope));
         }
         let mut jack_host: JackHost = JackHost {
-            client,
+            _client: client,
             midi_out_ports: midi_writer_guard.as_mut_slice(),
         };
         Self::handle_events(
@@ -325,14 +328,15 @@ where
     io::stdin().read_line(&mut user_input).ok();
 
     info!("Deactivating client...");
+
     match active_client.deactivate() {
         Ok((_, _, plugin)) => {
             info!("Client deactivated.");
-            return Some(plugin.plugin);
+            Some(plugin.plugin)
         }
         Err(e) => {
             error!("Failed to deactivate client: {:?}", e);
-            return None;
+            None
         }
     }
 }

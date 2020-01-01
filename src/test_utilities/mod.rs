@@ -7,9 +7,9 @@ use std::fmt::Debug;
 
 /// A plugin useful for writing automated tests.
 // TODO: Add more documentation.
-pub struct TestPlugin<F, E, M: AudioHandlerMeta> {
-    expected_inputs: Vec<AudioChunk<F>>,
-    provided_outputs: Vec<AudioChunk<F>>,
+pub struct TestPlugin<S, E, M: AudioHandlerMeta> {
+    expected_inputs: Vec<AudioChunk<S>>,
+    provided_outputs: Vec<AudioChunk<S>>,
     expected_events: Vec<Vec<E>>,
     provided_events: Vec<Vec<E>>,
     meta: M,
@@ -17,10 +17,10 @@ pub struct TestPlugin<F, E, M: AudioHandlerMeta> {
     event_index: usize,
 }
 
-impl<F, E, M: AudioHandlerMeta> TestPlugin<F, E, M> {
+impl<S, E, M: AudioHandlerMeta> TestPlugin<S, E, M> {
     pub fn new(
-        expected_inputs: Vec<AudioChunk<F>>,
-        provided_outputs: Vec<AudioChunk<F>>,
+        expected_inputs: Vec<AudioChunk<S>>,
+        provided_outputs: Vec<AudioChunk<S>>,
         expected_events: Vec<Vec<E>>,
         provided_events: Vec<Vec<E>>,
         meta: M,
@@ -44,7 +44,7 @@ impl<F, E, M: AudioHandlerMeta> TestPlugin<F, E, M> {
     }
 }
 
-impl<F, E, M> AudioHandlerMeta for TestPlugin<F, E, M>
+impl<S, E, M> AudioHandlerMeta for TestPlugin<S, E, M>
 where
     M: AudioHandlerMeta,
 {
@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<F, E, M> AudioHandler for TestPlugin<F, E, M>
+impl<S, E, M> AudioHandler for TestPlugin<S, E, M>
 where
     M: AudioHandler,
 {
@@ -65,13 +65,13 @@ where
     }
 }
 
-impl<F, E, M, C> ContextualAudioRenderer<F, C> for TestPlugin<F, E, M>
+impl<S, E, M, C> ContextualAudioRenderer<S, C> for TestPlugin<S, E, M>
 where
     M: AudioHandler,
-    F: PartialEq + Debug + Copy,
+    S: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
-    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut C) {
+    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut C) {
         assert!(
             self.buffer_index < self.expected_inputs.len(),
             "`render_buffer` called more often than expected: expected only {} times",
@@ -144,7 +144,7 @@ where
     }
 }
 
-impl<F, E, M> EventHandler<E> for TestPlugin<F, E, M>
+impl<S, E, M> EventHandler<E> for TestPlugin<S, E, M>
 where
     M: AudioHandlerMeta,
     E: PartialEq + Debug,

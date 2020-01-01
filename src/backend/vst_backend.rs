@@ -233,13 +233,13 @@ impl HostInterface for HostCallback {
 /// }
 ///
 ///
-/// impl<F, H> ContextualAudioRenderer<F, H> for MyPlugin
+/// impl<S, H> ContextualAudioRenderer<S, H> for MyPlugin
 /// where
-///     F: Float + AsPrim,
+///     S: Float + AsPrim,
 ///     H: HostInterface,
 /// {
 ///     // Implementation omitted for brevity.
-/// #    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut[&mut[F]], context: &mut H)
+/// #    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut[&mut[S]], context: &mut H)
 /// #    {
 /// #        unimplemented!()
 /// #    }

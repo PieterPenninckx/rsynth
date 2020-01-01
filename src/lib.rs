@@ -297,9 +297,9 @@ pub trait MidiHandlerMeta {
 
 /// Defines how audio is rendered.
 ///
-/// The type parameter `F` refers to the floating point type.
+/// The type parameter `S` refers to the floating point type.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<F>: AudioHandler {
+pub trait AudioRenderer<S>: AudioHandler {
     /// This method is called repeatedly for subsequent buffers.
     ///
     /// You may assume that the number of inputs (`inputs.len()`)
@@ -310,19 +310,19 @@ pub trait AudioRenderer<F>: AudioHandler {
     /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
     /// are all guaranteed to equal to each other.
     /// This shared length can however be different for subsequent calls to `render_buffer`.
-    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]]);
+    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]]);
 }
 
 /// Defines how audio is rendered, similar to the `AudioRenderer` trait.
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
 /// See the documentation of [`AudioRenderer`] for more information.
-pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
+pub trait ContextualAudioRenderer<S, Context>: AudioHandler {
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
     /// see its documentation for more information.
-    fn render_buffer(&mut self, inputs: &[&[F]], outputs: &mut [&mut [F]], context: &mut Context);
+    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut Context);
 }
 
 /// Provides common meta-data of the plugin or application to the host.
@@ -332,7 +332,7 @@ pub trait ContextualAudioRenderer<F, Context>: AudioHandler {
 /// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    fn name<'a>(&'a self) -> &'a str;
+    fn name(&self) -> &str;
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
@@ -397,7 +397,7 @@ where
     T::MetaData: General,
     <<T as Meta>::MetaData as General>::GeneralData: Name,
 {
-    fn name<'a>(&'a self) -> &'a str {
+    fn name(&self) -> &str {
         self.meta().general().name()
     }
 }

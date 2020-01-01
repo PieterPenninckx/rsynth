@@ -244,7 +244,7 @@ pub mod simple_event_dispatching {
                     SimpleVoiceState::Active(_) => {}
                 }
             }
-            return second_best;
+            second_best
         }
     }
 
