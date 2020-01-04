@@ -12,7 +12,8 @@ use crate::event::{EventHandler, Indexed};
 use crate::{
     backend::HostInterface,
     event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
-    CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta, ContextualAudioRenderer,
+    AudioHandler, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
+    ContextualAudioRenderer,
 };
 use core::cmp;
 use jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
@@ -303,7 +304,13 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P) -> Option<P>
 where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send + Sync + 'static,
+    P: CommonAudioPortMeta
+        + AudioHandler
+        + CommonMidiPortMeta
+        + CommonPluginMeta
+        + Send
+        + Sync
+        + 'static,
     for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
         + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:

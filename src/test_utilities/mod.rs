@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 /// A plugin useful for writing automated tests.
 // TODO: Add more documentation.
-pub struct TestPlugin<S, E, M: AudioHandlerMeta> {
+pub struct TestPlugin<S, E, M> {
     expected_inputs: Vec<AudioChunk<S>>,
     provided_outputs: Vec<AudioChunk<S>>,
     expected_events: Vec<Vec<E>>,
@@ -17,7 +17,7 @@ pub struct TestPlugin<S, E, M: AudioHandlerMeta> {
     event_index: usize,
 }
 
-impl<S, E, M: AudioHandlerMeta> TestPlugin<S, E, M> {
+impl<S, E, M> TestPlugin<S, E, M> {
     pub fn new(
         expected_inputs: Vec<AudioChunk<S>>,
         provided_outputs: Vec<AudioChunk<S>>,
@@ -67,7 +67,6 @@ where
 
 impl<S, E, M, C> ContextualAudioRenderer<S, C> for TestPlugin<S, E, M>
 where
-    M: AudioHandler,
     S: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
@@ -146,7 +145,6 @@ where
 
 impl<S, E, M> EventHandler<E> for TestPlugin<S, E, M>
 where
-    M: AudioHandlerMeta,
     E: PartialEq + Debug,
 {
     fn handle_event(&mut self, event: E) {

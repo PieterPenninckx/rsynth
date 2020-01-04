@@ -14,7 +14,9 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::HostInterface;
 use crate::event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed};
-use crate::{AudioHandlerMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer};
+use crate::{
+    AudioHandler, AudioHandlerMeta, CommonAudioPortMeta, CommonPluginMeta, ContextualAudioRenderer,
+};
 use core::cmp;
 use vecstorage::VecStorage;
 use vst::api::Events;
@@ -46,6 +48,7 @@ impl<P> VstPluginWrapper<P>
 where
     P: CommonAudioPortMeta
         + VstPluginMeta
+        + AudioHandler
         + ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>
         + ContextualAudioRenderer<f32, HostCallback>
         + ContextualAudioRenderer<f64, HostCallback>,
