@@ -281,3 +281,140 @@ pub fn initialize_to_zero<S: num_traits::Zero>(buffers: &mut [&mut [S]]) {
         }
     }
 }
+
+/// Split a chunk into two parts: one that contains the first frames
+/// and another that contains the last frames.
+pub struct ChunkSplitter<'v, 'a, S>
+where
+    S: 'static,
+{
+    head: &'v mut Vec<&'a [S]>,
+    tail: &'v mut Vec<&'a [S]>,
+}
+
+impl<'v, 'a, S> ChunkSplitter<'v, 'a, S>
+where
+    S: 'static,
+{
+    pub fn new(head: &'v mut Vec<&'a [S]>, tail: &'v mut Vec<&'a [S]>) -> Self {
+        Self { head, tail }
+    }
+
+    /// Divides a chunk into two at an index.
+    ///
+    /// The first will contain the first `mid` frames, the second will
+    /// contain the other frames.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rsynth::buffer::ChunkSplitter;
+    /// let mut head = Vec::with_capacity(2);
+    /// let mut tail = Vec::with_capacity(2);
+    /// let mut splitter = ChunkSplitter::new(&mut head, &mut tail);
+    ///
+    /// let channel1 = vec![11, 12, 13, 14, 15];
+    /// let channel2 = vec![21, 22, 23, 24, 25];
+    /// let chunk = vec![channel1.as_slice(), channel2.as_slice()];
+    ///
+    /// let (first, second) = splitter.split_at(chunk.as_slice(), 2);
+    ///
+    /// assert_eq!(first.len(), 2); // Two channels
+    /// assert_eq!(first[0], &[11, 12]);
+    /// assert_eq!(first[1], &[21, 22]);
+    ///
+    /// assert_eq!(second.len(), 2); // Two channels as well
+    /// assert_eq!(second[0], &[13, 14, 15]);
+    /// assert_eq!(second[1], &[23, 24, 25]);
+    /// ```
+    ///
+    /// # Panics
+    /// This function may panic in a number of situations:
+    ///   * Panics if  `chunk.len()` is `>` than the capacity of the head.
+    ///   * Panics if `chunk.len()` is `>` than the capacity of the tail
+    ///   * Panics if `mid` is `>` the number of frames.
+    pub fn split_at(&mut self, chunk: &[&'a [S]], mid: usize) -> (&[&'a [S]], &[&'a [S]]) {
+        assert!(self.head.capacity() >= chunk.len());
+        assert!(self.tail.capacity() >= chunk.len());
+        self.head.clear();
+        self.tail.clear();
+        for channel in chunk.iter() {
+            let (h, t) = channel.split_at(mid);
+            self.head.push(h);
+            self.tail.push(t);
+        }
+        return (self.head.as_slice(), self.tail.as_slice());
+    }
+}
+
+/// Split a chunk into two parts: one that contains the first frames
+/// and another that contains the last frames.
+pub struct ChunkSplitterMut<'v, 'a, S>
+where
+    S: 'static,
+{
+    head: &'v mut Vec<&'a mut [S]>,
+    tail: &'v mut Vec<&'a mut [S]>,
+}
+
+impl<'v, 'a, S> ChunkSplitterMut<'v, 'a, S>
+where
+    S: 'static,
+{
+    pub fn new(head: &'v mut Vec<&'a mut [S]>, tail: &'v mut Vec<&'a mut [S]>) -> Self {
+        Self { head, tail }
+    }
+
+    /// Divides a chunk into two at an index.
+    ///
+    /// The first will contain the first `mid` frames, the second will
+    /// contain the other frames.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rsynth::buffer::ChunkSplitterMut;
+    /// let mut head = Vec::with_capacity(2);
+    /// let mut tail = Vec::with_capacity(2);
+    /// let mut splitter = ChunkSplitterMut::new(&mut head, &mut tail);
+    ///
+    /// let mut channel1 = vec![11, 12, 13, 14, 15];
+    /// let mut channel2 = vec![21, 22, 23, 24, 25];
+    /// let mut chunk = vec![channel1.as_mut_slice(), channel2.as_mut_slice()];
+    ///
+    /// let (first, second) = splitter.split_at_mut(chunk.as_mut_slice(), 2);
+    ///
+    /// assert_eq!(first.len(), 2); // Two channels
+    /// assert_eq!(first[0], &[11, 12]);
+    /// assert_eq!(first[1], &[21, 22]);
+    ///
+    /// assert_eq!(second.len(), 2); // Two channels as well
+    /// assert_eq!(second[0], &[13, 14, 15]);
+    /// assert_eq!(second[1], &[23, 24, 25]);
+    /// ```
+    ///
+    /// # Panics
+    /// This function may panic in a number of situations:
+    ///   * Panics if  `chunk.len()` is `>` than the capacity of the head.
+    ///   * Panics if `chunk.len()` is `>` than the capacity of the tail
+    ///   * Panics if `mid` is `>` the number of frames.
+    pub fn split_at_mut<'s>(
+        &'s mut self,
+        chunk: &'a mut [&'a mut [S]],
+        mid: usize,
+    ) -> (&'v mut [&'a mut [S]], &'v mut [&'a mut [S]])
+    where
+        's: 'v,
+    {
+        assert!(self.head.capacity() >= chunk.len());
+        assert!(self.tail.capacity() >= chunk.len());
+        self.head.clear();
+        self.tail.clear();
+        for channel in chunk.iter_mut() {
+            let (h, t) = channel.split_at_mut(mid);
+            self.head.push(h);
+            self.tail.push(t);
+        }
+        return (self.head.as_mut_slice(), self.tail.as_mut_slice());
+    }
+}

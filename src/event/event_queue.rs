@@ -1,9 +1,11 @@
 use super::Timed;
-use crate::buffer::AudioChunk;
+use crate::buffer::{AudioChunk, ChunkSplitter, ChunkSplitterMut};
 use crate::event::{ContextualEventHandler, EventHandler};
 use crate::test_utilities::TestPlugin;
 use std::cmp::Ordering;
+use std::mem;
 use std::ops::{Deref, Index, IndexMut};
+use vecstorage::{VecGuard, VecStorage};
 
 pub struct EventQueue<T> {
     queue: Vec<Timed<T>>,
@@ -185,6 +187,28 @@ impl<T> EventQueue<T> {
     pub fn first(&self) -> Option<&Timed<T>> {
         self.queue.get(0)
     }
+
+    fn split<'storage, 's, 'chunk, S, F>(
+        &self,
+        input_storage: &'storage mut VecStorage<&'static [S]>,
+        output_storage: &'storage mut VecStorage<&'static mut [S]>,
+        inputs: &[&[S]],
+        outputs: &'s mut [&'s mut [S]],
+        mut function: F,
+    ) where
+        S: 'static,
+        F: FnMut(&[&[S]], &mut [&mut [S]]),
+    {
+        // TODO: Make this a for-loop over the events
+        loop {
+            // TODO: use real start and end (instead of just 0)
+            let input_guard = mid(input_storage, inputs, 0, 0);
+            // TODO: use real start and end (instead of just 0)
+            let mut output_guard = mid_mut(output_storage, outputs, 0, 0);
+            // TODO: Also handle the event(s)
+            function(&input_guard, &mut output_guard);
+        }
+    }
 }
 
 impl<T> Deref for EventQueue<T> {
@@ -195,200 +219,48 @@ impl<T> Deref for EventQueue<T> {
     }
 }
 
-pub struct EventSlice<'e, E> {
-    events: &'e [Timed<E>],
-    offset: u32,
-}
-
-impl<'e, E> EventSlice<'e, E> {
-    fn new(events: &'e [Timed<E>], offset: u32) -> Self {
-        EventSlice { events, offset }
+// TODO: Move to a better place in the module hierarchy.
+pub fn mid<'storage, 'chunk, 's, S>(
+    storage: &'storage mut VecStorage<&'static [S]>,
+    chunk: &'chunk [&'s [S]],
+    start: usize,
+    end: usize,
+) -> VecGuard<'storage, &'static [S], &'chunk [S]> {
+    let mut remaining_chunk = chunk;
+    let mut guard = storage.vec_guard();
+    let mut len = remaining_chunk.len();
+    while len > 0 {
+        let (first_channel, other_channels) = remaining_chunk.split_at(1);
+        let channel = &(first_channel[0]);
+        let (first, _) = channel.split_at(end);
+        let (_, middle) = first.split_at(start);
+        guard.push(middle);
+        remaining_chunk = other_channels;
+        len = remaining_chunk.len();
     }
+    guard
+}
 
-    pub fn iter<'s>(&'s self) -> EventSliceIter<'s, 'e, E>
-    where
-        E: Copy,
-    {
-        EventSliceIter::new(self)
+// TODO: Move to a better place in the module hierarchy.
+pub fn mid_mut<'storage, 'chunk, 's, S>(
+    storage: &'storage mut VecStorage<&'static mut [S]>,
+    chunk: &'chunk mut [&'s mut [S]],
+    start: usize,
+    end: usize,
+) -> VecGuard<'storage, &'static mut [S], &'chunk mut [S]> {
+    let mut remaining_chunk = chunk;
+    let mut guard = storage.vec_guard();
+    let mut len = remaining_chunk.len();
+    while len > 0 {
+        let (first_channel, other_channels) = remaining_chunk.split_at_mut(1);
+        let channel = &mut (first_channel[0]);
+        let (first, _) = channel.split_at_mut(end);
+        let (_, middle) = first.split_at_mut(start);
+        guard.push(middle);
+        remaining_chunk = other_channels;
+        len = remaining_chunk.len();
     }
-}
-
-pub struct EventSliceIter<'s, 'e, E>
-where
-    E: Copy,
-{
-    slice: &'s EventSlice<'e, E>,
-    index: usize,
-}
-
-impl<'s, 'e, E> EventSliceIter<'s, 'e, E>
-where
-    E: Copy,
-{
-    pub fn new(slice: &'s EventSlice<'e, E>) -> Self {
-        Self { slice, index: 0 }
-    }
-}
-
-impl<'s, 'e, E> Iterator for EventSliceIter<'s, 'e, E>
-where
-    E: Copy,
-{
-    type Item = Timed<E>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(e) = self.slice.events.get(self.index) {
-            self.index += 1;
-            Some(Timed {
-                event: e.event,
-                time_in_frames: e.time_in_frames - self.slice.offset,
-            })
-        } else {
-            None
-        }
-    }
-}
-
-#[test]
-pub fn event_slice_iter_returns_none_for_empty_slice() {
-    let events: Vec<Timed<()>> = Vec::new();
-    let slice = EventSlice {
-        offset: 1,
-        events: &events,
-    };
-    let mut iter = slice.iter();
-    assert_eq!(iter.next(), None);
-}
-
-#[test]
-pub fn event_slice_iter_returns_shifted_element_for_slice_with_one_element() {
-    let events = vec![Timed {
-        time_in_frames: 1,
-        event: 2,
-    }];
-    let slice = EventSlice {
-        offset: 1,
-        events: &events,
-    };
-    let mut iter = slice.iter();
-    assert_eq!(
-        iter.next(),
-        Some(Timed {
-            time_in_frames: 0,
-            event: 2
-        })
-    );
-    assert_eq!(iter.next(), None);
-}
-
-#[test]
-pub fn event_slice_iter_returns_shifted_elements_for_slice_with_two_element() {
-    let events = vec![
-        Timed {
-            time_in_frames: 3,
-            event: 2,
-        },
-        Timed {
-            time_in_frames: 6,
-            event: 8,
-        },
-    ];
-    let slice = EventSlice {
-        offset: 2,
-        events: &events,
-    };
-    let mut iter = slice.iter();
-    assert_eq!(
-        iter.next(),
-        Some(Timed {
-            time_in_frames: 1,
-            event: 2
-        })
-    );
-    assert_eq!(
-        iter.next(),
-        Some(Timed {
-            time_in_frames: 4,
-            event: 8
-        })
-    );
-    assert_eq!(iter.next(), None);
-}
-
-pub struct TimeChunk<'e, 's, E, S> {
-    pub events: EventSlice<'e, E>,
-    pub inputs: &'s [&'s [S]],
-    pub outputs: &'s mut [&'s mut [S]],
-}
-
-impl<'e, 's, E, S> TimeChunk<'e, 's, E, S>
-where
-    E: Copy,
-{
-    pub fn delegate_events<H>(&self, event_handler: &mut H)
-    where
-        H: EventHandler<Timed<E>>,
-    {
-        for event in self.events.iter() {
-            event_handler.handle_event(event);
-        }
-    }
-
-    pub fn delegate_events_contextually<H, C>(&self, event_handler: &mut H, context: &mut C)
-    where
-        H: ContextualEventHandler<Timed<E>, C>,
-    {
-        for event in self.events.iter() {
-            event_handler.handle_event(event, context);
-        }
-    }
-}
-
-#[test]
-fn delegate_events_with_one_event_works() {
-    let inputs: Vec<&[f32]> = Vec::new();
-    let events = vec![Timed {
-        event: 4,
-        time_in_frames: 5,
-    }];
-    let mut outputs: Vec<&mut [f32]> = Vec::new();
-    let timechunk = TimeChunk {
-        events: EventSlice {
-            events: events.as_slice(),
-            offset: 3,
-        },
-        inputs: inputs.as_slice(),
-        outputs: outputs.as_mut_slice(),
-    };
-    let mut test_plugin = TestPlugin::<f32, _, _>::new(
-        vec![AudioChunk::new(1)],
-        vec![AudioChunk::new(1)],
-        vec![vec![Timed {
-            event: 4,
-            time_in_frames: 2,
-        }]],
-        vec![Vec::new()],
-        (),
-    );
-    timechunk.delegate_events(&mut test_plugin);
-}
-
-pub struct TimeChunkIterator<'q, 's, E, S> {
-    remaining_events: &'q [E],
-    remaining_input: &'s [&'s [S]],
-    remaining_output: &'s mut [&'s mut [S]],
-    offset: usize,
-}
-
-impl<'q, 's, E, S> TimeChunkIterator<'q, 's, E, S> {
-    pub fn new(events: &'q [E], input: &'s [&'s [S]], output: &'s mut [&'s mut [S]]) -> Self {
-        TimeChunkIterator {
-            remaining_events: events,
-            remaining_input: input,
-            remaining_output: output,
-            offset: 0,
-        }
-    }
+    guard
 }
 
 #[test]
