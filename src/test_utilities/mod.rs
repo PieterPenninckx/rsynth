@@ -1,9 +1,19 @@
 //! Utilities for testing.
 
 use crate::buffer::AudioChunk;
-use crate::event::EventHandler;
+use crate::event::{ContextualEventHandler, EventHandler};
 use crate::{AudioHandler, AudioHandlerMeta, ContextualAudioRenderer};
 use std::fmt::Debug;
+
+pub struct DummyEventHandler;
+
+impl<E> EventHandler<E> for DummyEventHandler {
+    fn handle_event(&mut self, event: E) {}
+}
+
+impl<E, C> ContextualEventHandler<E, C> for DummyEventHandler {
+    fn handle_event(&mut self, event: E, context: &mut C) {}
+}
 
 /// A plugin useful for writing automated tests.
 // TODO: Add more documentation.

@@ -1,7 +1,8 @@
 use super::Timed;
 use crate::buffer::AudioChunk;
 use crate::event::{ContextualEventHandler, EventHandler};
-use crate::test_utilities::TestPlugin;
+use crate::test_utilities::{DummyEventHandler, TestPlugin};
+use crate::{AudioRenderer, ContextualAudioRenderer};
 use std::cmp::Ordering;
 use std::mem;
 use std::ops::{Deref, Index, IndexMut};
@@ -188,16 +189,17 @@ impl<T> EventQueue<T> {
         self.queue.get(0)
     }
 
-    fn split<'storage, 's, 'chunk, S, F>(
+    fn split<'storage, 's, 'chunk, S, R, C>(
         &self,
         input_storage: &'storage mut VecStorage<&'static [S]>,
         output_storage: &'storage mut VecStorage<&'static mut [S]>,
         inputs: &[&[S]],
         outputs: &'s mut [&'s mut [S]],
-        mut function: F,
+        renderer: &mut R,
+        context: &mut C,
     ) where
         S: 'static,
-        F: FnMut(&[&[S]], &mut [&mut [S]]),
+        R: ContextualAudioRenderer<S, C>,
     {
         // TODO: Make this a for-loop over the events
         loop {
@@ -206,9 +208,62 @@ impl<T> EventQueue<T> {
             // TODO: use real start and end (instead of just 0)
             let mut output_guard = mid_mut(output_storage, outputs, 0, 0);
             // TODO: Also handle the event(s)
-            function(&input_guard, &mut output_guard);
+            renderer.render_buffer(&input_guard, &mut output_guard, context);
         }
     }
+}
+
+#[test]
+fn split_works() {
+    let mut testPlugin = TestPlugin::new(
+        vec![
+            audio_chunk![[11, 12], [21, 22]],
+            audio_chunk![[13, 14], [23, 24]],
+        ],
+        vec![
+            audio_chunk![[110, 120], [210, 220]],
+            audio_chunk![[130, 140], [230, 240]],
+        ],
+        vec![vec![1, 2], vec![3, 4]],
+        vec![vec![], vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut events = vec![
+        Timed {
+            time_in_frames: 0,
+            event: 1,
+        },
+        Timed {
+            time_in_frames: 0,
+            event: 2,
+        },
+        Timed {
+            time_in_frames: 2,
+            event: 3,
+        },
+        Timed {
+            time_in_frames: 2,
+            event: 4,
+        },
+        Timed {
+            time_in_frames: 4,
+            event: 5,
+        },
+    ];
+    let queue = EventQueue::from_vec(events);
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let mut resultEventHandler = DummyEventHandler;
+    queue.split(
+        &mut input_storage,
+        &mut output_storage,
+        &input.as_slices(),
+        &mut output.as_mut_slices(),
+        &mut testPlugin,
+        &mut resultEventHandler,
+    )
 }
 
 impl<T> Deref for EventQueue<T> {
