@@ -24,7 +24,7 @@ trait EventHandler<E> {
 }
 ```
 In this way, third party crates that define backends can define their own event types.
-//
+
 No associated constants for plugin meta-data
 --------------------------------------------
 The idea behind this was that it cannot change during the execution of the application.
@@ -41,7 +41,7 @@ Generic trait instead of generic method
 ---------------------------------------
 The `AudioRenderer` and `ContextualAudioRenderer` traits are generic over the floating
 point type, instead of having a method that is generic over _all_ float types.
-In practice, backends only require renderers over f32 and/or f64, not over _all_ floating
+In practice, backends only require renderers over `f32` and/or `f64`, not over _all_ floating
 point types. So in practice, for instance the vst backend can require
 `AudioRenderer<f32>` and `AudioRenderer<f64>`. These can be implemented separately,
 allowing for SIMD optimization, or together in one generic impl block.
@@ -73,7 +73,7 @@ but this lead to a cascade of fights with the borrow checker:
 
 * First it was problematic for the `Polyphonic` middleware (simplified pseudo-Rust of
  `Polyphonic`s `render_buffer` method):
-    ```
+    ```rust
      fn render_buffer<'a, I: InputBuffers<'a>, O: OutputBuffers<'a>>(&mut self, inputs: &I, outputs: &mut O) {
           for voice in self.voices {
               voice.render_buffer(inputs, outputs); // <-- the borrow of outputs needs to be shorter
