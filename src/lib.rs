@@ -121,7 +121,6 @@ pub mod backend;
 pub mod envelope;
 pub mod event;
 pub mod meta;
-pub mod middleware;
 pub mod test_utilities;
 pub mod utilities;
 
