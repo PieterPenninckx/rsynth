@@ -35,9 +35,9 @@ impl<S, E, M> TestPlugin<S, E, M> {
         provided_events: Vec<Vec<E>>,
         meta: M,
     ) -> Self {
-        assert_eq!(expected_inputs.len(), provided_outputs.len());
-        assert_eq!(expected_inputs.len(), expected_events.len());
-        assert_eq!(expected_inputs.len(), provided_events.len());
+        assert_eq!(expected_inputs.len(), provided_outputs.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
+        assert_eq!(expected_inputs.len(), expected_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
+        assert_eq!(expected_inputs.len(), provided_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
         TestPlugin {
             expected_inputs,
             provided_outputs,
@@ -98,7 +98,13 @@ where
         self.event_index = 0;
 
         let expected_input_channels = &self.expected_inputs[self.buffer_index].channels();
-        assert_eq!(inputs.len(), expected_input_channels.len());
+        assert_eq!(
+            inputs.len(),
+            expected_input_channels.len(),
+            "`render_buffer` called with {} input channels, but {} were expected",
+            inputs.len(),
+            expected_input_channels.len()
+        );
         for (input_channel_index, input_channel) in inputs.iter().enumerate() {
             let expected_input_channel = &expected_input_channels[input_channel_index];
             assert_eq!(

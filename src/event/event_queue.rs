@@ -4,12 +4,13 @@ use crate::event::{ContextualEventHandler, EventHandler};
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::{AudioRenderer, ContextualAudioRenderer};
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::mem;
 use std::ops::{Deref, Index, IndexMut};
 use vecstorage::{VecGuard, VecStorage};
 
 pub struct EventQueue<T> {
-    queue: Vec<Timed<T>>,
+    queue: VecDeque<Timed<T>>,
 }
 
 pub enum EventCollisionHandling {
@@ -72,12 +73,17 @@ impl<T> IndexMut<usize> for EventQueue<T> {
 impl<T> EventQueue<T> {
     #[cfg(test)]
     pub fn from_vec(events: Vec<Timed<T>>) -> Self {
-        Self { queue: events }
+        Self {
+            queue: events.into(),
+        }
     }
 
+    /// # Panics
+    /// Panics if `capacity == 0`.
     pub fn new(capacity: usize) -> Self {
+        assert!(capacity > 0);
         Self {
-            queue: Vec::with_capacity(capacity),
+            queue: VecDeque::with_capacity(capacity),
         }
     }
 
@@ -91,6 +97,7 @@ impl<T> EventQueue<T> {
         let mut new_event = new_event;
         let result;
         if self.queue.len() >= self.queue.capacity() {
+            // Note: self.queue.capacity() > 0, so self.queue is not empty.
             // TODO: Log an error.
             // We remove the first event to come, in this way,
             // we are sure we are not skipping the "last" event,
@@ -99,7 +106,7 @@ impl<T> EventQueue<T> {
             // may remain forever. For this reason, it is safer to
             // remove the first event
             if new_event.time_in_frames > self.queue[0].time_in_frames {
-                result = Some(self.queue.remove(0));
+                result = self.queue.pop_front();
             } else {
                 return Some(new_event);
             }
@@ -189,7 +196,25 @@ impl<T> EventQueue<T> {
         self.queue.get(0)
     }
 
-    fn split<'storage, 's, 'chunk, S, R, C>(
+    fn render<'storage, 's, 'chunk, S, R, C>(
+        start: usize,
+        stop: usize,
+        input_storage: &'storage mut VecStorage<&'static [S]>,
+        output_storage: &'storage mut VecStorage<&'static mut [S]>,
+        inputs: &[&[S]],
+        outputs: &mut [&mut [S]],
+        renderer: &mut R,
+        context: &mut C,
+    ) where
+        S: 'static,
+        R: ContextualAudioRenderer<S, C>,
+    {
+        let input_guard = mid(input_storage, inputs, start, stop);
+        let mut output_guard = mid_mut(output_storage, outputs, start, stop);
+        renderer.render_buffer(&input_guard, &mut output_guard, context);
+    }
+
+    pub fn split<'storage, 's, 'chunk, S, R, C>(
         &mut self,
         input_storage: &'storage mut VecStorage<&'static [S]>,
         output_storage: &'storage mut VecStorage<&'static mut [S]>,
@@ -200,32 +225,63 @@ impl<T> EventQueue<T> {
     ) where
         S: 'static,
         R: ContextualAudioRenderer<S, C> + EventHandler<T>,
+        T: std::fmt::Debug,
     {
-        let index_of_first_element_to_ignore = todo!();
+        let buffer_length = if inputs.len() > 0 {
+            inputs[0].len()
+        } else if outputs.len() > 0 {
+            outputs[0].len()
+        } else {
+            todo!();
+        };
         let mut last_event_time = 0;
-        for e in self.queue.drain(0..index_of_first_element_to_ignore) {
+        loop {
+            if let Some(ref first) = self.queue.get(0) {
+                if first.time_in_frames as usize >= buffer_length {
+                    break;
+                }
+            } else {
+                break;
+            };
             let Timed {
                 time_in_frames: event_time,
                 event: event,
-            } = e;
-            renderer.handle_event(event);
-            if (event_time == last_event_time) {
+            } = self.queue.pop_front().expect("event queue is not empty");
+            if event_time == last_event_time {
+                renderer.handle_event(event);
                 continue;
             }
-            todo!();
-            // TODO: use real start and end (instead of just 0)
-            let input_guard = mid(input_storage, inputs, 0, 0);
-            // TODO: use real start and end (instead of just 0)
-            let mut output_guard = mid_mut(output_storage, outputs, 0, 0);
-            // TODO: Also handle the event(s)
-            renderer.render_buffer(&input_guard, &mut output_guard, context);
+            Self::render(
+                last_event_time as usize,
+                event_time as usize,
+                input_storage,
+                output_storage,
+                inputs,
+                outputs,
+                renderer,
+                context,
+            );
+            renderer.handle_event(event);
+            last_event_time = event_time;
         }
+        if (last_event_time as usize) < buffer_length {
+            Self::render(
+                last_event_time as usize,
+                buffer_length,
+                input_storage,
+                output_storage,
+                inputs,
+                outputs,
+                renderer,
+                context,
+            );
+        };
     }
 }
 
 #[test]
 fn split_works() {
-    let mut testPlugin = TestPlugin::new(
+    let mut test_plugin = TestPlugin::new(
         vec![
             audio_chunk![[11, 12], [21, 22]],
             audio_chunk![[13, 14], [23, 24]],
@@ -262,57 +318,51 @@ fn split_works() {
             event: 5,
         },
     ];
-    let queue = EventQueue::from_vec(events);
+    let mut queue = EventQueue::from_vec(events);
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
-    let mut resultEventHandler = DummyEventHandler;
+    let mut result_event_handler = DummyEventHandler;
     queue.split(
         &mut input_storage,
         &mut output_storage,
         &input.as_slices(),
         &mut output.as_mut_slices(),
-        &mut testPlugin,
-        &mut resultEventHandler,
+        &mut test_plugin,
+        &mut result_event_handler,
     )
 }
 
 #[test]
 fn split_works_with_empty_event_queue() {
-    let mut testPlugin = TestPlugin::new(
-        vec![
-            audio_chunk![[11, 12], [21, 22]],
-            audio_chunk![[13, 14], [23, 24]],
-        ],
-        vec![
-            audio_chunk![[110, 120], [210, 220]],
-            audio_chunk![[130, 140], [230, 240]],
-        ],
-        vec![vec![], vec![]],
-        vec![vec![], vec![]],
+    let mut test_plugin = TestPlugin::<_, (), _>::new(
+        vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
+        vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
+        vec![vec![]],
+        vec![vec![]],
         (),
     );
     let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
     let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let mut events = vec![];
-    let queue = EventQueue::new(0);
+    let mut events: Vec<()> = vec![];
+    let mut queue = EventQueue::new(1);
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
-    let mut resultEventHandler = DummyEventHandler;
+    let mut result_event_handler = DummyEventHandler;
     queue.split(
         &mut input_storage,
         &mut output_storage,
         &input.as_slices(),
         &mut output.as_mut_slices(),
-        &mut testPlugin,
-        &mut resultEventHandler,
+        &mut test_plugin,
+        &mut result_event_handler,
     )
 }
 
 impl<T> Deref for EventQueue<T> {
-    type Target = [Timed<T>];
+    type Target = VecDeque<Timed<T>>;
 
     fn deref(&self) -> &Self::Target {
-        self.queue.as_slice()
+        &self.queue
     }
 }
 
@@ -429,15 +479,8 @@ fn mid_works() {
 
 #[test]
 fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_comes_first() {
-    let initial_buffer = vec![
-        Timed::new(4, 16),
-        Timed::new(6, 36),
-        Timed::new(7, 49),
-        Timed::new(8, 64),
-    ];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     // Check our assumption:
     assert_eq!(queue.queue.capacity(), queue.queue.len());
 
@@ -450,15 +493,8 @@ fn eventqueue_queue_event_new_event_ignored_when_already_full_and_new_event_come
 
 #[test]
 fn event_queue_queue_event_first_event_removed_when_already_full_and_new_event_after_first() {
-    let initial_buffer = vec![
-        Timed::new(4, 16),
-        Timed::new(6, 36),
-        Timed::new(7, 49),
-        Timed::new(8, 64),
-    ];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     // Check our assumption:
     assert_eq!(queue.queue.capacity(), queue.queue.len());
 
@@ -468,21 +504,14 @@ fn event_queue_queue_event_first_event_removed_when_already_full_and_new_event_a
     // Assert:
     assert_eq!(
         queue.queue,
-        vec![
-            Timed::new(5, 25),
-            Timed::new(6, 36),
-            Timed::new(7, 49),
-            Timed::new(8, 64),
-        ]
+        vec![Timed::new(5, 25), Timed::new(6, 36), Timed::new(7, 49),]
     );
 }
 
 #[test]
 fn eventqueue_queue_event_new_event_inserted_at_correct_location() {
     let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -504,9 +533,7 @@ fn eventqueue_queue_event_new_event_inserted_at_correct_location() {
 fn eventqueue_queue_event_with_always_ignore_new_new_event_ignored_when_already_event_at_that_location(
 ) {
     let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -521,9 +548,7 @@ fn eventqueue_queue_event_with_always_ignore_old_old_event_ignored_when_already_
 ) {
     let initial_buffer = vec![Timed::new(4, 16), Timed::new(6, 36), Timed::new(7, 49)];
     let expected_buffer = vec![Timed::new(4, 16), Timed::new(6, 25), Timed::new(7, 49)];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -544,9 +569,7 @@ fn eventqueue_queue_event_with_always_insert_new_after_old() {
         Timed::new(6, 25),
         Timed::new(7, 49),
     ];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -567,9 +590,7 @@ fn eventqueue_queue_event_with_always_insert_new_after_old_with_doubles() {
         Timed::new(6, 25),
         Timed::new(7, 49),
     ];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -590,9 +611,7 @@ fn eventqueue_queue_event_with_always_insert_new_before_old() {
         Timed::new(6, 36),
         Timed::new(7, 49),
     ];
-    let mut queue = EventQueue {
-        queue: initial_buffer.clone(),
-    };
+    let mut queue = EventQueue::from_vec(initial_buffer.clone());
     queue.queue.reserve(1);
 
     // Act
@@ -606,28 +625,28 @@ fn eventqueue_queue_event_with_always_insert_new_before_old() {
 
 #[test]
 fn eventqueue_forget_before() {
-    let mut queue = EventQueue {
-        queue: vec![
+    let mut queue = EventQueue::from_vec({
+        vec![
             Timed::new(4, 16),
             Timed::new(6, 36),
             Timed::new(7, 49),
             Timed::new(8, 64),
-        ],
-    };
+        ]
+    });
     queue.forget_before(7);
     assert_eq!(queue.queue, vec![Timed::new(7, 49), Timed::new(8, 64),]);
 }
 
 #[test]
 fn eventqueue_forget_everything() {
-    let mut queue = EventQueue {
-        queue: vec![
+    let mut queue = EventQueue::from_vec({
+        vec![
             Timed::new(4, 16),
             Timed::new(6, 36),
             Timed::new(7, 49),
             Timed::new(8, 64),
-        ],
-    };
+        ]
+    });
     queue.forget_before(9);
     assert_eq!(queue.queue, Vec::new());
 }
