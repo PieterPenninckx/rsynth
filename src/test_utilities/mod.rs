@@ -1,13 +1,23 @@
 //! Utilities for testing.
 
 use crate::buffer::AudioChunk;
-use crate::event::EventHandler;
+use crate::event::{ContextualEventHandler, EventHandler};
 use crate::{AudioHandler, AudioHandlerMeta, ContextualAudioRenderer};
 use std::fmt::Debug;
 
+pub struct DummyEventHandler;
+
+impl<E> EventHandler<E> for DummyEventHandler {
+    fn handle_event(&mut self, event: E) {}
+}
+
+impl<E, C> ContextualEventHandler<E, C> for DummyEventHandler {
+    fn handle_event(&mut self, event: E, context: &mut C) {}
+}
+
 /// A plugin useful for writing automated tests.
 // TODO: Add more documentation.
-pub struct TestPlugin<S, E, M: AudioHandlerMeta> {
+pub struct TestPlugin<S, E, M> {
     expected_inputs: Vec<AudioChunk<S>>,
     provided_outputs: Vec<AudioChunk<S>>,
     expected_events: Vec<Vec<E>>,
@@ -17,7 +27,7 @@ pub struct TestPlugin<S, E, M: AudioHandlerMeta> {
     event_index: usize,
 }
 
-impl<S, E, M: AudioHandlerMeta> TestPlugin<S, E, M> {
+impl<S, E, M> TestPlugin<S, E, M> {
     pub fn new(
         expected_inputs: Vec<AudioChunk<S>>,
         provided_outputs: Vec<AudioChunk<S>>,
@@ -25,9 +35,9 @@ impl<S, E, M: AudioHandlerMeta> TestPlugin<S, E, M> {
         provided_events: Vec<Vec<E>>,
         meta: M,
     ) -> Self {
-        assert_eq!(expected_inputs.len(), provided_outputs.len());
-        assert_eq!(expected_inputs.len(), expected_events.len());
-        assert_eq!(expected_inputs.len(), provided_events.len());
+        assert_eq!(expected_inputs.len(), provided_outputs.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
+        assert_eq!(expected_inputs.len(), expected_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
+        assert_eq!(expected_inputs.len(), provided_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
         TestPlugin {
             expected_inputs,
             provided_outputs,
@@ -67,7 +77,6 @@ where
 
 impl<S, E, M, C> ContextualAudioRenderer<S, C> for TestPlugin<S, E, M>
 where
-    M: AudioHandler,
     S: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
@@ -89,7 +98,13 @@ where
         self.event_index = 0;
 
         let expected_input_channels = &self.expected_inputs[self.buffer_index].channels();
-        assert_eq!(inputs.len(), expected_input_channels.len());
+        assert_eq!(
+            inputs.len(),
+            expected_input_channels.len(),
+            "`render_buffer` called with {} input channels, but {} were expected",
+            inputs.len(),
+            expected_input_channels.len()
+        );
         for (input_channel_index, input_channel) in inputs.iter().enumerate() {
             let expected_input_channel = &expected_input_channels[input_channel_index];
             assert_eq!(
@@ -146,7 +161,6 @@ where
 
 impl<S, E, M> EventHandler<E> for TestPlugin<S, E, M>
 where
-    M: AudioHandlerMeta,
     E: PartialEq + Debug,
 {
     fn handle_event(&mut self, event: E) {

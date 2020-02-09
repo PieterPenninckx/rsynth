@@ -121,7 +121,6 @@ pub mod backend;
 pub mod envelope;
 pub mod event;
 pub mod meta;
-pub mod middleware;
 pub mod test_utilities;
 pub mod utilities;
 
@@ -268,7 +267,7 @@ pub trait AudioHandlerMeta {
 }
 
 /// Define how sample-rate changes are handled.
-pub trait AudioHandler: AudioHandlerMeta {
+pub trait AudioHandler {
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
     /// any other.
@@ -299,7 +298,7 @@ pub trait MidiHandlerMeta {
 ///
 /// The type parameter `S` refers to the floating point type.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<S>: AudioHandler {
+pub trait AudioRenderer<S> {
     /// This method is called repeatedly for subsequent buffers.
     ///
     /// You may assume that the number of inputs (`inputs.len()`)
@@ -317,7 +316,7 @@ pub trait AudioRenderer<S>: AudioHandler {
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
 /// See the documentation of [`AudioRenderer`] for more information.
-pub trait ContextualAudioRenderer<S, Context>: AudioHandler {
+pub trait ContextualAudioRenderer<S, Context> {
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,

@@ -188,6 +188,16 @@ impl<S> AudioChunk<S> {
 }
 
 #[macro_export]
+/// Create an audio chunk.
+/// ## Example
+/// ```
+/// // Create an audio chunk with two channels and three frames.
+/// # #[macro_use]
+/// # extern crate rsynth;
+/// # fn main() {
+/// let input = audio_chunk![[1, 2], [3, 4], [5, 6]];
+/// # }
+/// ```
 macro_rules! audio_chunk {
     [
         [
