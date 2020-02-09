@@ -190,7 +190,7 @@ impl<T> EventQueue<T> {
     }
 
     fn split<'storage, 's, 'chunk, S, R, C>(
-        &self,
+        &mut self,
         input_storage: &'storage mut VecStorage<&'static [S]>,
         output_storage: &'storage mut VecStorage<&'static mut [S]>,
         inputs: &[&[S]],
@@ -199,10 +199,20 @@ impl<T> EventQueue<T> {
         context: &mut C,
     ) where
         S: 'static,
-        R: ContextualAudioRenderer<S, C>,
+        R: ContextualAudioRenderer<S, C> + EventHandler<T>,
     {
-        // TODO: Make this a for-loop over the events
-        loop {
+        let index_of_first_element_to_ignore = todo!();
+        let mut last_event_time = 0;
+        for e in self.queue.drain(0..index_of_first_element_to_ignore) {
+            let Timed {
+                time_in_frames: event_time,
+                event: event,
+            } = e;
+            renderer.handle_event(event);
+            if (event_time == last_event_time) {
+                continue;
+            }
+            todo!();
             // TODO: use real start and end (instead of just 0)
             let input_guard = mid(input_storage, inputs, 0, 0);
             // TODO: use real start and end (instead of just 0)
@@ -253,6 +263,38 @@ fn split_works() {
         },
     ];
     let queue = EventQueue::from_vec(events);
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let mut resultEventHandler = DummyEventHandler;
+    queue.split(
+        &mut input_storage,
+        &mut output_storage,
+        &input.as_slices(),
+        &mut output.as_mut_slices(),
+        &mut testPlugin,
+        &mut resultEventHandler,
+    )
+}
+
+#[test]
+fn split_works_with_empty_event_queue() {
+    let mut testPlugin = TestPlugin::new(
+        vec![
+            audio_chunk![[11, 12], [21, 22]],
+            audio_chunk![[13, 14], [23, 24]],
+        ],
+        vec![
+            audio_chunk![[110, 120], [210, 220]],
+            audio_chunk![[130, 140], [230, 240]],
+        ],
+        vec![vec![], vec![]],
+        vec![vec![], vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut events = vec![];
+    let queue = EventQueue::new(0);
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let mut resultEventHandler = DummyEventHandler;
