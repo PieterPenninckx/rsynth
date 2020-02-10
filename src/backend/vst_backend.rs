@@ -82,7 +82,7 @@ where
     }
 
     pub fn process<'b>(&mut self, buffer: &mut AudioBuffer<'b, f32>) {
-        let (input_buffers, output_buffers) = buffer.split();
+        let (input_buffers, mut output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f32.vec_guard();
         for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
@@ -101,7 +101,7 @@ where
     }
 
     pub fn process_f64<'b>(&mut self, buffer: &mut AudioBuffer<'b, f64>) {
-        let (input_buffers, output_buffers) = buffer.split();
+        let (input_buffers, mut output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f64.vec_guard();
         for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
