@@ -245,7 +245,7 @@ impl<T> EventQueue<T> {
             };
             let Timed {
                 time_in_frames: event_time,
-                event: event,
+                event,
             } = self.queue.pop_front().expect("event queue is not empty");
             if event_time == last_event_time {
                 renderer.handle_event(event);
@@ -296,7 +296,7 @@ fn split_works() {
     );
     let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
     let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let mut events = vec![
+    let events = vec![
         Timed {
             time_in_frames: 0,
             event: 1,
@@ -343,7 +343,7 @@ fn split_works_with_empty_event_queue() {
     );
     let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
     let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let mut events: Vec<()> = vec![];
+    let events: Vec<()> = vec![];
     let mut queue = EventQueue::new(1);
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);

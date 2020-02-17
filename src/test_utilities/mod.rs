@@ -12,7 +12,7 @@ impl<E> EventHandler<E> for DummyEventHandler {
 }
 
 impl<E, C> ContextualEventHandler<E, C> for DummyEventHandler {
-    fn handle_event(&mut self, event: E, context: &mut C) {}
+    fn handle_event(&mut self, _event: E, _context: &mut C) {}
 }
 
 /// A plugin useful for writing automated tests.

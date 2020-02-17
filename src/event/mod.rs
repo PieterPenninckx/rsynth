@@ -124,18 +124,6 @@ impl AsMut<Self> for RawMidiEvent {
     }
 }
 
-pub mod raw_midi_event_event_types {
-    pub const RAW_MIDI_EVENT_EVENT_TYPE_MASK: u8 = 0xF0;
-    pub const RAW_MIDI_EVENT_NOTE_OFF: u8 = 0x80;
-    pub const RAW_MIDI_EVENT_NOTE_ON: u8 = 0x90;
-    pub const RAW_MIDI_EVENT_NOTE_AFTERTOUCH: u8 = 0xA0;
-    pub const RAW_MIDI_EVENT_CONTROLLER: u8 = 0xB0;
-    pub const RAW_MIDI_EVENT_PROGRAM_CHANGE: u8 = 0xC0;
-    pub const RAW_MIDI_EVENT_CHANNEL_AFTERTOUCH: u8 = 0xD0;
-    pub const RAW_MIDI_EVENT_PITCH_BEND: u8 = 0xE0;
-    pub const RAW_MIDI_EVENT_META: u8 = 0xF0;
-}
-
 /// `Timed<E>` adds timing to an event.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Timed<E> {

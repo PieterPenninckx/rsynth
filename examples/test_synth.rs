@@ -17,7 +17,7 @@ use rsynth::{
 };
 use std::default::Default;
 
-use rsynth::event::raw_midi_event_event_types::*;
+use midi_consts::channel_event::*;
 
 // The total number of samples to pre-calculate.
 // This is like recording a sample of white noise and then
@@ -99,11 +99,11 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
 
         // We are digging into the details of midi-messages here.
         // Alternatively, you could use the `wmidi` crate.
-        if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_ON {
+        if state_and_chanel & EVENT_TYPE_MASK == NOTE_ON {
             self.amplitude = timed.event.data()[2] as f32 / 127.0 * AMPLIFY_MULTIPLIER;
             self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
         }
-        if state_and_chanel & RAW_MIDI_EVENT_EVENT_TYPE_MASK == RAW_MIDI_EVENT_NOTE_OFF {
+        if state_and_chanel & EVENT_TYPE_MASK == NOTE_OFF {
             self.amplitude = 0.0;
             self.state = SimpleVoiceState::Idle;
         }
