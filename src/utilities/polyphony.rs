@@ -9,6 +9,7 @@
 //!    The `EventDispatcher` trait and the `ContextualEventDispatcher` trait define
 //!    methods for doing this.
 use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent};
+use midi_consts::channel_event::*;
 
 pub enum EventDispatchClass<Identifier> {
     Broadcast,
@@ -40,10 +41,9 @@ where
 
     fn classify(&self, event: &Event) -> EventDispatchClass<Self::VoiceIdentifier> {
         let data = event.as_ref().data();
-        use crate::event::raw_midi_event_event_types::*;
-        match data[0] & 0xF0 {
-            RAW_MIDI_EVENT_NOTE_OFF => EventDispatchClass::ReleaseVoice(ToneIdentifier(data[1])),
-            RAW_MIDI_EVENT_NOTE_ON => {
+        match data[0] & EVENT_TYPE_MASK {
+            NOTE_OFF => EventDispatchClass::ReleaseVoice(ToneIdentifier(data[1])),
+            NOTE_ON => {
                 if data[2] == 0 {
                     // Velocity 0 is considered the same as note off.
                     EventDispatchClass::ReleaseVoice(ToneIdentifier(data[1]))
@@ -51,9 +51,7 @@ where
                     EventDispatchClass::AssignNewVoice(ToneIdentifier(data[1]))
                 }
             }
-            RAW_MIDI_EVENT_NOTE_AFTERTOUCH => {
-                EventDispatchClass::VoiceSpecific(ToneIdentifier(data[1]))
-            }
+            POLYPHONIC_KEY_PRESSURE => EventDispatchClass::VoiceSpecific(ToneIdentifier(data[1])),
             _ => EventDispatchClass::Broadcast,
         }
     }

@@ -126,7 +126,7 @@ pub mod utilities;
 
 doctest!("../README.md");
 
-/// Define the maximum number of audioinputs and the maximum number of audio outputs.
+/// Define the maximum number of audio inputs and the maximum number of audio outputs.
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
 /// [`Meta`]: ./meta/trait.Meta.html
