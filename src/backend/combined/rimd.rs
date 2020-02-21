@@ -1,4 +1,4 @@
-use super::{MidiReader, MICROSECONDS_PER_SECOND};
+use super::MICROSECONDS_PER_SECOND;
 use crate::backend::combined::MidiWriter;
 use crate::event::{DeltaEvent, RawMidiEvent};
 use rimd::{Event, MetaCommand, MetaEvent, MidiMessage, SMFBuilder, TrackEvent, SMF};
@@ -45,8 +45,10 @@ impl<'a> RimdMidiReader<'a> {
     }
 }
 
-impl<'a> MidiReader for RimdMidiReader<'a> {
-    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
+impl<'a> Iterator for RimdMidiReader<'a> {
+    type Item = DeltaEvent<RawMidiEvent>;
+
+    fn next(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         let mut microseconds_since_previous_event = 0.0;
 
         while let Some(event) = self.track_iterator.next() {

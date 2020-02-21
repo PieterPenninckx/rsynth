@@ -7,16 +7,16 @@
 //! The [`run`] function can be used to run a plugin and read audio and midi from the
 //! inputs and write audio and midi to the outputs.
 //!
-//! Currently: the following inputs and outputs are available:
+//! Currently, the following inputs and outputs are available:
 //!
-//! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`Mididummy`]: dummy midi input (generates no events) and output
+//! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output
 //! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
 //! * Rimd: [`RimdMidiReader`] and [`RimdMidiWriter`]: reand and write `.mid` files (behind the "backend-combined-rimd" feature)
 //! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
 //! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
-//! [`Mididummy`]: ./dummy/struct.MidiDummy.html
+//! [`MidiDummy`]: ./dummy/struct.MidiDummy.html
 //! [`HoundAudioReader`]: ./hound/struct.HoundAudioReader.html
 //! [`HoundAudioWriter`]: ./hound/struct.HoundAudioWriter.html
 //! [`RimdMidiReader`]: ./rimd/struct.RimdMidiReader.html
@@ -26,6 +26,7 @@
 //! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html
 //! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html
 //! [`run`]: ./fn.run.html
+//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
 use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
@@ -72,62 +73,11 @@ pub trait AudioWriter<S> {
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
 
-// TODO: This looks a lot like the `Iterator` trait.
-// TODO: Clarify whether we should simply use the `Iterator` trait itself.
-pub trait MidiReader: Sized {
-    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>>;
-    fn peakable(self) -> PeakableMidiReader<Self> {
-        PeakableMidiReader::new(self)
-    }
-}
-
 pub trait MidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
 }
 
-pub struct PeakableMidiReader<R>
-where
-    R: MidiReader,
-{
-    inner: R,
-    next: Option<DeltaEvent<RawMidiEvent>>,
-}
-
-impl<R> PeakableMidiReader<R>
-where
-    R: MidiReader,
-{
-    pub fn new(inner: R) -> Self {
-        PeakableMidiReader { inner, next: None }
-    }
-
-    pub fn peak(&mut self) -> Option<&DeltaEvent<RawMidiEvent>> {
-        if self.next.is_some() {
-            self.next.as_ref()
-        } else {
-            self.next = self.inner.read_event();
-            if let Some(ref next) = self.next.as_ref() {
-                Some(next)
-            } else {
-                None
-            }
-        }
-    }
-}
-
-impl<R> MidiReader for PeakableMidiReader<R>
-where
-    R: MidiReader,
-{
-    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
-        if let Some(next) = self.next.take() {
-            Some(next)
-        } else {
-            self.inner.read_event()
-        }
-    }
-}
-
+// TODO: find a better name for this.
 pub struct MidiWriterWrapper<W>
 where
     W: MidiWriter,
@@ -139,7 +89,6 @@ where
     event_queue: EventQueue<RawMidiEvent>,
 }
 
-// TODO: find a better name for this.
 impl<W> MidiWriterWrapper<W>
 where
     W: MidiWriter,
@@ -213,7 +162,7 @@ pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
 where
     AudioIn: AudioReader<S>,
     AudioOut: AudioWriter<S>,
-    MidiIn: MidiReader,
+    MidiIn: Iterator<Item = DeltaEvent<RawMidiEvent>>,
     MidiOut: MidiWriter,
     S: Zero,
     R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
@@ -241,7 +190,7 @@ where
         MICROSECONDS_PER_SECOND as f64 / frames_per_second as f64,
     );
 
-    let mut peakable_midi_reader = midi_in.peakable();
+    let mut peekable_midi_reader = midi_in.peekable();
 
     loop {
         // Read audio.
@@ -260,16 +209,16 @@ where
         }
 
         // Handle events
-        if let Some(event) = peakable_midi_reader.peak() {
+        if let Some(event) = peekable_midi_reader.peek() {
             let time_in_frames = (last_event_time_in_microseconds
                 + event.microseconds_since_previous_event)
                 * frames_per_second
                 / MICROSECONDS_PER_SECOND
                 - last_time_in_frames;
             if time_in_frames < buffer_size_in_frames as u64 {
-                let event = peakable_midi_reader
-                    .read_event()
-                    .expect("to see event that I just peaked at");
+                let event = peekable_midi_reader
+                    .next()
+                    .expect("to see event that I just peeked at");
                 plugin.handle_event(Timed {
                     time_in_frames: time_in_frames as u32,
                     event: event.event,
@@ -407,8 +356,9 @@ impl TestMidiReader {
     }
 }
 
-impl MidiReader for TestMidiReader {
-    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
+impl Iterator for TestMidiReader {
+    type Item = DeltaEvent<RawMidiEvent>;
+    fn next(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
         if self.event_index < self.provided_events.len() {
             let result = self.provided_events[self.event_index];
             self.event_index += 1;

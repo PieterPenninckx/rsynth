@@ -1,4 +1,4 @@
-use super::{AudioReader, AudioWriter, MidiReader, MidiWriter};
+use super::{AudioReader, AudioWriter, MidiWriter};
 use crate::event::{DeltaEvent, RawMidiEvent};
 use std::marker::PhantomData;
 
@@ -44,8 +44,10 @@ impl MidiDummy {
     }
 }
 
-impl MidiReader for MidiDummy {
-    fn read_event(&mut self) -> Option<DeltaEvent<RawMidiEvent>> {
+impl Iterator for MidiDummy {
+    type Item = DeltaEvent<RawMidiEvent>;
+
+    fn next(&mut self) -> Option<Self::Item> {
         None
     }
 }

@@ -8,7 +8,7 @@ use std::fmt::Debug;
 pub struct DummyEventHandler;
 
 impl<E> EventHandler<E> for DummyEventHandler {
-    fn handle_event(&mut self, event: E) {}
+    fn handle_event(&mut self, _event: E) {}
 }
 
 impl<E, C> ContextualEventHandler<E, C> for DummyEventHandler {

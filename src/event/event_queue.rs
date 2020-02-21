@@ -1,11 +1,10 @@
 use super::Timed;
-use crate::buffer::AudioChunk;
-use crate::event::{ContextualEventHandler, EventHandler};
+use crate::event::EventHandler;
+#[cfg(test)]
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
-use crate::{AudioRenderer, ContextualAudioRenderer};
+use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
-use std::mem;
 use std::ops::{Deref, Index, IndexMut};
 use vecstorage::{VecGuard, VecStorage};
 

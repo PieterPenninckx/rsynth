@@ -73,7 +73,6 @@
 //! plugin or application:
 //!
 //! * polyphony: managing of different voices
-//! * timesplitting: split the audio buffer at the events
 //!
 //! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
@@ -84,8 +83,6 @@
 //! [`SysExEvent`]: ./event/struct.SysExEvent.html
 //! [`Timed<T>`]: ./event/struct.Timed.html
 //! [`Indexed<T>`]: ./event/struct.Indexed.html
-//! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer
-//! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event
 //! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html
 //! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
 //! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html
@@ -127,9 +124,20 @@ pub mod utilities;
 doctest!("../README.md");
 
 /// Define the maximum number of audio inputs and the maximum number of audio outputs.
+///
+/// Backends that require the plugin to implement this trait ensure that when calling the
+/// [`render_buffer`] method of the [`AudioRenderer`] trait
+/// *  the number of inputs (`inputs.len()`) is smaller than or equal to
+///    `Self::max_number_of_audio_inputs()` and
+/// * the number of outputs (`outputs.len()`) is smaller than or equal to
+///    `Self::max_number_of_audio_outputs()`.
+///
+/// # Remark
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
 /// [`Meta`]: ./meta/trait.Meta.html
+/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
+/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
 pub trait AudioHandlerMeta {
     /// The maximum number of audio inputs supported.
     /// This method should return the same value every time it is called.
@@ -144,12 +152,11 @@ pub trait AudioHandlerMeta {
 pub trait AudioHandler {
     /// Called when the sample-rate changes.
     /// The backend should ensure that this function is called before
-    /// any other.
+    /// any other method.
     ///
     /// # Parameters
     /// `sample_rate`: The new sample rate in frames per second (Hz).
-    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz,
-    /// commonly used for video production.
+    /// Common sample rates are 44100 Hz (CD quality) and 48000 Hz.
     // TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that
     // TODO: there are no fractional sample rates. Maybe change the data type into u32?
     fn set_sample_rate(&mut self, sample_rate: f64);
@@ -163,6 +170,7 @@ pub trait MidiHandlerMeta {
     /// The maximum number of midi inputs supported.
     /// This method should return the same value for subsequent calls.
     fn max_number_of_midi_inputs(&self) -> usize;
+
     /// The maximum number of midi outputs supported.
     /// This method should return the same value for subsequent calls.
     fn max_number_of_midi_outputs(&self) -> usize;
@@ -170,15 +178,10 @@ pub trait MidiHandlerMeta {
 
 /// Defines how audio is rendered.
 ///
-/// The type parameter `S` refers to the floating point type.
+/// The type parameter `S` refers to the data type of a sample.
 /// It is typically `f32` or `f64`.
 pub trait AudioRenderer<S> {
-    /// This method is called repeatedly for subsequent buffers.
-    ///
-    /// You may assume that the number of inputs (`inputs.len()`)
-    /// is smaller than or equal to [`Self::max_number_of_audio_inputs()`].
-    /// You may assume that the number of outputs (`outputs.len()`)
-    /// is smaller than or equal to [`Self::max_number_of_audio_outputs()`].
+    /// This method is called repeatedly for subsequent audio buffers.
     ///
     /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
     /// are all guaranteed to equal to each other.
@@ -186,15 +189,20 @@ pub trait AudioRenderer<S> {
     fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]]);
 }
 
-/// Defines how audio is rendered, similar to the `AudioRenderer` trait.
+/// Defines how audio is rendered, similar to the [`AudioRenderer`] trait.
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
 /// See the documentation of [`AudioRenderer`] for more information.
+///
+/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
 pub trait ContextualAudioRenderer<S, Context> {
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
     /// see its documentation for more information.
+    ///
+    /// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
+    /// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
     fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut Context);
 }
 
