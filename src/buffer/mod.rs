@@ -33,6 +33,168 @@
 //! ```
 use num_traits::Zero;
 use std::mem;
+use std::ops::{Bound, Index, RangeBounds};
+use std::slice::SliceIndex;
+
+fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
+    // start: inclusive
+    let start = match range.start_bound() {
+        Bound::Unbounded => 0,
+        Bound::Excluded(x) => x - 1,
+        Bound::Included(x) => *x,
+    };
+    // end: not inclusive
+    let end = match range.end_bound() {
+        Bound::Unbounded => number_of_frames,
+        Bound::Excluded(x) => x - 1,
+        Bound::Included(x) => *x,
+    };
+    end - start
+}
+
+#[derive(Clone, Copy)]
+pub struct AudioBufferIn<'in_channels, 'in_samples, S>
+where
+    S: 'static + Copy,
+{
+    inputs: &'in_channels [&'in_samples [S]],
+    length: usize,
+}
+
+impl<'in_channels, 'in_samples, S> AudioBufferIn<'in_channels, 'in_samples, S>
+where
+    S: 'static + Copy,
+{
+    pub fn new(inputs: &'in_channels [&'in_samples [S]], length: usize) -> Self {
+        Self { inputs, length }
+    }
+
+    pub fn number_of_channels(&self) -> usize {
+        self.inputs.len()
+    }
+
+    pub fn number_of_frames(&self) -> usize {
+        self.length
+    }
+
+    pub fn index_samples<'v, R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Copy>(
+        &self,
+        range: R,
+        vec: &'v mut Vec<&'in_samples [S]>,
+    ) -> AudioBufferIn<'in_channels, 'in_samples, S>
+    where
+        'v: 'in_channels,
+    {
+        let length = number_of_frames_in_range(self.length, range);
+        // Clear the vector in order to guarantee that all channels have the same length.
+        vec.clear();
+        let mut remaining_chunk = self.inputs;
+        let mut len = remaining_chunk.len();
+        while len > 0 {
+            let (first_channel, remaining_channels) = remaining_chunk.split_at(1);
+            let part = first_channel[0].index(range);
+            vec.push(part);
+            remaining_chunk = remaining_channels;
+            len -= 1;
+        }
+        Self {
+            inputs: vec.as_slice(),
+            length,
+        }
+    }
+}
+
+pub struct AudioBufferOut<'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    outputs: &'out_channels mut [&'out_samples mut [S]],
+    length: usize,
+}
+
+impl<'out_channels, 'out_samples, S> AudioBufferOut<'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    pub fn new(outputs: &'out_channels mut [&'out_samples mut [S]], length: usize) -> Self {
+        Self { outputs, length }
+    }
+
+    pub fn split_channels_at<'a>(
+        &'a mut self,
+        mid: usize,
+    ) -> (
+        AudioBufferOut<'a, 'out_samples, S>,
+        AudioBufferOut<'a, 'out_samples, S>,
+    )
+    where
+        'a: 'out_channels,
+    {
+        let (outputs1, outputs2) = self.outputs.split_at_mut(mid);
+        (
+            Self {
+                outputs: outputs1,
+                length: self.length,
+            },
+            Self {
+                outputs: outputs2,
+                length: self.length,
+            },
+        )
+    }
+}
+
+pub struct AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    inputs: AudioBufferIn<'in_channels, 'in_samples, S>,
+    outputs: AudioBufferOut<'out_channels, 'out_samples, S>,
+    length: usize,
+}
+
+impl<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+    AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    pub fn new(
+        inputs: &'in_channels [&'in_samples [S]],
+        outputs: &'out_channels mut [&'out_samples mut [S]],
+        length: usize,
+    ) -> Self {
+        AudioBufferInOut {
+            inputs: AudioBufferIn::new(inputs, length),
+            outputs: AudioBufferOut::new(outputs, length),
+            length,
+        }
+    }
+
+    pub fn split_output_channels_at<'a>(
+        &'a mut self,
+        mid: usize,
+    ) -> (
+        AudioBufferInOut<'in_channels, 'in_samples, 'a, 'out_samples, S>,
+        AudioBufferInOut<'in_channels, 'in_samples, 'a, 'out_samples, S>,
+    )
+    where
+        'a: 'out_channels,
+    {
+        let (outputs1, outputs2) = self.outputs.split_channels_at(mid);
+        (
+            Self {
+                inputs: self.inputs,
+                outputs: outputs1,
+                length: self.length,
+            },
+            Self {
+                inputs: self.inputs,
+                outputs: outputs2,
+                length: self.length,
+            },
+        )
+    }
+}
 
 // Alternative name: "packet"?
 #[derive(Clone, PartialEq, Eq, Debug)]
