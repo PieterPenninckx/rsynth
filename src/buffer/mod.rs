@@ -33,23 +33,52 @@
 //! ```
 use num_traits::Zero;
 use std::mem;
-use std::ops::{Bound, Index, RangeBounds};
+use std::ops::{Bound, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
 
 fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
     // start: inclusive
     let start = match range.start_bound() {
         Bound::Unbounded => 0,
-        Bound::Excluded(x) => x - 1,
+        Bound::Excluded(x) => x + 1,
         Bound::Included(x) => *x,
     };
-    // end: not inclusive
+    // end: inclusive
     let end = match range.end_bound() {
         Bound::Unbounded => number_of_frames,
-        Bound::Excluded(x) => x - 1,
-        Bound::Included(x) => *x,
+        Bound::Excluded(x) => *x,
+        Bound::Included(x) => x + 1,
     };
-    end - start
+    if start < end {
+        end - start
+    } else {
+        0
+    }
+}
+
+#[test]
+fn number_of_frames_in_range_works_full_range() {
+    assert_eq!(number_of_frames_in_range(4, ..), 4);
+}
+
+#[test]
+fn number_of_frames_in_range_works_exclusive_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..3), 2);
+}
+
+#[test]
+fn number_of_frames_in_range_works_inclusive_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..=3), 3);
+}
+
+#[test]
+fn number_of_frames_in_range_works_open_ended_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..), 3);
+}
+
+#[test]
+fn number_of_frames_in_range_works_open_starting_range() {
+    assert_eq!(number_of_frames_in_range(4, ..2), 2);
 }
 
 #[derive(Clone, Copy)]
@@ -65,7 +94,12 @@ impl<'in_channels, 'in_samples, S> AudioBufferIn<'in_channels, 'in_samples, S>
 where
     S: 'static + Copy,
 {
+    /// # Panics
+    /// Panics if one of the elements of `inputs` does not have the given length.
     pub fn new(inputs: &'in_channels [&'in_samples [S]], length: usize) -> Self {
+        for channel in inputs {
+            assert_eq!(channel.len(), length);
+        }
         Self { inputs, length }
     }
 
@@ -77,7 +111,14 @@ where
         self.length
     }
 
-    pub fn index_samples<'v, R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Copy>(
+    pub fn channels(&self) -> &'in_channels [&'in_samples [S]] {
+        self.inputs
+    }
+
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    pub fn index_samples<'v, R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone>(
         &self,
         range: R,
         vec: &'v mut Vec<&'in_samples [S]>,
@@ -85,22 +126,58 @@ where
     where
         'v: 'in_channels,
     {
-        let length = number_of_frames_in_range(self.length, range);
         // Clear the vector in order to guarantee that all channels have the same length.
         vec.clear();
         let mut remaining_chunk = self.inputs;
-        let mut len = remaining_chunk.len();
-        while len > 0 {
-            let (first_channel, remaining_channels) = remaining_chunk.split_at(1);
-            let part = first_channel[0].index(range);
-            vec.push(part);
+        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
+            vec.push(first_channel.index(range.clone()));
             remaining_chunk = remaining_channels;
-            len -= 1;
         }
         Self {
             inputs: vec.as_slice(),
-            length,
+            length: number_of_frames_in_range(self.length, range.clone()),
         }
+    }
+}
+
+#[test]
+fn buffer_in_index_samples_works() {
+    let mut vec = Vec::with_capacity(2);
+    let channel1 = vec![11, 12, 13, 14];
+    let channel2 = vec![21, 22, 23, 24];
+    let chunk = [channel1.as_slice(), channel2.as_slice()];
+    let chunk = AudioBufferIn::new(&chunk, 4);
+    {
+        let parts = chunk.index_samples(0..0, &mut vec);
+        assert_eq!(parts.number_of_frames(), 0);
+        assert_eq!(parts.number_of_channels(), 2);
+        let channels = parts.channels();
+        assert!(channels[0].is_empty());
+        assert!(channels[1].is_empty());
+    }
+    {
+        let parts = chunk.index_samples(0..1, &mut vec);
+        assert_eq!(parts.number_of_frames(), 1);
+        assert_eq!(parts.number_of_channels(), 2);
+        let channels = parts.channels();
+        assert_eq!(channels[0], &[11]);
+        assert_eq!(channels[1], &[21]);
+    }
+    {
+        let parts = chunk.index_samples(0..2, &mut vec);
+        assert_eq!(parts.number_of_frames(), 2);
+        assert_eq!(parts.number_of_channels(), 2);
+        let channels = parts.channels();
+        assert_eq!(channels[0], &[11, 12]);
+        assert_eq!(channels[1], &[21, 22]);
+    }
+    {
+        let parts = chunk.index_samples(1..2, &mut vec);
+        assert_eq!(parts.number_of_frames(), 1);
+        assert_eq!(parts.number_of_channels(), 2);
+        let channels = parts.channels();
+        assert_eq!(channels[0], &[12]);
+        assert_eq!(channels[1], &[22]);
     }
 }
 
@@ -110,6 +187,27 @@ where
 {
     outputs: &'out_channels mut [&'out_samples mut [S]],
     length: usize,
+}
+
+fn index_samples_slice<'v, 'out_channels, 'out_samples, R, S: 'static + Copy>(
+    mut remaining_chunk: &'out_channels mut [&'out_samples mut [S]],
+    range: R,
+    vec: &'v mut Vec<&'out_channels mut [S]>,
+    length: usize,
+) -> AudioBufferOut<'out_channels, 'out_channels, S>
+where
+    'v: 'out_channels,
+    R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+{
+    vec.clear();
+    while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first_mut() {
+        vec.push(first_channel.index_mut(range.clone()));
+        remaining_chunk = remaining_channels;
+    }
+    AudioBufferOut {
+        outputs: vec.as_mut_slice(),
+        length,
+    }
 }
 
 impl<'out_channels, 'out_samples, S> AudioBufferOut<'out_channels, 'out_samples, S>
@@ -141,6 +239,22 @@ where
                 length: self.length,
             },
         )
+    }
+
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    pub fn index_samples<'s, 'v, R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone>(
+        &'s mut self,
+        range: R,
+        vec: &'v mut Vec<&'out_channels mut [S]>,
+    ) -> AudioBufferOut<'s, 'out_channels, S>
+    where
+        'v: 'out_channels,
+        's: 'out_channels,
+    {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        index_samples_slice(self.outputs, range, vec, length)
     }
 }
 
