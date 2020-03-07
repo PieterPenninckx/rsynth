@@ -194,9 +194,8 @@ fn index_samples_slice<'v, 'out_channels, 'out_samples, R, S: 'static + Copy>(
     range: R,
     vec: &'v mut Vec<&'out_channels mut [S]>,
     length: usize,
-) -> AudioBufferOut<'out_channels, 'out_channels, S>
+) -> AudioBufferOut<'v, 'out_channels, S>
 where
-    'v: 'out_channels,
     R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
 {
     vec.clear();
@@ -214,8 +213,28 @@ impl<'out_channels, 'out_samples, S> AudioBufferOut<'out_channels, 'out_samples,
 where
     S: 'static + Copy,
 {
+    /// # Panics
+    /// Panics if one of the elements of `outputs` does not have the given length.
     pub fn new(outputs: &'out_channels mut [&'out_samples mut [S]], length: usize) -> Self {
+        for channel in outputs.iter() {
+            assert_eq!(channel.len(), length);
+        }
         Self { outputs, length }
+    }
+
+    pub fn number_of_channels(&self) -> usize {
+        self.outputs.len()
+    }
+
+    pub fn number_of_frames(&self) -> usize {
+        self.length
+    }
+
+    /// # Unsafe
+    /// This method is marked unsafe because using it allows to change the length of the
+    /// channels, which invalidates the invariant
+    pub unsafe fn channels<'a>(&'a mut self) -> &'a mut [&'out_samples mut [S]] {
+        self.outputs
     }
 
     pub fn split_channels_at<'a>(
@@ -247,14 +266,64 @@ where
     pub fn index_samples<'s, 'v, R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone>(
         &'s mut self,
         range: R,
-        vec: &'v mut Vec<&'out_channels mut [S]>,
-    ) -> AudioBufferOut<'s, 'out_channels, S>
-    where
-        'v: 'out_channels,
-        's: 'out_channels,
-    {
+        vec: &'v mut Vec<&'s mut [S]>,
+    ) -> AudioBufferOut<'v, 's, S>
+where {
         let length = number_of_frames_in_range(self.length, range.clone());
         index_samples_slice(self.outputs, range, vec, length)
+    }
+
+    // TODO: maybe find a better name for this method.
+    pub fn get_channel(&mut self, index: usize) -> Option<&mut [S]> {
+        if index > self.outputs.len() {
+            None
+        } else {
+            Some(self.outputs[index])
+        }
+    }
+
+    pub fn index_channel(&mut self, index: usize) -> &mut [S] {
+        self.outputs[index]
+    }
+}
+
+#[test]
+fn buffer_out_index_samples_works() {
+    let mut channel1 = vec![11, 12, 13, 14];
+    let mut channel2 = vec![21, 22, 23, 24];
+    let mut chunk = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    let mut chunk = AudioBufferOut::new(&mut chunk, 4);
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut parts = chunk.index_samples(0..0, &mut vec);
+        assert_eq!(parts.number_of_frames(), 0);
+        assert_eq!(parts.number_of_channels(), 2);
+        assert!(parts.index_channel(0).is_empty());
+        assert!(parts.index_channel(1).is_empty());
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut parts = chunk.index_samples(0..1, &mut vec);
+        assert_eq!(parts.number_of_frames(), 1);
+        assert_eq!(parts.number_of_channels(), 2);
+        assert_eq!(parts.index_channel(0), &[11]);
+        assert_eq!(parts.index_channel(1), &[21]);
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut parts = chunk.index_samples(0..2, &mut vec);
+        assert_eq!(parts.number_of_frames(), 2);
+        assert_eq!(parts.number_of_channels(), 2);
+        assert_eq!(parts.index_channel(0), &[11, 12]);
+        assert_eq!(parts.index_channel(1), &[21, 22]);
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut parts = chunk.index_samples(1..2, &mut vec);
+        assert_eq!(parts.number_of_frames(), 1);
+        assert_eq!(parts.number_of_channels(), 2);
+        assert_eq!(parts.index_channel(0), &[12]);
+        assert_eq!(parts.index_channel(1), &[22]);
     }
 }
 
