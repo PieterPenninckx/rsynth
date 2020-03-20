@@ -283,10 +283,12 @@ where
         self.outputs
     }
 
-    /// Split the output channels.
-    ///
+    /// Split into two `AudioBufferOut`s.
     /// The first will contain the first `mid-1` channels and the second
     /// will contain the remaining channels.
+    ///
+    /// # Panics
+    /// Panics if `mid` is `>` the number of output channels.
     ///
     /// # Example
     /// ```
@@ -469,18 +471,27 @@ where
         }
     }
 
+    /// Get the number of frames.
     pub fn number_of_frames(&self) -> usize {
         self.length
     }
 
+    /// Get the number of input channels.
     pub fn number_of_input_channels(&self) -> usize {
         self.inputs.number_of_channels()
     }
 
+    /// Get the number of output channels.
     pub fn number_of_output_channels(&self) -> usize {
         self.outputs.number_of_channels()
     }
 
+    /// Create two new `AUdioBufferInOut`s: one with all the input channels and with the
+    /// output channels from 0 to `mid`, excluding `mid` and one with all the input channels
+    /// and with the output channels from `mid` including onwards.
+    ///
+    /// # Panics
+    /// Panics if `mid` is `>` the number of output channels.
     pub fn split_output_channels_at<'a>(
         &'a mut self,
         mid: usize,
@@ -591,6 +602,38 @@ where
             outputs: self.outputs.index_frames(range.clone(), vec_out),
             length: number_of_frames_in_range(self.length, range),
         }
+    }
+
+    /// Separate into an `AudioBufferIn` and an `AudioBufferOut`.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferInOut;
+    ///
+    /// let channel1_in = vec![11, 12, 13, 14];
+    /// let channel2_in = vec![21, 22, 23, 24];
+    /// let channels_in = [channel1_in.as_slice(), channel2_in.as_slice()];
+    /// let number_of_input_channels = channels_in.len();
+    /// let mut channel1_out = vec![110, 120, 130, 140];
+    /// let mut channels_out = [channel1_out.as_mut_slice()];
+    /// let number_of_output_channels = channels_out.len();
+    /// let mut buffer = AudioBufferInOut::new(&channels_in, &mut channels_out, 4);
+    ///
+    /// let (input_buffer, output_buffer) = buffer.separate();
+    /// ```
+    pub fn separate<'s>(
+        &'s mut self,
+    ) -> (
+        AudioBufferIn<'in_channels, 'in_samples, S>,
+        AudioBufferOut<'s, 'out_samples, S>,
+    ) {
+        (
+            self.inputs,
+            AudioBufferOut {
+                outputs: self.outputs.outputs,
+                length: self.outputs.length,
+            },
+        )
     }
 }
 
