@@ -74,7 +74,6 @@
 //!
 //! * polyphony: managing of different voices
 //!
-//! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
 //! [`combined`]: ./backend/combined/index.html
@@ -110,6 +109,7 @@ extern crate vst;
 #[macro_use]
 extern crate doc_comment;
 
+use crate::buffer::AudioBufferInOut;
 use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 #[macro_use]
@@ -176,17 +176,17 @@ pub trait MidiHandlerMeta {
     fn max_number_of_midi_outputs(&self) -> usize;
 }
 
+// TODO: Is this trait actually used?
 /// Defines how audio is rendered.
 ///
 /// The type parameter `S` refers to the data type of a sample.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<S> {
+pub trait AudioRenderer<S>
+where
+    S: Copy,
+{
     /// This method is called repeatedly for subsequent audio buffers.
-    ///
-    /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
-    /// are all guaranteed to equal to each other.
-    /// This shared length can however be different for subsequent calls to `render_buffer`.
-    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]]);
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>);
 }
 
 /// Defines how audio is rendered, similar to the [`AudioRenderer`] trait.
@@ -195,7 +195,10 @@ pub trait AudioRenderer<S> {
 /// See the documentation of [`AudioRenderer`] for more information.
 ///
 /// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
-pub trait ContextualAudioRenderer<S, Context> {
+pub trait ContextualAudioRenderer<S, Context>
+where
+    S: Copy,
+{
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
@@ -203,7 +206,7 @@ pub trait ContextualAudioRenderer<S, Context> {
     ///
     /// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
     /// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
-    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut Context);
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context);
 }
 
 /// Provides common meta-data of the plugin or application to the host.

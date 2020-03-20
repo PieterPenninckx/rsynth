@@ -1,4 +1,5 @@
 use super::Timed;
+use crate::buffer::AudioBufferInOut;
 use crate::event::EventHandler;
 #[cfg(test)]
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
@@ -205,34 +206,26 @@ impl<T> EventQueue<T> {
         renderer: &mut R,
         context: &mut C,
     ) where
-        S: 'static,
+        S: Copy + 'static,
         R: ContextualAudioRenderer<S, C>,
     {
-        let input_guard = mid(input_storage, inputs, start, stop);
-        let mut output_guard = mid_mut(output_storage, outputs, start, stop);
-        renderer.render_buffer(&input_guard, &mut output_guard, context);
+        unimplemented!();
     }
 
-    pub fn split<'storage, 's, 'chunk, S, R, C>(
+    pub fn split<'in_storage, 'out_storage, 'in_channels, 's, 'chunk, S, R, C>(
         &mut self,
-        input_storage: &'storage mut VecStorage<&'static [S]>,
-        output_storage: &'storage mut VecStorage<&'static mut [S]>,
-        inputs: &[&[S]],
-        outputs: &'s mut [&'s mut [S]],
+        input_storage: &'in_storage mut VecStorage<&'static [S]>,
+        output_storage: &'out_storage mut VecStorage<&'static mut [S]>,
+        buffer: &mut AudioBufferInOut<'in_channels, '_, '_, '_, S>,
         renderer: &mut R,
         context: &mut C,
     ) where
-        S: 'static,
+        S: Copy + 'static,
         R: ContextualAudioRenderer<S, C> + EventHandler<T>,
         T: std::fmt::Debug,
+        // 'in_storage: 'in_channels,
     {
-        let buffer_length = if inputs.len() > 0 {
-            inputs[0].len()
-        } else if outputs.len() > 0 {
-            outputs[0].len()
-        } else {
-            todo!();
-        };
+        let buffer_length = buffer.number_of_frames();
         let mut last_event_time = 0;
         loop {
             if let Some(ref first) = self.queue.get(0) {
@@ -250,30 +243,27 @@ impl<T> EventQueue<T> {
                 renderer.handle_event(event);
                 continue;
             }
-            Self::render(
-                last_event_time as usize,
-                event_time as usize,
-                input_storage,
-                output_storage,
-                inputs,
-                outputs,
-                renderer,
-                context,
+
+            let mut input_guard = input_storage.vec_guard();
+            let mut output_guard = output_storage.vec_guard();
+            let mut sub_buffer = buffer.index_frames(
+                (last_event_time as usize)..(event_time as usize),
+                &mut input_guard,
+                &mut output_guard,
             );
+            renderer.render_buffer(&mut sub_buffer, context);
             renderer.handle_event(event);
             last_event_time = event_time;
         }
         if (last_event_time as usize) < buffer_length {
-            Self::render(
-                last_event_time as usize,
-                buffer_length,
-                input_storage,
-                output_storage,
-                inputs,
-                outputs,
-                renderer,
-                context,
+            let mut input_guard = input_storage.vec_guard();
+            let mut output_guard = output_storage.vec_guard();
+            let mut sub_buffer = buffer.index_frames(
+                (last_event_time as usize)..buffer_length,
+                &mut input_guard,
+                &mut output_guard,
             );
+            renderer.render_buffer(&mut sub_buffer, context);
         };
     }
 }
@@ -321,11 +311,11 @@ fn split_works() {
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let mut result_event_handler = DummyEventHandler;
+    let mut buffer = AudioBufferInOut::new(&input.channels(), &mut output, 4);
     queue.split(
         &mut input_storage,
         &mut output_storage,
-        &input.as_slices(),
-        &mut output.as_mut_slices(),
+        &mut buffer,
         &mut test_plugin,
         &mut result_event_handler,
     )
@@ -347,11 +337,11 @@ fn split_works_with_empty_event_queue() {
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let mut result_event_handler = DummyEventHandler;
+    let mut buffer = AudioBufferInOut::new(&input, &mut output, 4);
     queue.split(
         &mut input_storage,
         &mut output_storage,
-        &input.as_slices(),
-        &mut output.as_mut_slices(),
+        &mut buffer,
         &mut test_plugin,
         &mut result_event_handler,
     )

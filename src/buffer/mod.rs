@@ -635,6 +635,14 @@ where
             },
         )
     }
+
+    pub fn inputs(&self) -> &AudioBufferIn<'in_channels, 'in_samples, S> {
+        &self.inputs
+    }
+
+    pub fn outputs(&mut self) -> &mut AudioBufferOut<'out_channels, 'out_samples, S> {
+        &mut self.outputs
+    }
 }
 
 // Alternative name: "packet"?

@@ -8,6 +8,7 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
+use crate::buffer::AudioBufferInOut;
 use crate::event::{EventHandler, Indexed};
 use crate::{
     backend::HostInterface,
@@ -295,8 +296,12 @@ where
             outputs.push(buffer);
         }
 
-        self.plugin
-            .render_buffer(inputs.as_slice(), outputs.as_mut_slice(), &mut jack_host);
+        let mut buffer = AudioBufferInOut::new(
+            inputs.as_slice(),
+            outputs.as_mut_slice(),
+            client.buffer_size() as usize,
+        );
+        self.plugin.render_buffer(&mut buffer, &mut jack_host);
         Control::Continue
     }
 }

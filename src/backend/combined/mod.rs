@@ -28,7 +28,7 @@
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
-use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
+use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioBufferInOut, AudioChunk};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
@@ -164,7 +164,7 @@ where
     AudioOut: AudioWriter<S>,
     MidiIn: Iterator<Item = DeltaEvent<RawMidiEvent>>,
     MidiOut: MidiWriter,
-    S: Zero,
+    S: Copy + Zero + 'static,
     R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
@@ -227,11 +227,10 @@ where
             }
         }
 
-        plugin.render_buffer(
-            &buffers_as_slice(&input_buffers, frames_read),
-            &mut buffers_as_mut_slice(&mut output_buffers, frames_read),
-            &mut writer,
-        );
+        let inputs = buffers_as_slice(&input_buffers, frames_read);
+        let mut outputs = buffers_as_mut_slice(&mut output_buffers, frames_read);
+        let mut buffer = AudioBufferInOut::new(&inputs, &mut outputs, buffer_size_in_frames);
+        plugin.render_buffer(&mut buffer, &mut writer);
 
         if let Err(e) = audio_out.write_buffer(&buffers_as_slice(&output_buffers, frames_read)) {
             return Err(CombinedError::AudioOutError(e));
