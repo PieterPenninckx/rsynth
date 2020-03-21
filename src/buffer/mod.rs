@@ -157,24 +157,24 @@ where
     /// different lifetimes.
     ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
-    pub fn index_frames<'v, R>(
-        &self,
+    pub fn index_frames<'s, 'v, R>(
+        &'s self,
         range: R,
-        vec: &'v mut Vec<&'samples [S]>,
-    ) -> AudioBufferIn<'channels, 'samples, S>
+        vec: &'v mut Vec<&'s [S]>,
+    ) -> AudioBufferIn<'v, 's, S>
     where
-        'v: 'channels,
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        let mut remaining_chunk = &*self.inputs;
         vec.clear();
-        let mut remaining_chunk = self.inputs;
         while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
             vec.push(first_channel.index(range.clone()));
             remaining_chunk = remaining_channels;
         }
-        Self {
+        AudioBufferIn {
             inputs: vec.as_slice(),
-            length: number_of_frames_in_range(self.length, range.clone()),
+            length,
         }
     }
 
@@ -590,11 +590,10 @@ where
     pub fn index_frames<'s, 'in_vec, 'out_vec, R>(
         &'s mut self,
         range: R,
-        vec_in: &'in_vec mut Vec<&'in_samples [S]>,
+        vec_in: &'in_vec mut Vec<&'s [S]>,
         vec_out: &'out_vec mut Vec<&'s mut [S]>,
-    ) -> AudioBufferInOut<'in_channels, 'in_samples, 'out_vec, 's, S>
+    ) -> AudioBufferInOut<'in_vec, 's, 'out_vec, 's, S>
     where
-        'in_vec: 'in_channels,
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
         AudioBufferInOut {
