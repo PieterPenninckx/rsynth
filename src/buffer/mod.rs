@@ -459,14 +459,22 @@ impl<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
 where
     S: 'static + Copy,
 {
+    /// # Panics
+    /// Panics if one of the following happens:
+    /// * not all elements of `inputs` have the same length,
+    /// * not all elements of `outputs` have the same length,
+    /// * not all elements of `inputs` have the same length as all the elements of `outputs`
     pub fn new(
         inputs: &'in_channels [&'in_samples [S]],
         outputs: &'out_channels mut [&'out_samples mut [S]],
         length: usize,
     ) -> Self {
+        let inputs = AudioBufferIn::new(inputs, length);
+        let outputs = AudioBufferOut::new(outputs, length);
+        assert_eq!(inputs.number_of_frames(), outputs.number_of_frames());
         AudioBufferInOut {
-            inputs: AudioBufferIn::new(inputs, length),
-            outputs: AudioBufferOut::new(outputs, length),
+            inputs,
+            outputs,
             length,
         }
     }

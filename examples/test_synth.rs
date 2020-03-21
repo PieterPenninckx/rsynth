@@ -18,6 +18,7 @@ use rsynth::{
 use std::default::Default;
 
 use midi_consts::channel_event::*;
+use rsynth::buffer::AudioBufferInOut;
 
 // The total number of samples to pre-calculate.
 // This is like recording a sample of white noise and then
@@ -62,16 +63,18 @@ impl Noise {
     // Here, we use one implementation over all floating point types.
     // If you want to use SIMD optimization, you can have separate implementations
     // for `f32` and `f64`.
-    fn render_audio_buffer<S>(&mut self, outputs: &mut [&mut [S]])
+    fn render_audio_buffer<S>(&mut self, buffer: &mut AudioBufferInOut<S>)
     where
         S: AsPrim + Float,
     {
         if self.state == SimpleVoiceState::Idle {
             return;
         }
-        assert_eq!(2, outputs.len());
+        let outputs = buffer.outputs();
+        assert_eq!(2, outputs.number_of_channels());
         // for every output
-        for output in outputs {
+        for channel_index in 0..2 {
+            let output = outputs.index_channel(channel_index);
             // for each value in the buffer
             for sample in output.iter_mut() {
                 // We "add" to the output.
@@ -196,14 +199,9 @@ impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
 where
     S: AsPrim + Float,
 {
-    fn render_buffer(
-        &mut self,
-        _inputs: &[&[S]],
-        outputs: &mut [&mut [S]],
-        _context: &mut Context,
-    ) {
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, _context: &mut Context) {
         for noise in self.voices.iter_mut() {
-            noise.render_audio_buffer(outputs);
+            noise.render_audio_buffer(buffer);
         }
     }
 }
