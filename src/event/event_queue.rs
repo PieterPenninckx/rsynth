@@ -196,22 +196,6 @@ impl<T> EventQueue<T> {
         self.queue.get(0)
     }
 
-    fn render<'storage, 's, 'chunk, S, R, C>(
-        start: usize,
-        stop: usize,
-        input_storage: &'storage mut VecStorage<&'static [S]>,
-        output_storage: &'storage mut VecStorage<&'static mut [S]>,
-        inputs: &[&[S]],
-        outputs: &mut [&mut [S]],
-        renderer: &mut R,
-        context: &mut C,
-    ) where
-        S: Copy + 'static,
-        R: ContextualAudioRenderer<S, C>,
-    {
-        unimplemented!();
-    }
-
     pub fn split<'in_storage, 'out_storage, 'in_channels, 's, 'chunk, S, R, C>(
         &mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
@@ -223,7 +207,6 @@ impl<T> EventQueue<T> {
         S: Copy + 'static,
         R: ContextualAudioRenderer<S, C> + EventHandler<T>,
         T: std::fmt::Debug,
-        // 'in_storage: 'in_channels,
     {
         let buffer_length = buffer.number_of_frames();
         let mut last_event_time = 0;
@@ -356,117 +339,6 @@ impl<T> Deref for EventQueue<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.queue
-    }
-}
-
-// TODO: Move to a better place in the module hierarchy.
-pub fn mid<'storage, 'chunk, 's, S>(
-    storage: &'storage mut VecStorage<&'static [S]>,
-    chunk: &'chunk [&'s [S]],
-    start: usize,
-    end: usize,
-) -> VecGuard<'storage, &'static [S], &'chunk [S]> {
-    let mut remaining_chunk = chunk;
-    let mut guard = storage.vec_guard();
-    let mut len = remaining_chunk.len();
-    while len > 0 {
-        let (first_channel, other_channels) = remaining_chunk.split_at(1);
-        let channel = &(first_channel[0]);
-        let (first, _) = channel.split_at(end);
-        let (_, middle) = first.split_at(start);
-        guard.push(middle);
-        remaining_chunk = other_channels;
-        len = remaining_chunk.len();
-    }
-    guard
-}
-
-// TODO: Move to a better place in the module hierarchy.
-///
-/// ## Panics
-/// Panics if `start` > `end` or if `end` > the length of any item in `chunk`.
-pub fn mid_mut<'storage, 'chunk, 's, S>(
-    storage: &'storage mut VecStorage<&'static mut [S]>,
-    chunk: &'chunk mut [&'s mut [S]],
-    start: usize,
-    end: usize,
-) -> VecGuard<'storage, &'static mut [S], &'chunk mut [S]> {
-    let mut remaining_chunk = chunk;
-    let mut guard = storage.vec_guard();
-    let mut len = remaining_chunk.len();
-    while len > 0 {
-        let (first_channel, other_channels) = remaining_chunk.split_at_mut(1);
-        let channel = &mut (first_channel[0]);
-        let (first, _) = channel.split_at_mut(end);
-        let (_, middle) = first.split_at_mut(start);
-        guard.push(middle);
-        remaining_chunk = other_channels;
-        len = remaining_chunk.len();
-    }
-    guard
-}
-
-#[test]
-fn mid_mut_works() {
-    let mut storage = VecStorage::with_capacity(2);
-    let mut channel1 = [11, 12, 13, 14];
-    let mut channel2 = [21, 22, 23, 24];
-    let chunk: &mut [&mut [_]] = &mut [&mut channel1, &mut channel2];
-    {
-        let guard = mid_mut(&mut storage, chunk, 0, 0);
-        assert_eq!(guard.len(), 2);
-        assert!(guard[0].is_empty());
-        assert!(guard[1].is_empty());
-    }
-    {
-        let guard = mid_mut(&mut storage, chunk, 0, 1);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &mut [11]);
-        assert_eq!(guard[1], &mut [21]);
-    }
-    {
-        let guard = mid_mut(&mut storage, chunk, 0, 2);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &mut [11, 12]);
-        assert_eq!(guard[1], &mut [21, 22]);
-    }
-    {
-        let guard = mid_mut(&mut storage, chunk, 1, 2);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &mut [12]);
-        assert_eq!(guard[1], &mut [22]);
-    }
-}
-
-#[test]
-fn mid_works() {
-    let mut storage = VecStorage::with_capacity(2);
-    let channel1 = [11, 12, 13, 14];
-    let channel2 = [21, 22, 23, 24];
-    let chunk: &[&[_]] = &[&channel1, &channel2];
-    {
-        let guard = mid(&mut storage, chunk, 0, 0);
-        assert_eq!(guard.len(), 2);
-        assert!(guard[0].is_empty());
-        assert!(guard[1].is_empty());
-    }
-    {
-        let guard = mid(&mut storage, chunk, 0, 1);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &[11]);
-        assert_eq!(guard[1], &[21]);
-    }
-    {
-        let guard = mid(&mut storage, chunk, 0, 2);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &[11, 12]);
-        assert_eq!(guard[1], &[21, 22]);
-    }
-    {
-        let guard = mid(&mut storage, chunk, 1, 2);
-        assert_eq!(guard.len(), 2);
-        assert_eq!(guard[0], &[12]);
-        assert_eq!(guard[1], &[22]);
     }
 }
 

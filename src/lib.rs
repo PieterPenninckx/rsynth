@@ -127,9 +127,9 @@ doctest!("../README.md");
 ///
 /// Backends that require the plugin to implement this trait ensure that when calling the
 /// [`render_buffer`] method of the [`AudioRenderer`] trait
-/// *  the number of inputs (`inputs.len()`) is smaller than or equal to
+/// *  the number of inputs channels (`buffer.number_of_input_channels()`) is smaller than or equal to
 ///    `Self::max_number_of_audio_inputs()` and
-/// * the number of outputs (`outputs.len()`) is smaller than or equal to
+/// * the number of outputs (`buffer.number_of_output_channels()`) is smaller than or equal to
 ///    `Self::max_number_of_audio_outputs()`.
 ///
 /// # Remark
@@ -192,9 +192,8 @@ where
 /// Defines how audio is rendered, similar to the [`AudioRenderer`] trait.
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
-/// See the documentation of [`AudioRenderer`] for more information.
-///
-/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
+/// The type parameter `S` refers to the data type of a sample.
+/// It is typically `f32` or `f64`.
 pub trait ContextualAudioRenderer<S, Context>
 where
     S: Copy,
