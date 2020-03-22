@@ -311,7 +311,9 @@ fn split_works() {
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let mut result_event_handler = DummyEventHandler;
-    let mut buffer = AudioBufferInOut::new(&input.channels(), &mut output, 4);
+    let input = input.as_slices();
+    let mut output = output.as_mut_slices();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output, 4);
     queue.split(
         &mut input_storage,
         &mut output_storage,
@@ -337,6 +339,8 @@ fn split_works_with_empty_event_queue() {
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let mut result_event_handler = DummyEventHandler;
+    let input = input.as_slices();
+    let mut output = output.as_mut_slices();
     let mut buffer = AudioBufferInOut::new(&input, &mut output, 4);
     queue.split(
         &mut input_storage,

@@ -234,6 +234,7 @@ impl HostInterface for HostCallback {
 ///
 /// use asprim::AsPrim;
 /// use num_traits::Float;
+/// # use rsynth::buffer::AudioBufferInOut;
 ///
 /// impl AudioHandler for MyPlugin {
 ///     // Implementation omitted for brevity.
@@ -247,7 +248,7 @@ impl HostInterface for HostCallback {
 ///     H: HostInterface,
 /// {
 ///     // Implementation omitted for brevity.
-/// #    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut[&mut[S]], context: &mut H)
+/// #    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut H)
 /// #    {
 /// #        unimplemented!()
 /// #    }

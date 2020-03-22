@@ -156,23 +156,6 @@ where
                 .copy_from_slice(expected_output_channel);
         }
 
-        todo!();
-        /*
-        for (output_channel_index, output_channel) in outputs.iter_mut().enumerate() {
-            let expected_output_channel = &expected_output_channels[output_channel_index];
-            assert_eq!(
-                output_channel.len(),
-                expected_output_channel.len(),
-                "mismatch in output channel #{} in buffer #{}: \
-                 expected one with length {}, but got one with length {}",
-                output_channel_index,
-                self.buffer_index,
-                expected_output_channel.len(),
-                output_channel.len()
-            );
-            output_channel.copy_from_slice(expected_output_channel);
-        }
-        */
         let events = self.provided_events.drain(..1).next().unwrap();
         for event in events {
             context.handle_event(event);

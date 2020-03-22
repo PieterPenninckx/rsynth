@@ -403,6 +403,15 @@ where
     pub fn index_channel(&mut self, index: usize) -> &mut [S] {
         self.outputs[index]
     }
+
+    /// Set all samples to the given value.
+    pub fn set(&mut self, value: S) {
+        for channel in self.outputs.iter_mut() {
+            for sample in channel.iter_mut() {
+                *sample = value;
+            }
+        }
+    }
 }
 
 #[test]
@@ -898,14 +907,4 @@ pub fn buffers_as_mut_slice<'a, S>(
     slice_len: usize,
 ) -> Vec<&'a mut [S]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
-}
-
-/// Initialize a slice of buffers to zero.
-// TODO: what we really want is silence (equilibrium).
-pub fn initialize_to_zero<S: num_traits::Zero>(buffers: &mut [&mut [S]]) {
-    for buffer in buffers.iter_mut() {
-        for sample in buffer.iter_mut() {
-            *sample = S::zero();
-        }
-    }
 }

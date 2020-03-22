@@ -229,7 +229,7 @@ where
 
         let inputs = buffers_as_slice(&input_buffers, frames_read);
         let mut outputs = buffers_as_mut_slice(&mut output_buffers, frames_read);
-        let mut buffer = AudioBufferInOut::new(&inputs, &mut outputs, buffer_size_in_frames);
+        let mut buffer = AudioBufferInOut::new(&inputs, &mut outputs, frames_read);
         plugin.render_buffer(&mut buffer, &mut writer);
 
         if let Err(e) = audio_out.write_buffer(&buffers_as_slice(&output_buffers, frames_read)) {
