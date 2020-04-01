@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter, MidiWriter};
-use crate::buffer::AudioBufferOut;
+use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use crate::event::{DeltaEvent, RawMidiEvent};
 use std::marker::PhantomData;
 
@@ -33,9 +33,12 @@ where
     }
 }
 
-impl<S> AudioWriter<S> for AudioDummy<S> {
+impl<S> AudioWriter<S> for AudioDummy<S>
+where
+    S: Copy,
+{
     type Err = std::convert::Infallible;
-    fn write_buffer(&mut self, _buffer: &[&[S]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, _buffer: &AudioBufferIn<S>) -> Result<(), Self::Err> {
         Ok(())
     }
 }

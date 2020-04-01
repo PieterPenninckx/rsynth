@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter};
-use crate::buffer::AudioBufferOut;
+use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use hound::{WavReader, WavSamples, WavWriter};
 use sample::conv::{FromSample, ToSample};
 use std::io::{Read, Seek, Write};
@@ -203,17 +203,14 @@ where
 {
     type Err = hound::Error;
 
-    fn write_buffer(&mut self, inputs: &[&[S]]) -> Result<(), Self::Err> {
-        assert_eq!(inputs.len(), self.number_of_channels);
+    fn write_buffer(&mut self, inputs: &AudioBufferIn<S>) -> Result<(), Self::Err> {
+        assert_eq!(inputs.number_of_channels(), self.number_of_channels);
         assert!(self.number_of_channels > 0);
-        let length = inputs[0].len();
-        for input in inputs.iter() {
-            assert_eq!(input.len(), length);
-        }
+        let length = inputs.number_of_frames();
 
         let mut frame_index = 0;
         while frame_index < length {
-            for input in inputs.iter() {
+            for input in inputs.channels().iter() {
                 self.hound_sample_writer.write_sample(input[frame_index])?;
             }
             frame_index += 1;

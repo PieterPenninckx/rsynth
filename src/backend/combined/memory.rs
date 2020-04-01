@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter};
-use crate::buffer::{AudioBufferOut, AudioChunk};
+use crate::buffer::{AudioBufferIn, AudioBufferOut, AudioChunk};
 
 /// An [`AudioReader`] that reads from a given [`AudioChunk`].
 /// The generic parameter type `S` represents the sample type.
@@ -78,21 +78,21 @@ mod AudioBufferReaderTests {
             let mut output_buffer = AudioChunk::zero(3, 2);
             let mut slices = output_buffer.as_mut_slices();
             {
-                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                let mut buffers = AudioBufferOut::new(&mut slices, 2);
                 assert_eq!(Ok(2), reader.fill_buffer(&mut buffers));
             }
             assert_eq!(slices[0], vec![1, 2].as_slice());
             assert_eq!(slices[1], vec![6, 7].as_slice());
             assert_eq!(slices[2], vec![11, 12].as_slice());
             {
-                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                let mut buffers = AudioBufferOut::new(&mut slices, 2);
                 assert_eq!(Ok(2), reader.fill_buffer(&mut buffers));
             }
             assert_eq!(slices[0], vec![3, 4].as_slice());
             assert_eq!(slices[1], vec![8, 9].as_slice());
             assert_eq!(slices[2], vec![13, 14].as_slice());
             {
-                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                let mut buffers = AudioBufferOut::new(&mut slices, 2);
                 assert_eq!(Ok(1), reader.fill_buffer(&mut buffers));
             }
             assert_eq!(slices[0], vec![5, 4].as_slice());
@@ -127,8 +127,8 @@ where
     S: Copy,
 {
     type Err = std::convert::Infallible;
-    fn write_buffer(&mut self, buffer: &[&[S]]) -> Result<(), Self::Err> {
-        self.buffer.append_sliced_chunk(buffer);
+    fn write_buffer(&mut self, buffer: &AudioBufferIn<S>) -> Result<(), Self::Err> {
+        self.buffer.append_sliced_chunk(buffer.channels());
         Ok(())
     }
 }

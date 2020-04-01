@@ -419,6 +419,20 @@ where
             inner: self.outputs.iter_mut(),
         }
     }
+
+    pub fn as_audio_buffer_in<'s, 'vec>(
+        &'s self,
+        vec: &'vec mut Vec<&'s [S]>,
+    ) -> AudioBufferIn<'vec, 's, S> {
+        vec.clear();
+        for channel in self.outputs.iter() {
+            vec.push(&**channel);
+        }
+        AudioBufferIn {
+            inputs: vec,
+            length: self.length,
+        }
+    }
 }
 
 pub struct AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
