@@ -28,7 +28,9 @@
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
-use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioBufferInOut, AudioChunk};
+use crate::buffer::{
+    buffers_as_mut_slice, buffers_as_slice, AudioBufferInOut, AudioBufferOut, AudioChunk,
+};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
@@ -45,7 +47,10 @@ pub mod rimd; // TODO: choose better name for this module.
 /// Define how audio is read.
 ///
 /// This trait is generic over `S`, which represents the data-type used for a sample.
-pub trait AudioReader<S> {
+pub trait AudioReader<S>
+where
+    S: Copy,
+{
     /// The type of the error that occurs when reading data.
     type Err;
 
@@ -58,7 +63,7 @@ pub trait AudioReader<S> {
     /// Fill the buffers. Return the number of frames that have been read and written
     /// to the buffer.
     /// If the return value is `<` the number of frames in the input, no more frames can be expected.
-    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err>;
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err>;
 }
 
 /// Define how audio is written.
@@ -193,11 +198,10 @@ where
     let mut peekable_midi_reader = midi_in.peekable();
 
     loop {
+        let mut slices = buffers_as_mut_slice(&mut input_buffers, buffer_size_in_frames);
+        let mut buffer = AudioBufferOut::new(&mut slices, buffer_size_in_frames);
         // Read audio.
-        let frames_read = match audio_in.fill_buffer(&mut buffers_as_mut_slice(
-            &mut input_buffers,
-            buffer_size_in_frames,
-        )) {
+        let frames_read = match audio_in.fill_buffer(&mut buffer) {
             Ok(f) => f,
             Err(e) => {
                 return Err(CombinedError::AudioInError(e));
@@ -289,14 +293,12 @@ where
         self.inner.frames_per_second()
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
-        assert_eq!(output.len(), self.expected_channels);
-        for channel in output.iter() {
-            assert_eq!(
-                self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
-                channel.len()
-            )
-        }
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
+        assert_eq!(output.number_of_channels(), self.expected_channels);
+        assert_eq!(
+            self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
+            output.number_of_frames()
+        );
         self.number_of_calls_to_fill_buffer += 1;
         self.inner.fill_buffer(output)
     }

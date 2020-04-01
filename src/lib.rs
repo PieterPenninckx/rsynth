@@ -25,7 +25,7 @@
 //! it can also borrow some data with additional the `context` parameter.
 //!
 //! Both traits are generic over the data type that represents the sample.
-//! For which precise data-type an application or plugin needs to implement the trait, depends on
+//! For which specific data-type an application or plugin needs to implement the trait, depends on
 //! the back-end. Because the trait is generic, the application or plugin can have a generic implementation
 //! as well that can be used by different back-ends.
 //!
@@ -46,7 +46,7 @@
 //! * [`CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
-//! Additionally, back-ends can require extra trait bounds related to meta-data.
+//! Additionally, back-ends can require extra trait related to meta-data.
 //!
 //! ## Handling events
 //! Plugins or application can handle events by implementing a number of traits:
@@ -60,13 +60,13 @@
 //! implementor of the trait does not need to own all data that is needed for handling the event;
 //! it can also borrow some data with additional the `context` parameter.
 //!
-//! ## Events
+//! ### Events
 //! `rsynth` defines a number of event types:
 //!
 //! * [`RawMidiEvent`]: a raw MIDI event
 //! * [`SysExEvent`]: a system exclusive event
-//! * [`Timed<T>`]: a timed event
-//! * [`Indexed<T>`]:
+//! * [`Timed<T>`]: a generic timed event
+//! * [`Indexed<T>`]: a generic event that associates a timestamp with the event
 //!
 //! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the

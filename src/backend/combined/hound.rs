@@ -1,4 +1,5 @@
 use super::{AudioReader, AudioWriter};
+use crate::buffer::AudioBufferOut;
 use hound::{WavReader, WavSamples, WavWriter};
 use sample::conv::{FromSample, ToSample};
 use std::io::{Read, Seek, Write};
@@ -65,7 +66,7 @@ where
 
 impl<'wr, S> AudioReader<S> for HoundAudioReader<'wr, S>
 where
-    S: FromSample<f32> + FromSample<i32> + FromSample<i16>,
+    S: Copy + FromSample<f32> + FromSample<i32> + FromSample<i16>,
 {
     type Err = hound::Error;
 
@@ -77,16 +78,12 @@ where
         self.frames_per_second
     }
 
-    fn fill_buffer(&mut self, outputs: &mut [&mut [S]]) -> Result<usize, Self::Err> {
-        assert_eq!(outputs.len(), self.number_of_channels());
-        assert!(self.number_of_channels() > 0);
-        let length = outputs[0].len();
-        for output in outputs.iter() {
-            assert_eq!(output.len(), length);
-        }
+    fn fill_buffer(&mut self, outputs: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
+        assert_eq!(outputs.number_of_channels(), self.number_of_channels());
+        let length = outputs.number_of_frames();
         let mut frame_index = 0;
         while frame_index < length {
-            for output in outputs.iter_mut() {
+            for output in outputs.iter_channel_mut() {
                 if let Some(sample) = self.hound_sample_reader.read_sample()? {
                     output[frame_index] = sample;
                 } else {

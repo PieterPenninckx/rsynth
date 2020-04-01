@@ -1,5 +1,5 @@
 use super::{AudioReader, AudioWriter};
-use crate::buffer::AudioChunk;
+use crate::buffer::{AudioBufferOut, AudioChunk};
 
 /// An [`AudioReader`] that reads from a given [`AudioChunk`].
 /// The generic parameter type `S` represents the sample type.
@@ -44,14 +44,15 @@ where
         self.frames_per_second
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
-        // TODO: better error handling.
-        assert_eq!(output.len(), self.number_of_channels());
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
+        assert_eq!(output.number_of_channels(), self.number_of_channels());
         // Note: `self.number_of_channels() > 0`
-        let buffer_size = output[0].len();
+        let buffer_size = output.number_of_frames();
         let remainder = self.buffer.channels()[0].len() - self.frame;
         let frames_to_copy = std::cmp::min(buffer_size, remainder);
-        for (output_channel, input_channel) in output.iter_mut().zip(self.buffer.channels().iter())
+
+        for (output_channel, input_channel) in
+            output.iter_channel_mut().zip(self.buffer.channels().iter())
         {
             assert_eq!(buffer_size, output_channel.len());
             output_channel[0..frames_to_copy]
@@ -67,7 +68,7 @@ mod AudioBufferReaderTests {
     mod fill_buffer {
         use super::super::super::AudioReader;
         use super::super::AudioBufferReader;
-        use crate::buffer::AudioChunk;
+        use crate::buffer::{AudioBufferOut, AudioChunk};
 
         #[test]
         fn works_as_expected() {
@@ -75,19 +76,28 @@ mod AudioBufferReaderTests {
                 audio_chunk![[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]];
             let mut reader = AudioBufferReader::new(&audio_buffer, 16);
             let mut output_buffer = AudioChunk::zero(3, 2);
-            let mut buffers = output_buffer.as_mut_slices();
-            assert_eq!(Ok(2), reader.fill_buffer(buffers.as_mut_slice()));
-            assert_eq!(buffers[0], vec![1, 2].as_slice());
-            assert_eq!(buffers[1], vec![6, 7].as_slice());
-            assert_eq!(buffers[2], vec![11, 12].as_slice());
-            assert_eq!(Ok(2), reader.fill_buffer(buffers.as_mut_slice()));
-            assert_eq!(buffers[0], vec![3, 4].as_slice());
-            assert_eq!(buffers[1], vec![8, 9].as_slice());
-            assert_eq!(buffers[2], vec![13, 14].as_slice());
-            assert_eq!(Ok(1), reader.fill_buffer(buffers.as_mut_slice()));
-            assert_eq!(buffers[0], vec![5, 4].as_slice());
-            assert_eq!(buffers[1], vec![10, 9].as_slice());
-            assert_eq!(buffers[2], vec![15, 14].as_slice());
+            let mut slices = output_buffer.as_mut_slices();
+            {
+                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                assert_eq!(Ok(2), reader.fill_buffer(&mut buffers));
+            }
+            assert_eq!(slices[0], vec![1, 2].as_slice());
+            assert_eq!(slices[1], vec![6, 7].as_slice());
+            assert_eq!(slices[2], vec![11, 12].as_slice());
+            {
+                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                assert_eq!(Ok(2), reader.fill_buffer(&mut buffers));
+            }
+            assert_eq!(slices[0], vec![3, 4].as_slice());
+            assert_eq!(slices[1], vec![8, 9].as_slice());
+            assert_eq!(slices[2], vec![13, 14].as_slice());
+            {
+                let mut buffers = AudioBufferOut::new(&mut slices, 4);
+                assert_eq!(Ok(1), reader.fill_buffer(&mut buffers));
+            }
+            assert_eq!(slices[0], vec![5, 4].as_slice());
+            assert_eq!(slices[1], vec![10, 9].as_slice());
+            assert_eq!(slices[2], vec![15, 14].as_slice());
         }
     }
 }

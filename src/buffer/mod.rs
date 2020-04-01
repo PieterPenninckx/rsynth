@@ -412,6 +412,25 @@ where
             }
         }
     }
+
+    /// Get an iterator over the channels
+    pub fn iter_channel_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
+        AudioBufferOutChannelIteratorMut {
+            inner: self.outputs.iter_mut(),
+        }
+    }
+}
+
+pub struct AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
+    inner: std::slice::IterMut<'channels, &'samples mut [S]>,
+}
+
+impl<'channels, 'samples, S> Iterator for AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
+    type Item = &'channels mut [S];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|x| &mut **x)
+    }
 }
 
 #[test]
