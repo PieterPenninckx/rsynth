@@ -414,7 +414,7 @@ where
     }
 
     /// Get an iterator over the channels
-    pub fn iter_channel_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
+    pub fn channel_iter_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
         AudioBufferOutChannelIteratorMut {
             inner: self.outputs.iter_mut(),
         }

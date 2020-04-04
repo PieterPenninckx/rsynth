@@ -52,7 +52,7 @@ where
         let frames_to_copy = std::cmp::min(buffer_size, remainder);
 
         for (output_channel, input_channel) in
-            output.iter_channel_mut().zip(self.buffer.channels().iter())
+            output.channel_iter_mut().zip(self.buffer.channels().iter())
         {
             assert_eq!(buffer_size, output_channel.len());
             output_channel[0..frames_to_copy]

@@ -83,7 +83,7 @@ where
         let length = outputs.number_of_frames();
         let mut frame_index = 0;
         while frame_index < length {
-            for output in outputs.iter_channel_mut() {
+            for output in outputs.channel_iter_mut() {
                 if let Some(sample) = self.hound_sample_reader.read_sample()? {
                     output[frame_index] = sample;
                 } else {

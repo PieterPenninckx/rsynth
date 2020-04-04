@@ -9,7 +9,7 @@
 //! * [`combined`] combine different back-ends for audio input, audio output, midi input and
 //!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
-//! * [`vst`] (behind the backend-vst)
+//! * [`vst`] (behind the `backend-vst` feature)
 //!
 //! See the documentation of each back-end for more information.
 //!
@@ -19,10 +19,10 @@
 //! * the [`AudioRenderer`] trait
 //! * the [`ContextualAudioRenderer`] trait
 //!
-//! These traits are very similar, the [`ContextualAudioRenderer`] trait adds one extra parameter
-//! that defines a "context" that can be passed to the implementor of the trait, so that the
-//! implementor of the trait does not need to own all data that is needed for rendering the audio;
-//! it can also borrow some data with additional the `context` parameter.
+//! The difference between these traits is that the [`ContextualAudioRenderer`] trait adds one extra
+//! parameter that defines a "context" that can be passed to the implementor of the trait, so that
+//! the implementor of the trait does not need to own all data that is needed for rendering the
+//! audio; it can also borrow some data with additional the `context` parameter.
 //!
 //! Both traits are generic over the data type that represents the sample.
 //! For which specific data-type an application or plugin needs to implement the trait, depends on

@@ -72,11 +72,8 @@ impl Noise {
         }
         let outputs = buffer.outputs();
         assert_eq!(2, outputs.number_of_channels());
-        // for every output
-        for channel_index in 0..2 {
-            let output = outputs.index_channel(channel_index);
-            // for each value in the buffer
-            for sample in output.iter_mut() {
+        for output_channel in outputs.channel_iter_mut() {
+            for sample in output_channel.iter_mut() {
                 // We "add" to the output.
                 // In this way, various noises can be heard together.
                 *sample =
