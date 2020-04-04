@@ -8,6 +8,7 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
+use crate::backend::{Stop, TryStop};
 use crate::buffer::AudioBufferInOut;
 use crate::event::{EventHandler, Indexed};
 use crate::{
@@ -29,6 +30,7 @@ pub struct JackHost<'c, 'mp, 'mw> {
     // the lifetime, we keep it, so that we can keep track of this complexity.
     _client: &'c Client,
     midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
+    control: jack::Control,
 }
 
 impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
@@ -36,6 +38,14 @@ impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
         false
     }
 }
+
+impl<'c, 'mp, 'mw> TryStop for JackHost<'c, 'mp, 'mw> {
+    fn stop(&mut self) {
+        self.control = jack::Control::Quit
+    }
+}
+
+impl<'c, 'mp, 'mw> Stop for JackHost<'c, 'mp, 'mw> {}
 
 impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, 'mp, 'mw> {
     fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>) {
@@ -269,6 +279,7 @@ where
         let mut jack_host: JackHost = JackHost {
             _client: client,
             midi_out_ports: midi_writer_guard.as_mut_slice(),
+            control: jack::Control::Continue,
         };
         Self::handle_events(
             &self.midi_in_ports,
@@ -302,7 +313,7 @@ where
             client.buffer_size() as usize,
         );
         self.plugin.render_buffer(&mut buffer, &mut jack_host);
-        Control::Continue
+        jack_host.control
     }
 }
 
