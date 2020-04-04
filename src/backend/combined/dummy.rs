@@ -1,4 +1,5 @@
 use super::{AudioReader, AudioWriter, MidiWriter};
+use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use crate::event::{DeltaEvent, RawMidiEvent};
 use std::marker::PhantomData;
 
@@ -14,7 +15,10 @@ impl<S> AudioDummy<S> {
     }
 }
 
-impl<S> AudioReader<S> for AudioDummy<S> {
+impl<S> AudioReader<S> for AudioDummy<S>
+where
+    S: Copy,
+{
     type Err = std::convert::Infallible;
     fn number_of_channels(&self) -> usize {
         0
@@ -24,14 +28,17 @@ impl<S> AudioReader<S> for AudioDummy<S> {
         44100
     }
 
-    fn fill_buffer(&mut self, _output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
+    fn fill_buffer(&mut self, _output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
         Ok(0) // TODO: Have a look at this implementation again: is this logical?
     }
 }
 
-impl<S> AudioWriter<S> for AudioDummy<S> {
+impl<S> AudioWriter<S> for AudioDummy<S>
+where
+    S: Copy,
+{
     type Err = std::convert::Infallible;
-    fn write_buffer(&mut self, _buffer: &[&[S]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, _buffer: &AudioBufferIn<S>) -> Result<(), Self::Err> {
         Ok(())
     }
 }

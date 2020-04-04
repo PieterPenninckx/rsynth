@@ -28,12 +28,16 @@
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
-use crate::buffer::{buffers_as_mut_slice, buffers_as_slice, AudioChunk};
+use crate::buffer::{
+    buffers_as_mut_slice, buffers_as_slice, AudioBufferIn, AudioBufferInOut, AudioBufferOut,
+    AudioChunk,
+};
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
 use num_traits::Zero;
 use std::fmt::Debug;
+use vecstorage::VecStorage;
 
 pub mod dummy;
 #[cfg(feature = "backend-combined-hound")]
@@ -45,7 +49,10 @@ pub mod rimd; // TODO: choose better name for this module.
 /// Define how audio is read.
 ///
 /// This trait is generic over `S`, which represents the data-type used for a sample.
-pub trait AudioReader<S> {
+pub trait AudioReader<S>
+where
+    S: Copy,
+{
     /// The type of the error that occurs when reading data.
     type Err;
 
@@ -58,17 +65,20 @@ pub trait AudioReader<S> {
     /// Fill the buffers. Return the number of frames that have been read and written
     /// to the buffer.
     /// If the return value is `<` the number of frames in the input, no more frames can be expected.
-    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err>;
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err>;
 }
 
 /// Define how audio is written.
 ///
 /// This trait is generic over `S`, which represents the data-type used for a sample.
-pub trait AudioWriter<S> {
+pub trait AudioWriter<S>
+where
+    S: Copy,
+{
     /// The type of the error that occurs when reading data.
     type Err;
     // TODO: What if the writer gets an unexpected number of channels?
-    fn write_buffer(&mut self, buffer: &[&[S]]) -> Result<(), Self::Err>;
+    fn write_buffer(&mut self, buffer: &AudioBufferIn<S>) -> Result<(), Self::Err>;
 }
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
@@ -151,6 +161,7 @@ pub enum CombinedError<AudioInErr, AudioOutErr> {
 /// Panics
 /// ======
 /// Panics if `buffer_size_in_frames` is `0` or `> u32::max_value()`.
+// TODO: support different number of input and output channels.
 pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     plugin: &mut R,
     buffer_size_in_frames: usize,
@@ -164,21 +175,21 @@ where
     AudioOut: AudioWriter<S>,
     MidiIn: Iterator<Item = DeltaEvent<RawMidiEvent>>,
     MidiOut: MidiWriter,
-    S: Zero,
+    S: Copy + Zero + 'static,
     R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
     assert!(buffer_size_in_frames < u32::max_value() as usize);
 
-    let number_of_channels = audio_in.number_of_channels();
-    // TODO: Do not panic in this case.
-    assert!(number_of_channels > 0);
+    let number_of_input_channels = audio_in.number_of_channels();
 
     let frames_per_second = audio_in.frames_per_second();
     assert!(frames_per_second > 0);
 
-    let mut input_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
-    let mut output_buffers = AudioChunk::zero(number_of_channels, buffer_size_in_frames).inner();
+    let mut input_buffers =
+        AudioChunk::zero(number_of_input_channels, buffer_size_in_frames).inner();
+    let mut output_buffers =
+        AudioChunk::zero(number_of_input_channels, buffer_size_in_frames).inner();
 
     let mut last_time_in_frames = 0;
     let mut last_event_time_in_microseconds = 0;
@@ -192,12 +203,14 @@ where
 
     let mut peekable_midi_reader = midi_in.peekable();
 
+    let mut conversion_storage: VecStorage<&'static [S]> =
+        VecStorage::with_capacity(number_of_input_channels);
+
     loop {
+        let mut slices = buffers_as_mut_slice(&mut input_buffers, buffer_size_in_frames);
+        let mut buffer = AudioBufferOut::new(&mut slices, buffer_size_in_frames);
         // Read audio.
-        let frames_read = match audio_in.fill_buffer(&mut buffers_as_mut_slice(
-            &mut input_buffers,
-            buffer_size_in_frames,
-        )) {
+        let frames_read = match audio_in.fill_buffer(&mut buffer) {
             Ok(f) => f,
             Err(e) => {
                 return Err(CombinedError::AudioInError(e));
@@ -227,13 +240,15 @@ where
             }
         }
 
-        plugin.render_buffer(
-            &buffers_as_slice(&input_buffers, frames_read),
-            &mut buffers_as_mut_slice(&mut output_buffers, frames_read),
-            &mut writer,
-        );
+        let inputs = buffers_as_slice(&input_buffers, frames_read);
+        let mut outputs = buffers_as_mut_slice(&mut output_buffers, frames_read);
+        let mut buffer = AudioBufferInOut::new(&inputs, &mut outputs, frames_read);
+        plugin.render_buffer(&mut buffer, &mut writer);
 
-        if let Err(e) = audio_out.write_buffer(&buffers_as_slice(&output_buffers, frames_read)) {
+        let mut guard = conversion_storage.vec_guard();
+        let converted = buffer.outputs().as_audio_buffer_in(&mut guard);
+
+        if let Err(e) = audio_out.write_buffer(&converted) {
             return Err(CombinedError::AudioOutError(e));
         }
 
@@ -290,14 +305,12 @@ where
         self.inner.frames_per_second()
     }
 
-    fn fill_buffer(&mut self, output: &mut [&mut [S]]) -> Result<usize, Self::Err> {
-        assert_eq!(output.len(), self.expected_channels);
-        for channel in output.iter() {
-            assert_eq!(
-                self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
-                channel.len()
-            )
-        }
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
+        assert_eq!(output.number_of_channels(), self.expected_channels);
+        assert_eq!(
+            self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
+            output.number_of_frames()
+        );
         self.number_of_calls_to_fill_buffer += 1;
         self.inner.fill_buffer(output)
     }
@@ -306,6 +319,7 @@ where
 pub struct TestAudioWriter<'w, T, S>
 where
     T: AudioWriter<S>,
+    S: Copy,
 {
     inner: &'w mut T,
     expected_chunks: Vec<AudioChunk<S>>,
@@ -315,6 +329,7 @@ where
 impl<'w, T, S> TestAudioWriter<'w, T, S>
 where
     T: AudioWriter<S>,
+    S: Copy,
 {
     pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<S>>) -> Self {
         Self {
@@ -328,14 +343,14 @@ where
 impl<'w, T, S> AudioWriter<S> for TestAudioWriter<'w, T, S>
 where
     T: AudioWriter<S>,
-    S: Debug + PartialEq,
+    S: Debug + PartialEq + Copy,
 {
     type Err = <T as AudioWriter<S>>::Err;
 
-    fn write_buffer(&mut self, chunk: &[&[S]]) -> Result<(), Self::Err> {
+    fn write_buffer(&mut self, chunk: &AudioBufferIn<S>) -> Result<(), Self::Err> {
         assert!(self.chunk_index < self.expected_chunks.len());
         let expected_chunk = &self.expected_chunks[self.chunk_index];
-        assert_eq!(chunk, expected_chunk.as_slices().as_slice());
+        assert_eq!(chunk.channels(), expected_chunk.as_slices().as_slice());
         self.inner.write_buffer(chunk)?;
         self.chunk_index += 1;
         Ok(())

@@ -42,36 +42,26 @@ pub trait HostInterface {
     /// # Example
     ///
     /// The following example illustrates how `output_initialized()` can be used in
-    /// combination with [`rsynth::utilities::zero_init`] to initialize the output
+    /// combination with the `set` method on `AudioBufferOut` to initialize the output
     /// buffers to zero in an implementation of the [`ContextualAudioRenderer`] trait.
     ///
     /// ```
     /// use rsynth::ContextualAudioRenderer;
-    /// # use rsynth::{AudioHandlerMeta, AudioHandler};
     /// use rsynth::backend::HostInterface;
-    /// use rsynth::buffer::initialize_to_zero;
-    /// # struct MyPlugin {}
-    /// # impl AudioHandlerMeta for MyPlugin {
-    /// #    fn max_number_of_audio_inputs(&self) -> usize { 0 }
-    /// #    fn max_number_of_audio_outputs(&self) -> usize { 2 }
-    /// # }
-    /// # impl AudioHandler for MyPlugin {
-    /// #    fn set_sample_rate(&mut self,sample_rate: f64) {
-    /// #    }
-    /// # }
+    /// use rsynth::buffer::{AudioBufferInOut};
+    /// struct MyPlugin { /* ... */ }
     /// impl<H> ContextualAudioRenderer<f32, H> for MyPlugin
     /// where H: HostInterface
     /// {
     ///     fn render_buffer(
     ///         &mut self,
-    ///         inputs: &[&[f32]],
-    ///         outputs: &mut [&mut [f32]],
+    ///         buffer: &mut AudioBufferInOut<f32>,
     ///         context: &mut H)
     ///     {
     ///         if ! context.output_initialized() {
-    ///             initialize_to_zero(outputs);
-    ///             // The rest of the audio rendering.
+    ///             buffer.outputs().set(0.0);
     ///         }
+    ///         // The rest of the audio rendering.
     ///     }
     /// }
     /// ```

@@ -118,6 +118,9 @@ So either this invariant needs to be given up, or `OutputChunk` needs to encapsu
 but this does not give such a straightforward and easy to use API.
 For this reason, I didn't keep the `OutputChunk` and continued to use the slices.
 
+Let on, I decided to use something like the `OutputChunk` struct anyway. I think the API is rather
+straightforward to use, but may need some small improvements here and there.
+
 Events
 ------
 Currently, backends that support one MIDI-port use the `Timed<RawMidiEvent>` type

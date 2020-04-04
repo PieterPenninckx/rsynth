@@ -1,6 +1,6 @@
 //! Utilities for testing.
 
-use crate::buffer::AudioChunk;
+use crate::buffer::{AudioBufferInOut, AudioChunk};
 use crate::event::{ContextualEventHandler, EventHandler};
 use crate::{AudioHandler, AudioHandlerMeta, ContextualAudioRenderer};
 use std::fmt::Debug;
@@ -80,7 +80,7 @@ where
     S: PartialEq + Debug + Copy,
     C: EventHandler<E>,
 {
-    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut C) {
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut C) {
         assert!(
             self.buffer_index < self.expected_inputs.len(),
             "`render_buffer` called more often than expected: expected only {} times",
@@ -99,13 +99,13 @@ where
 
         let expected_input_channels = &self.expected_inputs[self.buffer_index].channels();
         assert_eq!(
-            inputs.len(),
+            buffer.number_of_input_channels(),
             expected_input_channels.len(),
             "`render_buffer` called with {} input channels, but {} were expected",
-            inputs.len(),
+            buffer.number_of_input_channels(),
             expected_input_channels.len()
         );
-        for (input_channel_index, input_channel) in inputs.iter().enumerate() {
+        for (input_channel_index, input_channel) in buffer.inputs().channels().iter().enumerate() {
             let expected_input_channel = &expected_input_channels[input_channel_index];
             assert_eq!(
                 input_channel.len(),
@@ -132,21 +132,28 @@ where
             }
         }
 
-        let expected_output_channels = &self.provided_outputs[self.buffer_index].channels();
-        assert_eq!(outputs.len(), expected_output_channels.len());
-        for (output_channel_index, output_channel) in outputs.iter_mut().enumerate() {
+        let expected_output_channels = self.provided_outputs[self.buffer_index].channels();
+        assert_eq!(
+            buffer.number_of_output_channels(),
+            expected_output_channels.len()
+        );
+        // TODO: Use an iterator here.
+        for output_channel_index in 0..expected_output_channels.len() {
             let expected_output_channel = &expected_output_channels[output_channel_index];
             assert_eq!(
-                output_channel.len(),
+                buffer.number_of_frames(),
                 expected_output_channel.len(),
                 "mismatch in output channel #{} in buffer #{}: \
                  expected one with length {}, but got one with length {}",
                 output_channel_index,
                 self.buffer_index,
                 expected_output_channel.len(),
-                output_channel.len()
+                buffer.number_of_frames()
             );
-            output_channel.copy_from_slice(expected_output_channel);
+            buffer
+                .outputs()
+                .index_channel(output_channel_index)
+                .copy_from_slice(expected_output_channel);
         }
 
         let events = self.provided_events.drain(..1).next().unwrap();

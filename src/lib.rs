@@ -9,7 +9,7 @@
 //! * [`combined`] combine different back-ends for audio input, audio output, midi input and
 //!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
-//! * [`vst`] (behind the backend-vst)
+//! * [`vst`] (behind the `backend-vst` feature)
 //!
 //! See the documentation of each back-end for more information.
 //!
@@ -19,13 +19,13 @@
 //! * the [`AudioRenderer`] trait
 //! * the [`ContextualAudioRenderer`] trait
 //!
-//! These traits are very similar, the [`ContextualAudioRenderer`] trait adds one extra parameter
-//! that defines a "context" that can be passed to the implementor of the trait, so that the
-//! implementor of the trait does not need to own all data that is needed for rendering the audio;
-//! it can also borrow some data with additional the `context` parameter.
+//! The difference between these traits is that the [`ContextualAudioRenderer`] trait adds one extra
+//! parameter that defines a "context" that can be passed to the implementor of the trait, so that
+//! the implementor of the trait does not need to own all data that is needed for rendering the
+//! audio; it can also borrow some data with additional the `context` parameter.
 //!
 //! Both traits are generic over the data type that represents the sample.
-//! For which precise data-type an application or plugin needs to implement the trait, depends on
+//! For which specific data-type an application or plugin needs to implement the trait, depends on
 //! the back-end. Because the trait is generic, the application or plugin can have a generic implementation
 //! as well that can be used by different back-ends.
 //!
@@ -46,7 +46,7 @@
 //! * [`CommonPluginMeta`]
 //!     * Name of the plugin or application
 //!
-//! Additionally, back-ends can require extra trait bounds related to meta-data.
+//! Additionally, back-ends can require extra trait related to meta-data.
 //!
 //! ## Handling events
 //! Plugins or application can handle events by implementing a number of traits:
@@ -60,13 +60,13 @@
 //! implementor of the trait does not need to own all data that is needed for handling the event;
 //! it can also borrow some data with additional the `context` parameter.
 //!
-//! ## Events
+//! ### Events
 //! `rsynth` defines a number of event types:
 //!
 //! * [`RawMidiEvent`]: a raw MIDI event
 //! * [`SysExEvent`]: a system exclusive event
-//! * [`Timed<T>`]: a timed event
-//! * [`Indexed<T>`]:
+//! * [`Timed<T>`]: a generic timed event
+//! * [`Indexed<T>`]: a generic event that associates a timestamp with the event
 //!
 //! ## Utilities
 //! Utilities are are types that you can include to perform several common tasks for the
@@ -74,7 +74,6 @@
 //!
 //! * polyphony: managing of different voices
 //!
-//! [`Plugin`]: ./trait.Plugin.html
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
 //! [`combined`]: ./backend/combined/index.html
@@ -110,6 +109,7 @@ extern crate vst;
 #[macro_use]
 extern crate doc_comment;
 
+use crate::buffer::AudioBufferInOut;
 use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 #[macro_use]
@@ -127,9 +127,9 @@ doctest!("../README.md");
 ///
 /// Backends that require the plugin to implement this trait ensure that when calling the
 /// [`render_buffer`] method of the [`AudioRenderer`] trait
-/// *  the number of inputs (`inputs.len()`) is smaller than or equal to
+/// *  the number of inputs channels (`buffer.number_of_input_channels()`) is smaller than or equal to
 ///    `Self::max_number_of_audio_inputs()` and
-/// * the number of outputs (`outputs.len()`) is smaller than or equal to
+/// * the number of outputs (`buffer.number_of_output_channels()`) is smaller than or equal to
 ///    `Self::max_number_of_audio_outputs()`.
 ///
 /// # Remark
@@ -176,26 +176,28 @@ pub trait MidiHandlerMeta {
     fn max_number_of_midi_outputs(&self) -> usize;
 }
 
+// TODO: Is this trait actually used?
 /// Defines how audio is rendered.
 ///
 /// The type parameter `S` refers to the data type of a sample.
 /// It is typically `f32` or `f64`.
-pub trait AudioRenderer<S> {
+pub trait AudioRenderer<S>
+where
+    S: Copy,
+{
     /// This method is called repeatedly for subsequent audio buffers.
-    ///
-    /// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`
-    /// are all guaranteed to equal to each other.
-    /// This shared length can however be different for subsequent calls to `render_buffer`.
-    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]]);
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>);
 }
 
 /// Defines how audio is rendered, similar to the [`AudioRenderer`] trait.
 /// The extra parameter `context` can be used by the backend to provide extra information.
 ///
-/// See the documentation of [`AudioRenderer`] for more information.
-///
-/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
-pub trait ContextualAudioRenderer<S, Context> {
+/// The type parameter `S` refers to the data type of a sample.
+/// It is typically `f32` or `f64`.
+pub trait ContextualAudioRenderer<S, Context>
+where
+    S: Copy,
+{
     /// This method called repeatedly for subsequent buffers.
     ///
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
@@ -203,7 +205,7 @@ pub trait ContextualAudioRenderer<S, Context> {
     ///
     /// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
     /// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
-    fn render_buffer(&mut self, inputs: &[&[S]], outputs: &mut [&mut [S]], context: &mut Context);
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context);
 }
 
 /// Provides common meta-data of the plugin or application to the host.

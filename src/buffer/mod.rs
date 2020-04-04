@@ -33,6 +33,666 @@
 //! ```
 use num_traits::Zero;
 use std::mem;
+use std::ops::{Bound, Index, IndexMut, RangeBounds};
+use std::slice::SliceIndex;
+
+fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
+    // start: inclusive
+    let start = match range.start_bound() {
+        Bound::Unbounded => 0,
+        Bound::Excluded(x) => x + 1,
+        Bound::Included(x) => *x,
+    };
+    // end: inclusive
+    let end = match range.end_bound() {
+        Bound::Unbounded => number_of_frames,
+        Bound::Excluded(x) => *x,
+        Bound::Included(x) => x + 1,
+    };
+    if start < end {
+        end - start
+    } else {
+        0
+    }
+}
+
+#[test]
+fn number_of_frames_in_range_works_full_range() {
+    assert_eq!(number_of_frames_in_range(4, ..), 4);
+}
+
+#[test]
+fn number_of_frames_in_range_works_exclusive_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..3), 2);
+}
+
+#[test]
+fn number_of_frames_in_range_works_inclusive_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..=3), 3);
+}
+
+#[test]
+fn number_of_frames_in_range_works_open_ended_range() {
+    assert_eq!(number_of_frames_in_range(4, 1..), 3);
+}
+
+#[test]
+fn number_of_frames_in_range_works_open_starting_range() {
+    assert_eq!(number_of_frames_in_range(4, ..2), 2);
+}
+
+/// Audio input buffer
+///
+/// It is guaranteed that all channels have the same length (number of samples).
+#[derive(Clone, Copy)]
+pub struct AudioBufferIn<'channels, 'samples, S>
+where
+    S: 'static + Copy,
+{
+    inputs: &'channels [&'samples [S]],
+    length: usize,
+}
+
+impl<'channels, 'samples, S> AudioBufferIn<'channels, 'samples, S>
+where
+    S: 'static + Copy,
+{
+    /// Create a new audio input buffer.
+    ///
+    /// # Panics
+    /// Panics if one of the elements of `inputs` does not have the given length.
+    pub fn new(inputs: &'channels [&'samples [S]], length: usize) -> Self {
+        for channel in inputs {
+            assert_eq!(channel.len(), length);
+        }
+        Self { inputs, length }
+    }
+
+    /// Get the number of channels.
+    pub fn number_of_channels(&self) -> usize {
+        self.inputs.len()
+    }
+
+    /// Get the number of frames.
+    pub fn number_of_frames(&self) -> usize {
+        self.length
+    }
+
+    /// Get the channels as slices.
+    pub fn channels(&self) -> &'channels [&'samples [S]] {
+        self.inputs
+    }
+
+    /// Get a sub-chunk with the given range of frames.
+    ///
+    /// The vector `vec` will be used to store the channels of the result.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferIn;
+    /// let mut vec = Vec::with_capacity(2);
+    /// let channel1 = vec![11, 12, 13, 14];
+    /// let channel2 = vec![21, 22, 23, 24];
+    /// let chunk = [channel1.as_slice(), channel2.as_slice()];
+    /// let chunk = AudioBufferIn::new(&chunk, 4);
+    /// let parts = chunk.index_frames(1..2, &mut vec);
+    /// assert_eq!(parts.number_of_frames(), 1);
+    /// assert_eq!(parts.number_of_channels(), 2);
+    /// let channels = parts.channels();
+    /// assert_eq!(channels[0], &[12]);
+    /// assert_eq!(channels[1], &[22]);
+    /// ```
+    ///
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    ///
+    /// # Usage in a real-time thread
+    /// This method will append `number_of_channels` elements to the given vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
+    ///
+    /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    pub fn index_frames<'s, 'v, R>(
+        &'s self,
+        range: R,
+        vec: &'v mut Vec<&'s [S]>,
+    ) -> AudioBufferIn<'v, 's, S>
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        let mut remaining_chunk = &*self.inputs;
+        vec.clear();
+        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
+            vec.push(first_channel.index(range.clone()));
+            remaining_chunk = remaining_channels;
+        }
+        AudioBufferIn {
+            inputs: vec.as_slice(),
+            length,
+        }
+    }
+
+    /// Get the channel with the given index.
+    // TODO: maybe find a better name for this method.
+    pub fn get_channel(&self, index: usize) -> Option<&[S]> {
+        if index > self.inputs.len() {
+            None
+        } else {
+            Some(self.inputs[index])
+        }
+    }
+
+    /// Get the channel with the given index.
+    ///
+    /// # Panics
+    /// Panics if the index is out of bounds.
+    pub fn index_channel(&self, index: usize) -> &[S] {
+        self.inputs[index]
+    }
+}
+
+#[test]
+fn buffer_in_index_frames_works() {
+    let mut vec = Vec::with_capacity(2);
+    let channel1 = vec![11, 12, 13, 14];
+    let channel2 = vec![21, 22, 23, 24];
+    let chunk = [channel1.as_slice(), channel2.as_slice()];
+    let chunk = AudioBufferIn::new(&chunk, 4);
+    {
+        let sub_part = chunk.index_frames(0..0, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 0);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert!(channels[0].is_empty());
+        assert!(channels[1].is_empty());
+    }
+    {
+        let sub_part = chunk.index_frames(0..1, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[11]);
+        assert_eq!(channels[1], &[21]);
+    }
+    {
+        let sub_part = chunk.index_frames(0..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 2);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[11, 12]);
+        assert_eq!(channels[1], &[21, 22]);
+    }
+    {
+        let sub_part = chunk.index_frames(1..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[12]);
+        assert_eq!(channels[1], &[22]);
+    }
+}
+
+/// An audio output buffer.
+///
+/// It is guaranteed that all channels have the same length (number of samples).
+pub struct AudioBufferOut<'channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    outputs: &'channels mut [&'out_samples mut [S]],
+    length: usize,
+}
+
+impl<'channels, 'samples, S> AudioBufferOut<'channels, 'samples, S>
+where
+    S: 'static + Copy,
+{
+    /// Create a new audio output buffer.
+    ///
+    /// # Panics
+    /// Panics if one of the elements of `outputs` does not have the given length.
+    pub fn new(outputs: &'channels mut [&'samples mut [S]], length: usize) -> Self {
+        for channel in outputs.iter() {
+            assert_eq!(channel.len(), length);
+        }
+        Self { outputs, length }
+    }
+
+    /// Get the number of channels.
+    pub fn number_of_channels(&self) -> usize {
+        self.outputs.len()
+    }
+
+    /// Get the number of frames.
+    pub fn number_of_frames(&self) -> usize {
+        self.length
+    }
+
+    /// Get the channels as slices.
+    ///
+    /// # Unsafe
+    /// This method is marked unsafe because using it allows to change the length of the
+    /// channels, which invalidates the invariant
+    pub unsafe fn channels<'a>(&'a mut self) -> &'a mut [&'samples mut [S]] {
+        self.outputs
+    }
+
+    /// Split into two `AudioBufferOut`s.
+    /// The first will contain the first `mid-1` channels and the second
+    /// will contain the remaining channels.
+    ///
+    /// # Panics
+    /// Panics if `mid` is `>` the number of output channels.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferOut;
+    ///
+    /// let mut channel1 = vec![11, 12, 13, 14];
+    /// let mut channel2 = vec![21, 22, 23, 24];
+    /// let mut chunk = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    ///
+    /// let mut buffer = AudioBufferOut::new(&mut chunk, 4);
+    ///
+    /// let (mut firstchannels, mut secondchannels) = buffer.split_channels_at(1);
+    /// assert_eq!(firstchannels.number_of_channels(), 1);
+    /// assert_eq!(secondchannels.number_of_channels(), 1);
+    ///
+    /// assert_eq!(firstchannels.index_channel(0), &[11, 12, 13, 14]);
+    /// assert_eq!(secondchannels.index_channel(0), &[21, 22, 23, 24]);
+    /// ```
+    pub fn split_channels_at<'a>(
+        &'a mut self,
+        mid: usize,
+    ) -> (
+        AudioBufferOut<'a, 'samples, S>,
+        AudioBufferOut<'a, 'samples, S>,
+    )
+    where
+        'a: 'channels,
+    {
+        let (outputs1, outputs2) = self.outputs.split_at_mut(mid);
+        (
+            Self {
+                outputs: outputs1,
+                length: self.length,
+            },
+            Self {
+                outputs: outputs2,
+                length: self.length,
+            },
+        )
+    }
+
+    /// Get a sub-chunk with the given range of frames.
+    ///
+    /// The vector `vec` will be used to store the channels of the result.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferOut;
+    ///
+    /// let mut channel1 = vec![11, 12, 13, 14];
+    /// let mut channel2 = vec![21, 22, 23, 24];
+    /// let mut channels = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    /// let number_of_channels = channels.len();
+    /// let mut buffer = AudioBufferOut::new(&mut channels, 4);
+    /// let mut vec = Vec::with_capacity(number_of_channels);
+    /// let mut sub_part = buffer.index_frames(1..2, &mut vec);
+    /// assert_eq!(sub_part.number_of_frames(), 1);
+    /// assert_eq!(sub_part.number_of_channels(), number_of_channels);
+    /// assert_eq!(sub_part.index_channel(0), &[12]);
+    /// assert_eq!(sub_part.index_channel(1), &[22]);
+    /// ```
+    ///
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    ///
+    /// # Usage in a real-time threat
+    /// This method will append `number_of_channels` elements to the given vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
+    ///
+    /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    pub fn index_frames<'s, 'v, R>(
+        &'s mut self,
+        range: R,
+        vec: &'v mut Vec<&'s mut [S]>,
+    ) -> AudioBufferOut<'v, 's, S>
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        let mut remaining_chunk = &mut *self.outputs;
+        vec.clear();
+        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first_mut() {
+            vec.push(first_channel.index_mut(range.clone()));
+            remaining_chunk = remaining_channels;
+        }
+        AudioBufferOut {
+            outputs: vec.as_mut_slice(),
+            length,
+        }
+    }
+
+    /// Get the channel with the given index.
+    // TODO: maybe find a better name for this method.
+    pub fn get_channel(&mut self, index: usize) -> Option<&mut [S]> {
+        if index > self.outputs.len() {
+            None
+        } else {
+            Some(self.outputs[index])
+        }
+    }
+
+    /// Get the channel with the given index.
+    ///
+    /// # Panics
+    /// Panics if the index is out of bounds.
+    pub fn index_channel(&mut self, index: usize) -> &mut [S] {
+        self.outputs[index]
+    }
+
+    /// Set all samples to the given value.
+    pub fn set(&mut self, value: S) {
+        for channel in self.outputs.iter_mut() {
+            for sample in channel.iter_mut() {
+                *sample = value;
+            }
+        }
+    }
+
+    /// Get an iterator over the channels
+    pub fn channel_iter_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
+        AudioBufferOutChannelIteratorMut {
+            inner: self.outputs.iter_mut(),
+        }
+    }
+
+    pub fn as_audio_buffer_in<'s, 'vec>(
+        &'s self,
+        vec: &'vec mut Vec<&'s [S]>,
+    ) -> AudioBufferIn<'vec, 's, S> {
+        vec.clear();
+        for channel in self.outputs.iter() {
+            vec.push(&**channel);
+        }
+        AudioBufferIn {
+            inputs: vec,
+            length: self.length,
+        }
+    }
+}
+
+pub struct AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
+    inner: std::slice::IterMut<'channels, &'samples mut [S]>,
+}
+
+impl<'channels, 'samples, S> Iterator for AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
+    type Item = &'channels mut [S];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|x| &mut **x)
+    }
+}
+
+#[test]
+fn buffer_out_index_frames_works() {
+    let mut channel1 = vec![11, 12, 13, 14];
+    let mut channel2 = vec![21, 22, 23, 24];
+    let mut chunk = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    let mut chunk = AudioBufferOut::new(&mut chunk, 4);
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut sub_part = chunk.index_frames(0..0, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 0);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert!(sub_part.index_channel(0).is_empty());
+        assert!(sub_part.index_channel(1).is_empty());
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut sub_part = chunk.index_frames(0..1, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[11]);
+        assert_eq!(sub_part.index_channel(1), &[21]);
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut sub_part = chunk.index_frames(0..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 2);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[11, 12]);
+        assert_eq!(sub_part.index_channel(1), &[21, 22]);
+    }
+    {
+        let mut vec = Vec::with_capacity(2);
+        let mut sub_part = chunk.index_frames(1..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[12]);
+        assert_eq!(sub_part.index_channel(1), &[22]);
+    }
+}
+
+pub struct AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    inputs: AudioBufferIn<'in_channels, 'in_samples, S>,
+    outputs: AudioBufferOut<'out_channels, 'out_samples, S>,
+    length: usize,
+}
+
+impl<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+    AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
+where
+    S: 'static + Copy,
+{
+    /// # Panics
+    /// Panics if one of the following happens:
+    /// * not all elements of `inputs` have the same length,
+    /// * not all elements of `outputs` have the same length,
+    /// * not all elements of `inputs` have the same length as all the elements of `outputs`
+    pub fn new(
+        inputs: &'in_channels [&'in_samples [S]],
+        outputs: &'out_channels mut [&'out_samples mut [S]],
+        length: usize,
+    ) -> Self {
+        let inputs = AudioBufferIn::new(inputs, length);
+        let outputs = AudioBufferOut::new(outputs, length);
+        assert_eq!(inputs.number_of_frames(), outputs.number_of_frames());
+        AudioBufferInOut {
+            inputs,
+            outputs,
+            length,
+        }
+    }
+
+    /// Get the number of frames.
+    pub fn number_of_frames(&self) -> usize {
+        self.length
+    }
+
+    /// Get the number of input channels.
+    pub fn number_of_input_channels(&self) -> usize {
+        self.inputs.number_of_channels()
+    }
+
+    /// Get the number of output channels.
+    pub fn number_of_output_channels(&self) -> usize {
+        self.outputs.number_of_channels()
+    }
+
+    /// Create two new `AUdioBufferInOut`s: one with all the input channels and with the
+    /// output channels from 0 to `mid`, excluding `mid` and one with all the input channels
+    /// and with the output channels from `mid` including onwards.
+    ///
+    /// # Panics
+    /// Panics if `mid` is `>` the number of output channels.
+    pub fn split_output_channels_at<'a>(
+        &'a mut self,
+        mid: usize,
+    ) -> (
+        AudioBufferInOut<'in_channels, 'in_samples, 'a, 'out_samples, S>,
+        AudioBufferInOut<'in_channels, 'in_samples, 'a, 'out_samples, S>,
+    )
+    where
+        'a: 'out_channels,
+    {
+        let (outputs1, outputs2) = self.outputs.split_channels_at(mid);
+        (
+            Self {
+                inputs: self.inputs,
+                outputs: outputs1,
+                length: self.length,
+            },
+            Self {
+                inputs: self.inputs,
+                outputs: outputs2,
+                length: self.length,
+            },
+        )
+    }
+
+    /// Get the channel with the given index.
+    // TODO: maybe find a better name for this method.
+    pub fn get_input_channel(&self, index: usize) -> Option<&[S]> {
+        self.inputs.get_channel(index)
+    }
+
+    /// Get the output channel with the given index.
+    ///
+    /// # Panics
+    /// Panics if the index is out of bounds.
+    pub fn index_input_channel(&mut self, index: usize) -> &[S] {
+        self.inputs.index_channel(index)
+    }
+
+    /// Get the channel with the given index.
+    // TODO: maybe find a better name for this method.
+    pub fn get_output_channel(&mut self, index: usize) -> Option<&mut [S]> {
+        self.outputs.get_channel(index)
+    }
+
+    /// Get the output channel with the given index.
+    ///
+    /// # Panics
+    /// Panics if the index is out of bounds.
+    pub fn index_output_channel(&mut self, index: usize) -> &mut [S] {
+        self.outputs.index_channel(index)
+    }
+
+    /// Get a sub-chunk with the given range of frames.
+    ///
+    /// The vectors `vec_in` and `vec_out` will be used to store the channels of the result.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferInOut;
+    ///
+    /// let channel1_in = vec![11, 12, 13, 14];
+    /// let channel2_in = vec![21, 22, 23, 24];
+    /// let channels_in = [channel1_in.as_slice(), channel2_in.as_slice()];
+    /// let number_of_input_channels = channels_in.len();
+    /// let mut channel1_out = vec![110, 120, 130, 140];
+    /// let mut channels_out = [channel1_out.as_mut_slice()];
+    /// let number_of_output_channels = channels_out.len();
+    /// let mut buffer = AudioBufferInOut::new(&channels_in, &mut channels_out, 4);
+    /// let mut vec_in = Vec::with_capacity(number_of_input_channels);
+    /// let mut vec_out = Vec::with_capacity(number_of_output_channels);
+    /// let mut sub_part = buffer.index_frames(1..2, &mut vec_in, &mut vec_out);
+    /// assert_eq!(sub_part.number_of_frames(), 1);
+    /// assert_eq!(sub_part.number_of_input_channels(), number_of_input_channels);
+    /// assert_eq!(sub_part.number_of_output_channels(), number_of_output_channels);
+    /// assert_eq!(sub_part.index_input_channel(0), &[12]);
+    /// assert_eq!(sub_part.index_input_channel(1), &[22]);
+    /// assert_eq!(sub_part.index_output_channel(0), &[120]);
+    /// ```
+    ///
+    /// # Remark
+    /// The vectors `vec_in` and `vec_out` will be cleared before use in order to guarantee that all
+    /// channels have the same length.
+    ///
+    /// # Usage in a real-time thread
+    /// This method will append `number_of_input_channels` elements to the given "input" vector
+    /// and `number_of_output_channels` to the "output" vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
+    ///
+    /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    pub fn index_frames<'s, 'in_vec, 'out_vec, R>(
+        &'s mut self,
+        range: R,
+        vec_in: &'in_vec mut Vec<&'s [S]>,
+        vec_out: &'out_vec mut Vec<&'s mut [S]>,
+    ) -> AudioBufferInOut<'in_vec, 's, 'out_vec, 's, S>
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        AudioBufferInOut {
+            inputs: self.inputs.index_frames(range.clone(), vec_in),
+            outputs: self.outputs.index_frames(range.clone(), vec_out),
+            length: number_of_frames_in_range(self.length, range),
+        }
+    }
+
+    /// Separate into an `AudioBufferIn` and an `AudioBufferOut`.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferInOut;
+    ///
+    /// let channel1_in = vec![11, 12, 13, 14];
+    /// let channel2_in = vec![21, 22, 23, 24];
+    /// let channels_in = [channel1_in.as_slice(), channel2_in.as_slice()];
+    /// let number_of_input_channels = channels_in.len();
+    /// let mut channel1_out = vec![110, 120, 130, 140];
+    /// let mut channels_out = [channel1_out.as_mut_slice()];
+    /// let number_of_output_channels = channels_out.len();
+    /// let mut buffer = AudioBufferInOut::new(&channels_in, &mut channels_out, 4);
+    ///
+    /// let (input_buffer, output_buffer) = buffer.separate();
+    /// ```
+    pub fn separate<'s>(
+        &'s mut self,
+    ) -> (
+        AudioBufferIn<'in_channels, 'in_samples, S>,
+        AudioBufferOut<'s, 'out_samples, S>,
+    ) {
+        (
+            self.inputs,
+            AudioBufferOut {
+                outputs: self.outputs.outputs,
+                length: self.outputs.length,
+            },
+        )
+    }
+
+    pub fn inputs(&self) -> &AudioBufferIn<'in_channels, 'in_samples, S> {
+        &self.inputs
+    }
+
+    pub fn outputs(&mut self) -> &mut AudioBufferOut<'out_channels, 'out_samples, S> {
+        &mut self.outputs
+    }
+}
 
 // Alternative name: "packet"?
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -280,14 +940,4 @@ pub fn buffers_as_mut_slice<'a, S>(
     slice_len: usize,
 ) -> Vec<&'a mut [S]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
-}
-
-/// Initialize a slice of buffers to zero.
-// TODO: what we really want is silence (equilibrium).
-pub fn initialize_to_zero<S: num_traits::Zero>(buffers: &mut [&mut [S]]) {
-    for buffer in buffers.iter_mut() {
-        for sample in buffer.iter_mut() {
-            *sample = S::zero();
-        }
-    }
 }
