@@ -251,7 +251,10 @@ where
                         };
                         plugin.handle_event(event, jack_host);
                     } else {
-                        warn!("Strange event of length {}", input_event.bytes.len());
+                        warn!(
+                            "Strange event of length {}; ignoring this event.",
+                            input_event.bytes.len()
+                        );
                     }
                 } else {
                     let event = Indexed {
@@ -323,7 +326,7 @@ where
 }
 
 /// Run the plugin until the user presses a key on the computer keyboard.
-pub fn run<P>(mut plugin: P) -> Option<P>
+pub fn run<P>(mut plugin: P) -> Result<P, jack::Error>
 where
     P: CommonAudioPortMeta
         + AudioHandler
@@ -337,19 +340,13 @@ where
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
-    let (client, _status) = Client::new(plugin.name(), ClientOptions::NO_START_SERVER).unwrap();
+    let (client, _status) = Client::new(plugin.name(), ClientOptions::NO_START_SERVER)?;
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
 
     let jack_process_handler = JackProcessHandler::new(&client, plugin);
-    let active_client = match client.activate_async((), jack_process_handler) {
-        Ok(c) => c,
-        Err(e) => {
-            error!("Failed to activate client: {:?}", e);
-            return None;
-        }
-    };
+    let active_client = client.activate_async((), jack_process_handler)?;
 
     println!("Press any key to quit");
     let mut user_input = String::new();
@@ -357,14 +354,6 @@ where
 
     info!("Deactivating client...");
 
-    match active_client.deactivate() {
-        Ok((_, _, plugin)) => {
-            info!("Client deactivated.");
-            Some(plugin.plugin)
-        }
-        Err(e) => {
-            error!("Failed to deactivate client: {:?}", e);
-            None
-        }
-    }
+    let (_, _, plugin) = active_client.deactivate()?;
+    return Ok(plugin.plugin);
 }

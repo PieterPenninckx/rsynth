@@ -7,7 +7,7 @@ use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::ops::{Deref, Index, IndexMut};
-use vecstorage::{VecGuard, VecStorage};
+use vecstorage::VecStorage;
 
 pub struct EventQueue<T> {
     queue: VecDeque<Timed<T>>,
@@ -317,7 +317,6 @@ fn split_works_with_empty_event_queue() {
     );
     let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
     let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let events: Vec<()> = vec![];
     let mut queue = EventQueue::new(1);
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
