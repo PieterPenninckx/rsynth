@@ -37,6 +37,7 @@ impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
     fn output_initialized(&self) -> bool {
         false
     }
+
     fn stop(&mut self) {
         self.control = jack::Control::Quit
     }
@@ -253,7 +254,14 @@ where
                         warn!("Strange event of length {}", input_event.bytes.len());
                     }
                 } else {
-                    // TODO: SysEx event
+                    let event = Indexed {
+                        index,
+                        event: Timed {
+                            time_in_frames: input_event.time,
+                            event: SysExEvent::new(input_event.bytes),
+                        },
+                    };
+                    plugin.handle_event(event, jack_host);
                 }
             }
         }
