@@ -69,44 +69,39 @@ pub trait HostInterface {
     /// [`ContextualEventHandler`]: ../event/trait.ContextualEventHandler.html
     /// [`rsynth::utilities::zero_init`]: ../utilities/fn.initialize_to_zero.html
     fn output_initialized(&self) -> bool;
+
+    /// Stop processing.
+    /// For backends that do not support stopping, this is a no-op.
+    /// For back-ends that do support stopping and that implement the `Stop` trait,
+    /// this stops the processing.
+    fn stop(&mut self) {}
 }
 
-/// This trait is for making it easier to write code that is generic over different backends.
-/// Back-ends that do not really support stopping should implement this trait as well, but then
-/// `stop` should be a no-op (i.e.: it does nothing).
+/// A marker trait that indicates that the backend can be stopped.
 ///
 /// # Example
-/// The following illustrates a plugin that works with different backends.
+/// The following illustrates a plugin that works with backends that support stopping.
 /// Based on some condition (`plugin_has_finished`), the plugin can signal to the backend
 /// that processing is finished by calling `stop()`.
 ///
 /// ```
 /// use rsynth::ContextualAudioRenderer;
-/// use rsynth::backend::{HostInterface, TryStop};
+/// use rsynth::backend::{HostInterface, Stop};
 /// use rsynth::buffer::AudioBufferInOut;
 /// struct MyPlugin { /* ... */ }
 /// impl<H> ContextualAudioRenderer<f32, H> for MyPlugin
-/// where H: HostInterface + TryStop
+/// where H: HostInterface + Stop
 /// {
 ///     fn render_buffer(
 ///         &mut self,
 ///         buffer: &mut AudioBufferInOut<f32>,
 ///         context: &mut H)
 ///     {
-///         let plugin_has_finished = todo!();
+///         let plugin_has_finished = unimplemented!();
 ///         if plugin_has_finished {
 ///             context.stop();
 ///         }
 ///     }
 /// }
 /// ```
-pub trait TryStop {
-    /// Stop processing.
-    /// For backends that do not support stopping, this is a no-op.
-    /// For back-ends that do support stopping and that implement the `Stop` trait,
-    /// this stops the processing.
-    fn stop(&mut self);
-}
-
-/// A marker trait that indicates that the backend can be stopped.
-pub trait Stop: TryStop {}
+pub trait Stop: HostInterface {}
