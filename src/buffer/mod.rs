@@ -89,7 +89,7 @@ pub struct AudioBufferIn<'channels, 'samples, S>
 where
     S: 'static + Copy,
 {
-    inputs: &'channels [&'samples [S]],
+    channels: &'channels [&'samples [S]],
     length: usize,
 }
 
@@ -105,12 +105,15 @@ where
         for channel in inputs {
             assert_eq!(channel.len(), length);
         }
-        Self { inputs, length }
+        Self {
+            channels: inputs,
+            length,
+        }
     }
 
     /// Get the number of channels.
     pub fn number_of_channels(&self) -> usize {
-        self.inputs.len()
+        self.channels.len()
     }
 
     /// Get the number of frames.
@@ -120,7 +123,7 @@ where
 
     /// Get the channels as slices.
     pub fn channels(&self) -> &'channels [&'samples [S]] {
-        self.inputs
+        self.channels
     }
 
     /// Get a sub-chunk with the given range of frames.
@@ -166,14 +169,14 @@ where
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
         let length = number_of_frames_in_range(self.length, range.clone());
-        let mut remaining_chunk = &*self.inputs;
+        let mut remaining_chunk = &*self.channels;
         vec.clear();
         while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
             vec.push(first_channel.index(range.clone()));
             remaining_chunk = remaining_channels;
         }
         AudioBufferIn {
-            inputs: vec.as_slice(),
+            channels: vec.as_slice(),
             length,
         }
     }
@@ -181,10 +184,10 @@ where
     /// Get the channel with the given index.
     // TODO: maybe find a better name for this method.
     pub fn get_channel(&self, index: usize) -> Option<&[S]> {
-        if index > self.inputs.len() {
+        if index > self.channels.len() {
             None
         } else {
-            Some(self.inputs[index])
+            Some(self.channels[index])
         }
     }
 
@@ -193,7 +196,7 @@ where
     /// # Panics
     /// Panics if the index is out of bounds.
     pub fn index_channel(&self, index: usize) -> &[S] {
-        self.inputs[index]
+        self.channels[index]
     }
 }
 
@@ -245,7 +248,7 @@ pub struct AudioBufferOut<'channels, 'out_samples, S>
 where
     S: 'static + Copy,
 {
-    outputs: &'channels mut [&'out_samples mut [S]],
+    channels: &'channels mut [&'out_samples mut [S]],
     length: usize,
 }
 
@@ -261,12 +264,15 @@ where
         for channel in outputs.iter() {
             assert_eq!(channel.len(), length);
         }
-        Self { outputs, length }
+        Self {
+            channels: outputs,
+            length,
+        }
     }
 
     /// Get the number of channels.
     pub fn number_of_channels(&self) -> usize {
-        self.outputs.len()
+        self.channels.len()
     }
 
     /// Get the number of frames.
@@ -280,7 +286,7 @@ where
     /// This method is marked unsafe because using it allows to change the length of the
     /// channels, which invalidates the invariant
     pub unsafe fn channels<'a>(&'a mut self) -> &'a mut [&'samples mut [S]] {
-        self.outputs
+        self.channels
     }
 
     /// Split into two `AudioBufferOut`s.
@@ -317,14 +323,14 @@ where
     where
         'a: 'channels,
     {
-        let (outputs1, outputs2) = self.outputs.split_at_mut(mid);
+        let (outputs1, outputs2) = self.channels.split_at_mut(mid);
         (
             Self {
-                outputs: outputs1,
+                channels: outputs1,
                 length: self.length,
             },
             Self {
-                outputs: outputs2,
+                channels: outputs2,
                 length: self.length,
             },
         )
@@ -374,14 +380,14 @@ where
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
         let length = number_of_frames_in_range(self.length, range.clone());
-        let mut remaining_chunk = &mut *self.outputs;
+        let mut remaining_chunk = &mut *self.channels;
         vec.clear();
         while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first_mut() {
             vec.push(first_channel.index_mut(range.clone()));
             remaining_chunk = remaining_channels;
         }
         AudioBufferOut {
-            outputs: vec.as_mut_slice(),
+            channels: vec.as_mut_slice(),
             length,
         }
     }
@@ -389,10 +395,10 @@ where
     /// Get the channel with the given index.
     // TODO: maybe find a better name for this method.
     pub fn get_channel(&mut self, index: usize) -> Option<&mut [S]> {
-        if index > self.outputs.len() {
+        if index > self.channels.len() {
             None
         } else {
-            Some(self.outputs[index])
+            Some(self.channels[index])
         }
     }
 
@@ -401,12 +407,12 @@ where
     /// # Panics
     /// Panics if the index is out of bounds.
     pub fn index_channel(&mut self, index: usize) -> &mut [S] {
-        self.outputs[index]
+        self.channels[index]
     }
 
     /// Set all samples to the given value.
     pub fn set(&mut self, value: S) {
-        for channel in self.outputs.iter_mut() {
+        for channel in self.channels.iter_mut() {
             for sample in channel.iter_mut() {
                 *sample = value;
             }
@@ -416,7 +422,7 @@ where
     /// Get an iterator over the channels
     pub fn channel_iter_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
         AudioBufferOutChannelIteratorMut {
-            inner: self.outputs.iter_mut(),
+            inner: self.channels.iter_mut(),
         }
     }
 
@@ -425,11 +431,11 @@ where
         vec: &'vec mut Vec<&'s [S]>,
     ) -> AudioBufferIn<'vec, 's, S> {
         vec.clear();
-        for channel in self.outputs.iter() {
+        for channel in self.channels.iter() {
             vec.push(&**channel);
         }
         AudioBufferIn {
-            inputs: vec,
+            channels: vec,
             length: self.length,
         }
     }
@@ -679,7 +685,7 @@ where
         (
             self.inputs,
             AudioBufferOut {
-                outputs: self.outputs.outputs,
+                channels: self.outputs.channels,
                 length: self.outputs.length,
             },
         )

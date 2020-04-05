@@ -65,7 +65,9 @@ use rsynth::backend::jack_backend::run;
 
 #[cfg(feature = "backend-jack")]
 fn main() {
-    run(NoisePlayer::new());
+    if let Err(e) = run(NoisePlayer::new()) {
+        println!("Unexpected error: {}", e);
+    }
 }
 
 #[cfg(not(feature = "backend-jack"))]
