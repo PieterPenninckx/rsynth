@@ -8,12 +8,12 @@
 //!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-use crate::backend::{Stop, TryStop};
+use crate::backend::{HostInterface, Stop};
 use crate::buffer::AudioBufferInOut;
-use crate::event::{EventHandler, Indexed};
+use crate::event::{
+    ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
+};
 use crate::{
-    backend::HostInterface,
-    event::{ContextualEventHandler, RawMidiEvent, SysExEvent, Timed},
     AudioHandler, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
     ContextualAudioRenderer,
 };
@@ -37,9 +37,6 @@ impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
     fn output_initialized(&self) -> bool {
         false
     }
-}
-
-impl<'c, 'mp, 'mw> TryStop for JackHost<'c, 'mp, 'mw> {
     fn stop(&mut self) {
         self.control = jack::Control::Quit
     }
