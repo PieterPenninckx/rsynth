@@ -42,6 +42,21 @@
 //!     }
 //! }
 //! ```
+//!
+//! # How it works under the hood
+//!
+//! Back-ends may require the plugin to implement a number of traits concerning meta-data.
+//! Suppose for instance a backend requires plugins to implement the `CommonPluginMeta` trait.
+//! The `CommonPluginMeta` trait defines the "name" of the plugin.
+//! There is a blanket impl that implements the `CommonPluginMeta` for any type that
+//! implements `Meta` where the associated type `Meta::MetaData` implements the `General` trait
+//! (which allows getting general meta-data) where the associated type `General::GeneralData`
+//! implements the `Name` trait.
+//! Now the `MetaData<G, _, _>` struct implements `General` with associated type
+//! `General::GeneralData` equal to `G`.
+//! Also, `Name` is implemented for `String` and for `&'static str`.
+//! So if a plugin implements `Meta` with the associated type `Meta::MetaData` equal to the struct
+//! `MetaData<&'static str, _, _>`, then it automatically implements `CommonPluginMeta`.
 
 /// Define the meta-data for an application or plug-in.
 ///
@@ -159,6 +174,10 @@ pub struct MidiPort;
 ///
 /// See the [module level documentation] for an example.
 ///
+/// The struct `MetaData<G, AP, MP>` has three type parameters:
+/// * `G`: the data type of the "general" meta-data.
+/// * `AP`: the data type of the meta-data for the audio ports
+/// * `MP`: the data type of the meta-data for the midi ports
 /// [module level documentation]: ./index.html
 pub struct MetaData<G, AP, MP> {
     /// The meta-data about the application or plugin as a whole.
