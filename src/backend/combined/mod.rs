@@ -599,7 +599,8 @@ mod tests {
                 ),
                 MidiDummy::new(),
                 TestMidiWriter::new(vec![input_event]),
-            );
+            )
+            .expect("No errors are expected");
         }
 
         #[test]
