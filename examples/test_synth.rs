@@ -19,6 +19,7 @@ use std::default::Default;
 
 use midi_consts::channel_event::*;
 use rsynth::buffer::AudioBufferInOut;
+use rsynth::meta::{InOut, Meta, MetaData};
 
 // The total number of samples to pre-calculate.
 // This is like recording a sample of white noise and then
@@ -111,38 +112,43 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
 }
 
 pub struct NoisePlayer {
+    meta_data: MetaData<&'static str, &'static str, &'static str>,
     voices: Vec<Noise>,
     dispatcher: SimpleEventDispatcher<RawMidiEventToneIdentifierDispatchClassifier, Noise>,
 }
 
 impl NoisePlayer {
+    fn meta_data() -> MetaData<&'static str, &'static str, &'static str> {
+        MetaData {
+            general_meta: "Noise generator", // The name of the plugin
+            audio_port_meta: InOut {
+                inputs: Vec::new(),             // No audio inputs
+                outputs: vec!["left", "right"], // Two audio outputs
+            },
+            midi_port_meta: InOut {
+                inputs: vec!["midi in"], // One midi in port
+                outputs: Vec::new(),     // No midi out port
+            },
+        }
+    }
     pub fn new() -> Self {
         let mut voices = Vec::new();
         for _ in 0..NUMBER_OF_VOICES {
             voices.push(Noise::new(SAMPLE_SIZE));
         }
         Self {
+            meta_data: Self::meta_data(),
             voices: voices,
             dispatcher: SimpleEventDispatcher::default(),
         }
     }
 }
 
-impl CommonPluginMeta for NoisePlayer {
-    // This is the name of our plugin.
-    fn name(&self) -> &'static str {
-        "Noise generator"
-    }
-}
+impl Meta for NoisePlayer {
+    type MetaData = MetaData<&'static str, &'static str, &'static str>;
 
-impl AudioHandlerMeta for NoisePlayer {
-    fn max_number_of_audio_inputs(&self) -> usize {
-        // We have no audio inputs:
-        0
-    }
-    fn max_number_of_audio_outputs(&self) -> usize {
-        // We expect stereo output:
-        2
+    fn meta(&self) -> &Self::MetaData {
+        &self.meta_data
     }
 }
 
@@ -150,44 +156,6 @@ impl AudioHandler for NoisePlayer {
     fn set_sample_rate(&mut self, sample_rate: f64) {
         trace!("set_sample_rate(sample_rate={})", sample_rate);
         // We are not doing anything with this right now.
-    }
-}
-
-impl CommonAudioPortMeta for NoisePlayer {
-    fn audio_output_name(&self, index: usize) -> String {
-        trace!("audio_output_name(index = {})", index);
-        match index {
-            0 => "left".to_string(),
-            1 => "right".to_string(),
-            _ => {
-                "".to_string()
-                // We have specified that we only support two output channels,
-                // so the host should not try to get the name of the third output
-                // channel.
-                // If we get at this point, this would indicate a bug in the host
-                // because we have only specified two audio outputs.
-            }
-        }
-    }
-}
-
-impl MidiHandlerMeta for NoisePlayer {
-    fn max_number_of_midi_inputs(&self) -> usize {
-        // This plugin has one midi input port.
-        1
-    }
-
-    fn max_number_of_midi_outputs(&self) -> usize {
-        // This plugin does not generate midi.
-        0
-    }
-}
-
-impl CommonMidiPortMeta for NoisePlayer {
-    fn midi_input_name(&self, _index: usize) -> String {
-        trace!("audio_output_name(index = {})", _index);
-        // `_index` is guaranteed to be `0` because we have only one midi input port.
-        "midi in".to_string()
     }
 }
 
