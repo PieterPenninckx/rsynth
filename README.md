@@ -2,7 +2,9 @@
 
 A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.
 Rsynth is well suited as a bootstrap for common audio plugin generators. 
-It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP. 
+It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
+It is currently most suitable for real-time or "streaming" audio processing.
+E.g. you cannot use it to reverse audio in time.
 
 Rsynth has the following components:
 
@@ -11,10 +13,14 @@ Rsynth has the following components:
   * [rust-vst](https://github.com/RustAudio/vst-rs)
   * [Jack](https://crates.io/crates/jack)
   * offline audio rendering (from/to `.wav` and `.mid` files)
-* Middleware components that you can put between your code and the abstraction layer to provide 
-  various functionalities:
+* Structs that provide various functionalities:
   * polyphony
   * ...
+
+It has the following features
+* Duplex audio input and output
+* Midi input and output
+* Basic meta-data
 
 # Documentation
 
@@ -50,6 +56,26 @@ over the various components in this way.
 
 Contributions and suggestions are welcome!
 
+## Opening and voting for issues
+
+If there is a feature you would like to see, feel free to open an issue or "vote" for an issue by
+adding the "thumbs up" emoji.
+
+## Reviewing pull requests
+
+Two pair of eyes see more than just one. Have a look at 
+[this issue](https://github.com/PieterPenninckx/rsynth/issues/74) if you want to help by reviewing
+code.
+
+## Writing blog posts
+
+If you write a plugin that uses `rsynth`, why not share your experience by writing a blog post?
+(Make sure you clearly indicate the date and the particular version you are trying.)
+
+## Contributing code
+
+Code contributions are certainly welcome as well!
+
 In order to avoid pull requests from being broken by other changes, please open an issue or
 have an issue assigned to you before you start working on something. 
 In this way, we can coordinate development.
@@ -58,6 +84,11 @@ that are in flight, but better check before you start working on one.
 
 Don't worry if you only have a partial solution. You can still open a pull request for that. 
 You can definitely split the solution for an issue into different pull requests. 
+
+I tend to squash all commits, which means that all your intermediate commits are combined into
+one commit. This has the advantage that you don't need to worry about what is in these intermediate
+commits. On the other hand, some people want to have more activity on their GitHub timeline. If
+you don't want me to squash the commits, let me know when you open the pull request.
 
 Pull requests should be opened against the `master` branch. 
 
