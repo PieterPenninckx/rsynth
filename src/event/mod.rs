@@ -23,6 +23,10 @@ pub trait EventHandler<E> {
     fn handle_event(&mut self, event: E);
 }
 
+/// The trait that plugins should implement in order to handle the given type of events.
+///
+/// The type parameter `E` corresponds to the type of the event.
+/// The type parameter `Context` refers to the context that is passed to the event handler.
 pub trait ContextualEventHandler<E, Context> {
     fn handle_event(&mut self, event: E, context: &mut Context);
 }
@@ -106,6 +110,7 @@ impl RawMidiEvent {
             _ => None,
         }
     }
+
     /// Get the raw data from a `RawMidiEvent`.
     pub fn data(&self) -> &[u8; 3] {
         &self.data

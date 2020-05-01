@@ -11,10 +11,7 @@ use rsynth::utilities::polyphony::{
     simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
     EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
 };
-use rsynth::{
-    AudioHandler, AudioHandlerMeta, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
-    ContextualAudioRenderer, MidiHandlerMeta,
-};
+use rsynth::{AudioHandler, ContextualAudioRenderer};
 use std::default::Default;
 
 use midi_consts::channel_event::*;

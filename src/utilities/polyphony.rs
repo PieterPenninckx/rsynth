@@ -8,6 +8,72 @@
 //! 3. Then, the event can be dispatched.
 //!    The `EventDispatcher` trait and the `ContextualEventDispatcher` trait define
 //!    methods for doing this.
+//!
+//! # Example of using polyphony
+//!
+//! The following example illustrates a plugin (or application) that has multiple voices that
+//! correspond to different tones.
+//!
+//! ```
+//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier, RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};
+//! use rsynth::utilities::polyphony::simple_event_dispatching::{SimpleVoiceState, SimpleEventDispatcher};
+//! use rsynth::event::{ContextualEventHandler, Indexed, Timed, RawMidiEvent};
+//! use rsynth::ContextualAudioRenderer;
+//! use rsynth::buffer::AudioBufferInOut;
+//!
+//! struct MyVoice {
+//!     // ...
+//! }
+//!
+//! impl Voice<SimpleVoiceState<ToneIdentifier>> for MyVoice {
+//!     fn state(&self) -> SimpleVoiceState<ToneIdentifier> {
+//!         // Let the event dispatcher know what state this voice is in.
+//!         unimplemented!();
+//!     }
+//! }
+//!
+//! impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for MyVoice {
+//!     fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut Context) {
+//!         // Here you typically change the state of the voice.
+//!         unimplemented!()
+//!     }
+//! }
+//!
+//! impl<Context> ContextualAudioRenderer<f32, Context> for MyVoice {
+//!     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<f32>, context: &mut Context) {
+//!         // Render one voice.
+//!         unimplemented!()
+//!     }
+//! }
+//!
+//! struct MyPlugin {
+//!     voices: Vec<MyVoice>,
+//!     // ...
+//! }
+//!
+//! impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for MyPlugin
+//! {
+//!     fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, context: &mut Context) {
+//!         let mut dispatcher = SimpleEventDispatcher::new(RawMidiEventToneIdentifierDispatchClassifier);
+//!         // Here we simply pass the context that we're given, but you can also pass a custom
+//!         // context that uses shared data that is stored in `self`.
+//!         dispatcher.dispatch_contextual_event(event.event, &mut self.voices, context);
+//!     }
+//! }
+//!
+//! impl<Context> ContextualAudioRenderer<f32, Context> for MyPlugin
+//! {
+//!     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<f32>, context: &mut Context) {
+//!         for voice in self.voices.iter_mut() {
+//!             // Here we simply pass the context that we're given, but you can also pass a custom
+//!             // context that uses shared data that is stored in `self`.
+//!             voice.render_buffer(buffer, context);
+//!         }
+//!     }
+//! }
+//!
+//! ```
+
 use crate::event::{ContextualEventHandler, EventHandler, RawMidiEvent};
 use midi_consts::channel_event::*;
 
@@ -18,6 +84,7 @@ pub enum EventDispatchClass<Identifier> {
     ReleaseVoice(Identifier),
 }
 
+/// Used to dispatch polyphonic event to the correct voice, based on the tone of the event.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ToneIdentifier(pub u8);
 
@@ -64,6 +131,7 @@ pub enum VoiceAssignment {
     Some(usize),
 }
 
+/// Implement this trait to inform the polyphonic event dispatcher what state this voice is in.
 pub trait Voice<State> {
     fn state(&self) -> State;
 }
@@ -128,6 +196,7 @@ where
     Event: Copy,
     Self::Voice: ContextualEventHandler<Event, Context>,
 {
+    /// Dispatch an event to the voice or voices that should handle it.
     fn dispatch_contextual_event(
         &mut self,
         event: Event,
@@ -148,6 +217,7 @@ where
     }
 }
 
+/// Some basic event dispatching.
 pub mod simple_event_dispatching {
     use super::{
         ContextualEventDispatcher, EventDispatchClass, EventDispatchClassifier, EventDispatcher,
@@ -156,16 +226,30 @@ pub mod simple_event_dispatching {
     use crate::event::{ContextualEventHandler, EventHandler};
     use std::marker::PhantomData;
 
+    /// A simple voice state
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub enum SimpleVoiceState<VoiceIdentifier>
     where
         VoiceIdentifier: Copy + Eq,
     {
+        /// The voice is idle (in other words: doing nothing).
         Idle,
+        /// The voice has received a signal to stop, but is still rendering audio (e.g. some reverb
+        /// after the end of the audio).
+        ///
+        /// The `VoiceIdentifier` indicates what it is still rendering.
         Releasing(VoiceIdentifier),
+        /// The voice has not yet received a signal to stop and is still rendering audio.
         Active(VoiceIdentifier),
     }
 
+    /// A simple event dispatcher.
+    ///
+    /// The type parameter `Classifier` refers to the classifier that is used to classify events.
+    /// In order to use this `SimpleEventDispatcher`,
+    /// the concrete type used for `Classifier` should implement the `EventDispatchClassifier` trait.
+    ///
+    /// The type parameter `V` refers to the voice.
     pub struct SimpleEventDispatcher<Classifier, V> {
         classifier: Classifier,
         _voice_phantom: PhantomData<V>,
