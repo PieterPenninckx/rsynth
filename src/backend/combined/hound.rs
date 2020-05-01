@@ -1,3 +1,4 @@
+//! Backend for reading and writing `.wav` files, based on the `hound` crate.
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use hound::{WavReader, WavSamples, WavWriter};

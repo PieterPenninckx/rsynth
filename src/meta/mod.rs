@@ -161,13 +161,13 @@ pub trait Port<T> {
 /// A "marker" struct to be used as a type parameter for the [`Port`] trait, indicating
 /// that this implementation of [`Port`] defines meta-data for an audio port.
 ///
-/// [`Port']: ./trait.Port.html
+/// [`Port`]: ./trait.Port.html
 pub struct AudioPort;
 
 /// A "marker" struct to be used as a type parameter for the [`Port`] trait, indicating
 /// that this implementation of [`Port`] defines meta-data for a midi port.
 ///
-/// [`Port']: ./trait.Port.html
+/// [`Port`]: ./trait.Port.html
 pub struct MidiPort;
 
 /// Represents general-purpose meta-data of an audio application or plugin.

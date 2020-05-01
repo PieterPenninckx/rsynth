@@ -72,7 +72,7 @@
 //! Utilities are are types that you can include to perform several common tasks for the
 //! plugin or application:
 //!
-//! * polyphony: managing of different voices
+//! * [polyphony]: managing of different voices
 //!
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
@@ -88,8 +88,10 @@
 //! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html
 //! [`Meta`]: ./meta/trait.Meta.html
 //! [`AudioRenderer`]: ./trait.AudioRenderer.html
+//! [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html
 //! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
+//! [polyphony]: ./utilities/polyphony/index.html
 
 #[macro_use]
 extern crate log;
@@ -203,8 +205,8 @@ where
     /// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,
     /// see its documentation for more information.
     ///
-    /// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
-    /// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
+    /// [`AudioRenderer`]: ./trait.AudioRenderer.html
+    /// [`render_buffer`]: ./trait.AudioRenderer.html#tymethod.render_buffer
     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context);
 }
 

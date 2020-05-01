@@ -1,3 +1,5 @@
+//! Utility to facilitate genarating different sounds at the same time (polyphony).
+//!
 //! Polyphony consists of different steps:
 //!
 //! 1. Classify how the event should be dispatched.
@@ -15,8 +17,10 @@
 //! correspond to different tones.
 //!
 //! ```
-//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier, RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};
-//! use rsynth::utilities::polyphony::simple_event_dispatching::{SimpleVoiceState, SimpleEventDispatcher};
+//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier,
+//!     RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};
+//! use rsynth::utilities::polyphony::simple_event_dispatching::SimpleVoiceState;
+//! use rsynth::utilities::polyphony::simple_event_dispatching::SimpleEventDispatcher;
 //! use rsynth::event::{ContextualEventHandler, Indexed, Timed, RawMidiEvent};
 //! use rsynth::ContextualAudioRenderer;
 //! use rsynth::buffer::AudioBufferInOut;
