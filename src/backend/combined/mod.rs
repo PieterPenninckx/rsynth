@@ -88,6 +88,8 @@ pub trait MidiWriter {
 }
 
 // TODO: find a better name for this.
+/// A wrapper around a midi writer that implements `EventHandler<Timed<RawMidiEvent>>` by queueing
+/// the events, which can then be written to the encapsulated `MidiWriter` by calling `step_frames`.
 pub struct MidiWriterWrapper<W>
 where
     W: MidiWriter,
@@ -263,6 +265,7 @@ where
     Ok(())
 }
 
+/// An audio reader, useful for testing.
 pub struct TestAudioReader<'b, S>
 where
     S: Copy,
@@ -277,7 +280,11 @@ impl<'b, S> TestAudioReader<'b, S>
 where
     S: Copy,
 {
-    fn new(
+    /// Create a new `TestAudioReader`.
+    /// The newly created `TestAudioReader` will read the same data as the `reader` that is
+    /// provided with this method, but additionally checks the number of channels and of buffer
+    /// sizes, panicking when they do not match.
+    pub fn new(
         reader: memory::AudioBufferReader<'b, S>,
         expected_channels: usize,
         expected_buffer_sizes: Vec<usize>,
@@ -316,6 +323,7 @@ where
     }
 }
 
+/// An audio writer, useful for testing.
 pub struct TestAudioWriter<'w, T, S>
 where
     T: AudioWriter<S>,
@@ -331,6 +339,9 @@ where
     T: AudioWriter<S>,
     S: Copy,
 {
+    /// Create a new `TestAudioWriter`.
+    /// The newly created will panic when the audio that is written to it does not match
+    /// with `expected_chunks`.
     pub fn new(writer: &'w mut T, expected_chunks: Vec<AudioChunk<S>>) -> Self {
         Self {
             inner: writer,
@@ -357,12 +368,14 @@ where
     }
 }
 
+/// A midi reader, useful for testing.
 pub struct TestMidiReader {
     provided_events: Vec<DeltaEvent<RawMidiEvent>>,
     event_index: usize,
 }
 
 impl TestMidiReader {
+    /// Create a new `TestMidiReader` that will return the provided events.
     pub fn new(provided_events: Vec<DeltaEvent<RawMidiEvent>>) -> Self {
         TestMidiReader {
             provided_events,
@@ -384,12 +397,15 @@ impl Iterator for TestMidiReader {
     }
 }
 
+/// A midi writer, useful for testing.
 pub struct TestMidiWriter {
     expected_events: Vec<DeltaEvent<RawMidiEvent>>,
     event_index: usize,
 }
 
 impl TestMidiWriter {
+    /// Create a new `TestMidiWriter` that will panic when the events that it is asked to handle
+    /// do not correspond to the provided events.
     pub fn new(expected_events: Vec<DeltaEvent<RawMidiEvent>>) -> Self {
         TestMidiWriter {
             expected_events,

@@ -72,6 +72,13 @@ code.
 If you write a plugin that uses `rsynth`, why not share your experience by writing a blog post?
 (Make sure you clearly indicate the date and the particular version you are trying.)
 
+## Updating documentation
+
+Everybody loves good documentation, but it's a lot of work to write and maintain.
+Contributing to the doc comments is a way to contribute that does not require that many
+skills, but which has a big impact.
+For practical aspects, see "Contributing code" below.
+
 ## Contributing code
 
 Code contributions are certainly welcome as well!

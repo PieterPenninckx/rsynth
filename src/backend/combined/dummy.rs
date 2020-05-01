@@ -1,3 +1,4 @@
+//! Dummy backend that does nothing, useful for testing.
 use super::{AudioReader, AudioWriter, MidiWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use crate::event::{DeltaEvent, RawMidiEvent};

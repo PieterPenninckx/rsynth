@@ -1,3 +1,4 @@
+//! In-memory backend, useful for testing.
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut, AudioChunk};
 
