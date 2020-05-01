@@ -8,13 +8,12 @@ autoexamples = false
 edition = "2018"
 
 [features]
-default = ["all"]
 all = ["backend-jack", "backend-vst", "backend-combined-all"]
 backend-jack = ["jack"]
 backend-vst = ["vst"]
-backend-combined-all = ["backend-combined-hound", "backend-combined-rimd"]
+backend-combined-all = ["backend-combined-hound"] # Should be: ["backend-combined-hound", "backend-combined-rimd"]
 backend-combined-hound = ["hound", "backend-combined", "sample"]
-backend-combined-rimd = ["rimd", "backend-combined"]
+# backend-combined-rimd = ["rimd", "backend-combined"]
 backend-combined = []
 
 [dependencies]
@@ -26,7 +25,7 @@ jack = {version = "0.6.2", optional = true}
 vst = {version = "0.2.0", optional = true}
 hound = {version = "3.4.0", optional = true}
 sample = {version = "0.10.0", optional = true}
-rimd = {git = "https://github.com/RustAudio/rimd.git", optional = true}
+# rimd = {git = "https://github.com/RustAudio/rimd.git", optional = true}
 vecstorage = "0.1.0"
 midi-consts = "0.1.0"
 
