@@ -1,3 +1,5 @@
+//! This module has not been thoroughly tested, so expect some rough edges here and there.
+//!
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EnvelopeIteratorItem<T> {
     pub item: T,
