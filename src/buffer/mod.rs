@@ -493,6 +493,9 @@ fn buffer_out_index_frames_works() {
     }
 }
 
+/// A buffer holding both input and output audio.
+///
+/// All inputs and all outputs are guaranteed to have the same number of frames.
 pub struct AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
 where
     S: 'static + Copy,
