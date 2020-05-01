@@ -348,7 +348,13 @@
 <span id="348">348</span>
 <span id="349">349</span>
 <span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="doccomment">//! Utility to facilitate genarating different sounds at the same time (polyphony).</span>
+<span class="doccomment">//!</span>
 <span class="doccomment">//! Polyphony consists of different steps:</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! 1. Classify how the event should be dispatched.</span>
@@ -366,8 +372,10 @@
 <span class="doccomment">//! correspond to different tones.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ```</span>
-<span class="doccomment">//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier, RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};</span>
-<span class="doccomment">//! use rsynth::utilities::polyphony::simple_event_dispatching::{SimpleVoiceState, SimpleEventDispatcher};</span>
+<span class="doccomment">//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier,</span>
+<span class="doccomment">//!     RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};</span>
+<span class="doccomment">//! use rsynth::utilities::polyphony::simple_event_dispatching::SimpleVoiceState;</span>
+<span class="doccomment">//! use rsynth::utilities::polyphony::simple_event_dispatching::SimpleEventDispatcher;</span>
 <span class="doccomment">//! use rsynth::event::{ContextualEventHandler, Indexed, Timed, RawMidiEvent};</span>
 <span class="doccomment">//! use rsynth::ContextualAudioRenderer;</span>
 <span class="doccomment">//! use rsynth::buffer::AudioBufferInOut;</span>

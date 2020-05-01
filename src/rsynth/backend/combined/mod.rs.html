@@ -725,6 +725,22 @@
 <span id="725">725</span>
 <span id="726">726</span>
 <span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
+<span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Combine different back-ends for audio input, audio output, midi input and</span>
 <span class="doccomment">//! midi output, mostly for offline rendering and testing.</span>
@@ -816,6 +832,8 @@
 }
 
 <span class="comment">// TODO: find a better name for this.</span>
+<span class="doccomment">/// A wrapper around a midi writer that implements `EventHandler&lt;Timed&lt;RawMidiEvent&gt;&gt;` by queueing</span>
+<span class="doccomment">/// the events, which can then be written to the encapsulated `MidiWriter` by calling `step_frames`.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">W</span>: <span class="ident">MidiWriter</span>,
@@ -991,6 +1009,7 @@
     <span class="prelude-val">Ok</span>(())
 }
 
+<span class="doccomment">/// An audio reader, useful for testing.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TestAudioReader</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span>, <span class="ident">S</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">S</span>: <span class="ident">Copy</span>,
@@ -1005,7 +1024,11 @@
 <span class="kw">where</span>
     <span class="ident">S</span>: <span class="ident">Copy</span>,
 {
-    <span class="kw">fn</span> <span class="ident">new</span>(
+    <span class="doccomment">/// Create a new `TestAudioReader`.</span>
+    <span class="doccomment">/// The newly created `TestAudioReader` will read the same data as the `reader` that is</span>
+    <span class="doccomment">/// provided with this method, but additionally checks the number of channels and of buffer</span>
+    <span class="doccomment">/// sizes, panicking when they do not match.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
         <span class="ident">reader</span>: <span class="ident">memory</span>::<span class="ident">AudioBufferReader</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span>, <span class="ident">S</span><span class="op">&gt;</span>,
         <span class="ident">expected_channels</span>: <span class="ident">usize</span>,
         <span class="ident">expected_buffer_sizes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
@@ -1044,6 +1067,7 @@
     }
 }
 
+<span class="doccomment">/// An audio writer, useful for testing.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TestAudioWriter</span><span class="op">&lt;</span><span class="lifetime">&#39;w</span>, <span class="ident">T</span>, <span class="ident">S</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">T</span>: <span class="ident">AudioWriter</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
@@ -1059,6 +1083,9 @@
     <span class="ident">T</span>: <span class="ident">AudioWriter</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
     <span class="ident">S</span>: <span class="ident">Copy</span>,
 {
+    <span class="doccomment">/// Create a new `TestAudioWriter`.</span>
+    <span class="doccomment">/// The newly created will panic when the audio that is written to it does not match</span>
+    <span class="doccomment">/// with `expected_chunks`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;w</span> <span class="kw-2">mut</span> <span class="ident">T</span>, <span class="ident">expected_chunks</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AudioChunk</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">inner</span>: <span class="ident">writer</span>,
@@ -1085,12 +1112,14 @@
     }
 }
 
+<span class="doccomment">/// A midi reader, useful for testing.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TestMidiReader</span> {
     <span class="ident">provided_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">event_index</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">TestMidiReader</span> {
+    <span class="doccomment">/// Create a new `TestMidiReader` that will return the provided events.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">provided_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">TestMidiReader</span> {
             <span class="ident">provided_events</span>,
@@ -1112,12 +1141,15 @@
     }
 }
 
+<span class="doccomment">/// A midi writer, useful for testing.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TestMidiWriter</span> {
     <span class="ident">expected_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">event_index</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">TestMidiWriter</span> {
+    <span class="doccomment">/// Create a new `TestMidiWriter` that will panic when the events that it is asked to handle</span>
+    <span class="doccomment">/// do not correspond to the provided events.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">expected_events</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">TestMidiWriter</span> {
             <span class="ident">expected_events</span>,

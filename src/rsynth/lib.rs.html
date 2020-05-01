@@ -344,6 +344,7 @@
 <span id="344">344</span>
 <span id="345">345</span>
 <span id="346">346</span>
+<span id="347">347</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! # Rsynth</span>
 <span class="doccomment">//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.</span>
@@ -419,7 +420,7 @@
 <span class="doccomment">//! Utilities are are types that you can include to perform several common tasks for the</span>
 <span class="doccomment">//! plugin or application:</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! * polyphony: managing of different voices</span>
+<span class="doccomment">//! * [polyphony]: managing of different voices</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`jack`]: ./backend/jack_backend/index.html</span>
 <span class="doccomment">//! [`vst`]: ./backend/vst_backend/index.html</span>
@@ -435,12 +436,13 @@
 <span class="doccomment">//! [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html</span>
 <span class="doccomment">//! [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="doccomment">//! [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
+<span class="doccomment">//! [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html</span>
 <span class="doccomment">//! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html</span>
 <span class="doccomment">//! [`EventHandler`]: ./event/trait.EventHandler.html</span>
+<span class="doccomment">//! [polyphony]: ./utilities/polyphony/index.html</span>
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
-<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">asprim</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">num_traits</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">vecstorage</span>;
 
@@ -550,8 +552,8 @@
     <span class="doccomment">/// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,</span>
     <span class="doccomment">/// see its documentation for more information.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html</span>
-    <span class="doccomment">/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer</span>
+    <span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
+    <span class="doccomment">/// [`render_buffer`]: ./trait.AudioRenderer.html#tymethod.render_buffer</span>
     <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferInOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>, <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span>);
 }
 

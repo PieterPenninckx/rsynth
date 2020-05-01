@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["polyphony","Polyphony consists of different steps:"]]});
+initSidebarItems({"mod":[["polyphony","Utility to facilitate genarating different sounds at the same time (polyphony)."]]});
