@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["buffers_as_mut_slice",""],["buffers_as_slice",""]],"struct":[["AudioChunk",""]]});
+initSidebarItems({"fn":[["buffers_as_mut_slice",""],["buffers_as_slice",""]],"struct":[["AudioBufferIn","Audio input buffer"],["AudioBufferInOut","A buffer holding both input and output audio."],["AudioBufferOut","An audio output buffer."],["AudioBufferOutChannelIteratorMut",""],["AudioChunk",""]]});

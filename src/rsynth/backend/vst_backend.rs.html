@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/backend/vst_backend.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>vst_backend.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../rsynth/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/backend/vst_backend.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>vst_backend.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../rsynth/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -377,6 +377,12 @@
 <span id="377">377</span>
 <span id="378">378</span>
 <span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the VST backend.</span>
 <span class="doccomment">//!</span>
@@ -393,8 +399,11 @@
 <span class="doccomment">//! [`vst_init`]: ../../macro.vst_init.html</span>
 <span class="doccomment">//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">HostInterface</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::<span class="ident">AudioBufferInOut</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">ContextualEventHandler</span>, <span class="ident">RawMidiEvent</span>, <span class="ident">SysExEvent</span>, <span class="ident">Timed</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">AudioHandlerMeta</span>, <span class="ident">CommonAudioPortMeta</span>, <span class="ident">CommonPluginMeta</span>, <span class="ident">ContextualAudioRenderer</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::{
+    <span class="ident">AudioHandler</span>, <span class="ident">AudioHandlerMeta</span>, <span class="ident">CommonAudioPortMeta</span>, <span class="ident">CommonPluginMeta</span>, <span class="ident">ContextualAudioRenderer</span>,
+};
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">cmp</span>;
 <span class="kw">use</span> <span class="ident">vecstorage</span>::<span class="ident">VecStorage</span>;
 <span class="kw">use</span> <span class="ident">vst</span>::<span class="ident">api</span>::<span class="ident">Events</span>;
@@ -426,6 +435,7 @@
 <span class="kw">where</span>
     <span class="ident">P</span>: <span class="ident">CommonAudioPortMeta</span>
         <span class="op">+</span> <span class="ident">VstPluginMeta</span>
+        <span class="op">+</span> <span class="ident">AudioHandler</span>
         <span class="op">+</span> <span class="ident">ContextualEventHandler</span><span class="op">&lt;</span><span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>, <span class="ident">HostCallback</span><span class="op">&gt;</span>
         <span class="op">+</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">f32</span>, <span class="ident">HostCallback</span><span class="op">&gt;</span>
         <span class="op">+</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">f64</span>, <span class="ident">HostCallback</span><span class="op">&gt;</span>,
@@ -459,7 +469,8 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBuffer</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span>, <span class="ident">f32</span><span class="op">&gt;</span>) {
-        <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
+        <span class="kw">let</span> <span class="ident">number_of_frames</span> <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">samples</span>();
+        <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="kw-2">mut</span> <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs_f32</span>.<span class="ident">vec_guard</span>();
         <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>(), <span class="ident">input_buffers</span>.<span class="ident">len</span>()) {
@@ -473,12 +484,14 @@
             <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffers</span>.<span class="ident">get_mut</span>(<span class="ident">i</span>));
         }
 
-        <span class="self">self</span>.<span class="ident">plugin</span>
-            .<span class="ident">render_buffer</span>(<span class="ident">inputs</span>.<span class="ident">as_slice</span>(), <span class="ident">outputs</span>.<span class="ident">as_mut_slice</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">host</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">audio_buffer</span> <span class="op">=</span>
+            <span class="ident">AudioBufferInOut</span>::<span class="ident">new</span>(<span class="ident">inputs</span>.<span class="ident">as_slice</span>(), <span class="ident">outputs</span>.<span class="ident">as_mut_slice</span>(), <span class="ident">number_of_frames</span>);
+        <span class="self">self</span>.<span class="ident">plugin</span>.<span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">audio_buffer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">host</span>);
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process_f64</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBuffer</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span>, <span class="ident">f64</span><span class="op">&gt;</span>) {
-        <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
+        <span class="kw">let</span> <span class="ident">number_of_frames</span> <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">samples</span>();
+        <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="kw-2">mut</span> <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs_f64</span>.<span class="ident">vec_guard</span>();
         <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>(), <span class="ident">input_buffers</span>.<span class="ident">len</span>()) {
@@ -492,8 +505,9 @@
             <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffers</span>.<span class="ident">get_mut</span>(<span class="ident">i</span>));
         }
 
-        <span class="self">self</span>.<span class="ident">plugin</span>
-            .<span class="ident">render_buffer</span>(<span class="ident">inputs</span>.<span class="ident">as_slice</span>(), <span class="ident">outputs</span>.<span class="ident">as_mut_slice</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">host</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">audio_buffer</span> <span class="op">=</span>
+            <span class="ident">AudioBufferInOut</span>::<span class="ident">new</span>(<span class="ident">inputs</span>.<span class="ident">as_slice</span>(), <span class="ident">outputs</span>.<span class="ident">as_mut_slice</span>(), <span class="ident">number_of_frames</span>);
+        <span class="self">self</span>.<span class="ident">plugin</span>.<span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">audio_buffer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">host</span>);
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_input_info</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">input_index</span>: <span class="ident">i32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ChannelInfo</span> {
@@ -571,12 +585,12 @@
 <span class="doccomment">/// # extern crate asprim;</span>
 <span class="doccomment">/// # #[macro_use] extern crate vst;</span>
 <span class="doccomment">/// struct MyPlugin {</span>
-<span class="doccomment">///   // Define your fields here</span>
+<span class="doccomment">///   meta: MetaData&lt;&amp;&#39;static str, &amp;&#39;static str, &amp;&#39;static str&gt;</span>
+<span class="doccomment">///   // Define other fields here</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// use rsynth::{</span>
-<span class="doccomment">///     CommonAudioPortMeta,</span>
-<span class="doccomment">///     CommonPluginMeta,</span>
+<span class="doccomment">///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},</span>
 <span class="doccomment">///     event::{</span>
 <span class="doccomment">///         ContextualEventHandler,</span>
 <span class="doccomment">///         Timed,</span>
@@ -588,55 +602,39 @@
 <span class="doccomment">///         vst_backend::VstPluginMeta</span>
 <span class="doccomment">///     },</span>
 <span class="doccomment">///     ContextualAudioRenderer,</span>
-<span class="doccomment">///     AudioHandlerMeta,</span>
 <span class="doccomment">///     AudioHandler</span>
 <span class="doccomment">/// };</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// impl Meta for MyPlugin {</span>
+<span class="doccomment">///    type MetaData = MetaData&lt;&amp;&#39;static str, &amp;&#39;static str, &amp;&#39;static str&gt;;</span>
+<span class="doccomment">///     fn meta(&amp;self) -&gt; &amp;Self::MetaData {</span>
+<span class="doccomment">///         &amp;self.meta</span>
+<span class="doccomment">///     }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// use vst::plugin::Category;</span>
 <span class="doccomment">/// impl VstPluginMeta for MyPlugin {</span>
-<span class="doccomment">///     // Implementation omitted for brevity.</span>
-<span class="doccomment">/// #    fn plugin_id(&amp;self) -&gt; i32 { 123 }</span>
-<span class="doccomment">/// #    fn category(&amp;self) -&gt; Category { Category::Synth }</span>
+<span class="doccomment">///     fn plugin_id(&amp;self) -&gt; i32 { 123 }</span>
+<span class="doccomment">///     fn category(&amp;self) -&gt; Category { Category::Synth }</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// use asprim::AsPrim;</span>
 <span class="doccomment">/// use num_traits::Float;</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// impl AudioHandlerMeta for MyPlugin {</span>
-<span class="doccomment">///      // Implementation omitted for brevity.</span>
-<span class="doccomment">/// #     fn max_number_of_audio_inputs(&amp;self) -&gt; usize { 0 }</span>
-<span class="doccomment">/// #     fn max_number_of_audio_outputs(&amp;self) -&gt; usize { 0 }</span>
-<span class="doccomment">/// }</span>
+<span class="doccomment">/// # use rsynth::buffer::AudioBufferInOut;</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// impl AudioHandler for MyPlugin {</span>
 <span class="doccomment">///     // Implementation omitted for brevity.</span>
 <span class="doccomment">/// #     fn set_sample_rate(&amp;mut self, new_sample_rate: f64) {}</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// impl CommonPluginMeta for MyPlugin {</span>
-<span class="doccomment">///     // Implementation omitted for brevity.</span>
-<span class="doccomment">/// #    fn name(&amp;self) -&gt; &amp;&#39;static str { &quot;Example&quot; }</span>
-<span class="doccomment">/// }</span>
-<span class="doccomment">/// impl CommonAudioPortMeta for MyPlugin</span>
-<span class="doccomment">/// {</span>
-<span class="doccomment">///     // Implementation omitted for brevity.</span>
-<span class="doccomment">/// #    fn audio_input_name(&amp;self, index: usize) -&gt; String {</span>
-<span class="doccomment">/// #        unimplemented!()</span>
-<span class="doccomment">/// #    }</span>
-<span class="doccomment">/// #</span>
-<span class="doccomment">/// #    fn audio_output_name(&amp;self, index: usize) -&gt; String {</span>
-<span class="doccomment">/// #        unimplemented!()</span>
-<span class="doccomment">/// #    }</span>
-<span class="doccomment">/// #</span>
-<span class="doccomment">/// #</span>
-<span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// impl&lt;F, H&gt; ContextualAudioRenderer&lt;F, H&gt; for MyPlugin</span>
+<span class="doccomment">/// impl&lt;S, H&gt; ContextualAudioRenderer&lt;S, H&gt; for MyPlugin</span>
 <span class="doccomment">/// where</span>
-<span class="doccomment">///     F: Float + AsPrim,</span>
+<span class="doccomment">///     S: Float + AsPrim,</span>
 <span class="doccomment">///     H: HostInterface,</span>
 <span class="doccomment">/// {</span>
 <span class="doccomment">///     // Implementation omitted for brevity.</span>
-<span class="doccomment">/// #    fn render_buffer(&amp;mut self, inputs: &amp;[&amp;[F]], outputs: &amp;mut[&amp;mut[F]], context: &amp;mut H)</span>
+<span class="doccomment">/// #    fn render_buffer(&amp;mut self, buffer: &amp;mut AudioBufferInOut&lt;S&gt;, context: &amp;mut H)</span>
 <span class="doccomment">/// #    {</span>
 <span class="doccomment">/// #        unimplemented!()</span>
 <span class="doccomment">/// #    }</span>
@@ -649,6 +647,7 @@
 <span class="doccomment">/// #    fn handle_event(&amp;mut self, event: Timed&lt;RawMidiEvent&gt;, context: &amp;mut H) {}</span>
 <span class="doccomment">///     // Implementation omitted for brevity.</span>
 <span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// impl&lt;&#39;a, H&gt; ContextualEventHandler&lt;Timed&lt;SysExEvent&lt;&#39;a&gt;&gt;, H&gt; for MyPlugin</span>
 <span class="doccomment">/// where</span>
 <span class="doccomment">///     H: HostInterface,</span>
@@ -656,9 +655,22 @@
 <span class="doccomment">/// #    fn handle_event(&amp;mut self, event: Timed&lt;SysExEvent&lt;&#39;a&gt;&gt;, context: &amp;mut H) {}</span>
 <span class="doccomment">///     // Implementation omitted for brevity.</span>
 <span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// vst_init!(</span>
 <span class="doccomment">///    fn init() -&gt; MyPlugin {</span>
-<span class="doccomment">///        MyPlugin{}</span>
+<span class="doccomment">///        MyPlugin {</span>
+<span class="doccomment">///             meta: MetaData {</span>
+<span class="doccomment">///                 general_meta: &quot;my_plugin&quot;,</span>
+<span class="doccomment">///                 audio_port_meta: InOut {</span>
+<span class="doccomment">///                     inputs: vec![&quot;audio in 1&quot;, &quot;audio in 2&quot;],</span>
+<span class="doccomment">///                     outputs: vec![&quot;audio out 1&quot;, &quot;audio out 2&quot;],</span>
+<span class="doccomment">///                 },</span>
+<span class="doccomment">///                 midi_port_meta: InOut {</span>
+<span class="doccomment">///                     inputs: vec![&quot;midi in 1&quot;],</span>
+<span class="doccomment">///                     outputs: vec![],</span>
+<span class="doccomment">///                 },</span>
+<span class="doccomment">///             }</span>
+<span class="doccomment">///        }</span>
 <span class="doccomment">///    }</span>
 <span class="doccomment">/// );</span>
 <span class="doccomment">/// ```</span>

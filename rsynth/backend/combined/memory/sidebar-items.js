@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AudioBufferReader",""],["AudioBufferWriter",""]]});
+initSidebarItems({"struct":[["AudioBufferReader","An [`AudioReader`] that reads from a given [`AudioChunk`]. The generic parameter type `S` represents the sample type."],["AudioBufferWriter","An [`AudioWriter`] that appends to a given [`AudioChunk`]. The generic parameter type `S` represents the sample type."]]});

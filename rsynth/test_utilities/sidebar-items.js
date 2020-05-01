@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["TestPlugin","A plugin useful for writing automated tests."]]});
+initSidebarItems({"struct":[["DummyEventHandler",""],["TestPlugin","A plugin useful for writing automated tests."]]});

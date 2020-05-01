@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `rsynth` crate."><meta name="keywords" content="rust, rustlang, rust-lang, rsynth"><title>rsynth - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container'><img src='../rust-logo.png' alt='logo'></div></a><p class='location'>Crate rsynth</p><div class="sidebar-elems"><a id='all-types' href='all.html'><p>See all rsynth's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'rsynth', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/lib.rs.html#1-460' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>rsynth</a></span></h1><div class='docblock'><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `rsynth` crate."><meta name="keywords" content="rust, rustlang, rust-lang, rsynth"><title>rsynth - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container'><img src='../rust-logo.png' alt='logo'></div></a><p class='location'>Crate rsynth</p><div class="sidebar-elems"><a id='all-types' href='all.html'><p>See all rsynth's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'rsynth', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/lib.rs.html#1-346' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>rsynth</a></span></h1><div class='docblock'><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
 <p>A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.
 Rsynth is well suited as a bootstrap for common audio plugin generators.
 It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.</p>
@@ -8,17 +8,25 @@ It handles voices, voice-stealing, polyphony, etc. so the programmer's main focu
 <li><a href="./backend/combined/index.html"><code>combined</code></a> combine different back-ends for audio input, audio output, midi input and
 midi output, mostly for offline rendering and testing (behind various features)</li>
 <li><a href="./backend/jack_backend/index.html"><code>jack</code></a> (behind the <code>backend-jack</code> feature)</li>
-<li><a href="./backend/vst_backend/index.html"><code>vst</code></a> (behind the backend-vst)</li>
+<li><a href="./backend/vst_backend/index.html"><code>vst</code></a> (behind the <code>backend-vst</code> feature)</li>
 </ul>
 <p>See the documentation of each back-end for more information.</p>
 <h2 id="rendering-audio" class="section-header"><a href="#rendering-audio">Rendering audio</a></h2>
-<p>Audio can be rendered with the [<code>ContextualAudioRenderer</code>] trait that is generic over the floating
-point type (<code>f32</code> or <code>f64</code>). The parameter <code>context</code> is used by the
-host or environment to pass extra data.</p>
-<p>The plugin or application can internally also use the <a href="./trait.AudioRenderer.html"><code>AudioRenderer</code></a> trait, which is similar
-to the [<code>ContextualAudioRenderer</code>] trait, but does not have a <code>context</code> parameter.</p>
+<p>Audio can be rendered by using a number of traits:</p>
+<ul>
+<li>the <a href="./trait.AudioRenderer.html"><code>AudioRenderer</code></a> trait</li>
+<li>the [<code>ContextualAudioRenderer</code>] trait</li>
+</ul>
+<p>The difference between these traits is that the [<code>ContextualAudioRenderer</code>] trait adds one extra
+parameter that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that
+the implementor of the trait does not need to own all data that is needed for rendering the
+audio; it can also borrow some data with additional the <code>context</code> parameter.</p>
+<p>Both traits are generic over the data type that represents the sample.
+For which specific data-type an application or plugin needs to implement the trait, depends on
+the back-end. Because the trait is generic, the application or plugin can have a generic implementation
+as well that can be used by different back-ends.</p>
 <h2 id="meta-data" class="section-header"><a href="#meta-data">Meta-data</a></h2>
-<p>There are a number of traits to define some meta-data.
+<p>There are a number of traits that an application or plugin needs to implement in order to define meta-data.
 Every plugin should implement these, but it can be tedious, so you can implement these
 traits in a more straightforward way by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.
 However, you can also implement these trait &quot;by hand&quot;:</p>
@@ -49,63 +57,48 @@ However, you can also implement these trait &quot;by hand&quot;:</p>
 </ul>
 </li>
 </ul>
+<p>Additionally, back-ends can require extra trait related to meta-data.</p>
 <h2 id="handling-events" class="section-header"><a href="#handling-events">Handling events</a></h2>
-<p>Plugins and applications can also implement <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> and <a href="./event/trait.EventHandler.html"><code>EventHandler</code></a>
-for each event type that they support.
-Currently supported events are:</p>
+<p>Plugins or application can handle events by implementing a number of traits:</p>
 <ul>
-<li><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a></li>
-<li><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a></li>
-<li><a href="./event/struct.Timed.html"><code>Timed&lt;T&gt;</code></a></li>
-<li><a href="./event/struct.Indexed.html"><code>Indexed&lt;T&gt;</code></a></li>
+<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a></li>
+<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a></li>
+</ul>
+<p>Both traits are generic over the event type.
+These traits are very similar, the <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> trait adds one extra parameter
+that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that the
+implementor of the trait does not need to own all data that is needed for handling the event;
+it can also borrow some data with additional the <code>context</code> parameter.</p>
+<h3 id="events" class="section-header"><a href="#events">Events</a></h3>
+<p><code>rsynth</code> defines a number of event types:</p>
+<ul>
+<li><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a>: a raw MIDI event</li>
+<li><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a>: a system exclusive event</li>
+<li><a href="./event/struct.Timed.html"><code>Timed&lt;T&gt;</code></a>: a generic timed event</li>
+<li><a href="./event/struct.Indexed.html"><code>Indexed&lt;T&gt;</code></a>: a generic event that associates a timestamp with the event</li>
 </ul>
 <h2 id="utilities" class="section-header"><a href="#utilities">Utilities</a></h2>
 <p>Utilities are are types that you can include to perform several common tasks for the
 plugin or application:</p>
 <ul>
 <li>polyphony: managing of different voices</li>
-<li>timesplitting: split the audio buffer at the events</li>
 </ul>
-<h2 id="some-audio-concepts" class="section-header"><a href="#some-audio-concepts">Some audio concepts</a></h2>
-<p>A <em>sample</em> is a single number representing the air pressure at a given time.
-It is usually represented by an <code>f32</code>, <code>f64</code>, <code>i16</code> or <code>i32</code> number, but other
-types are possible as well.</p>
-<p>A <em>channel</em> usually corresponds with a speaker or a number of speakers.
-E.g. in a stereo setup, there is a &quot;left&quot; channel and a &quot;right&quot; channel.</p>
-<p>A <em>frame</em> consists of the samples for all the channels at a given time.</p>
-<p>A <em>buffer</em> consists of subsequent samples for a given channel and corresponds
-to a certain time period.
-(Non-standard terminology.)</p>
-<p>A <em>chunk</em> consists of the buffers for all channels for a given time period.
-(Non-standard terminology.)</p>
-<pre><code class="language-text">                         ┌ chunk     ┌ frame
-             ┌ sample    ↓           ↓
-             │      ┌─────────┐     ┌─┐
-          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐
- channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│
-          └─────────┼─────────┼─────┼─┼───────────────────┘
-           • • • • •│• • • • •│• • •│•│• • • • • • • • • •
-                    │         │     │ │   ┌───────┐
-           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •
-                    └─────────┘     └─┘   └───────┘
-                                            ↑
-                                            └ buffer
-</code></pre>
 </div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
 <table><tr class='module-item'><td><a class="mod" href="backend/index.html" title='rsynth::backend mod'>backend</a></td><td class='docblock-short'><p>Backends.</p>
-</td></tr><tr class='module-item'><td><a class="mod" href="buffer/index.html" title='rsynth::buffer mod'>buffer</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="mod" href="envelope/index.html" title='rsynth::envelope mod'>envelope</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="mod" href="event/index.html" title='rsynth::event mod'>event</a></td><td class='docblock-short'><p>Event handling</p>
-</td></tr><tr class='module-item'><td><a class="mod" href="meta/index.html" title='rsynth::meta mod'>meta</a></td><td class='docblock-short'><p>Example</p>
-</td></tr><tr class='module-item'><td><a class="mod" href="middleware/index.html" title='rsynth::middleware mod'>middleware</a></td><td class='docblock-short'><p>Middleware like support for polyphony, ...</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="buffer/index.html" title='rsynth::buffer mod'>buffer</a></td><td class='docblock-short'><p>Audio buffers.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="envelope/index.html" title='rsynth::envelope mod'>envelope</a></td><td class='docblock-short'><p>This module has not been thoroughly tested, so expect some rough edges here and there.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="event/index.html" title='rsynth::event mod'>event</a></td><td class='docblock-short'><p>Event handling</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="meta/index.html" title='rsynth::meta mod'>meta</a></td><td class='docblock-short'><p>Mechanisms for defining the meta-data of a plugin or application.</p>
 </td></tr><tr class='module-item'><td><a class="mod" href="test_utilities/index.html" title='rsynth::test_utilities mod'>test_utilities</a></td><td class='docblock-short'><p>Utilities for testing.</p>
 </td></tr><tr class='module-item'><td><a class="mod" href="utilities/index.html" title='rsynth::utilities mod'>utilities</a></td><td class='docblock-short'></td></tr></table><h2 id='macros' class='section-header'><a href="#macros">Macros</a></h2>
-<table><tr class='module-item'><td><a class="macro" href="macro.audio_chunk.html" title='rsynth::audio_chunk macro'>audio_chunk</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="macro" href="macro.vst_init.html" title='rsynth::vst_init macro'>vst_init</a></td><td class='docblock-short'><p>A wrapper around the <code>plugin_main!</code> macro from the <code>vst</code> crate.
+<table><tr class='module-item'><td><a class="macro" href="macro.audio_chunk.html" title='rsynth::audio_chunk macro'>audio_chunk</a></td><td class='docblock-short'><p>Create an audio chunk.</p>
+</td></tr><tr class='module-item'><td><a class="macro" href="macro.vst_init.html" title='rsynth::vst_init macro'>vst_init</a></td><td class='docblock-short'><p>A wrapper around the <code>plugin_main!</code> macro from the <code>vst</code> crate.
 You call this with one parameter, which is the function declaration of a function
 that creates your plugin.
 This function may also do some setup (e.g. initialize logging).</p>
 </td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
 <table><tr class='module-item'><td><a class="trait" href="trait.AudioHandler.html" title='rsynth::AudioHandler trait'>AudioHandler</a></td><td class='docblock-short'><p>Define how sample-rate changes are handled.</p>
-</td></tr><tr class='module-item'><td><a class="trait" href="trait.AudioHandlerMeta.html" title='rsynth::AudioHandlerMeta trait'>AudioHandlerMeta</a></td><td class='docblock-short'><p>Define the maximum number of audioinputs and the maximum number of audio outputs.
-This trait can be more conveniently implemented by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.AudioHandlerMeta.html" title='rsynth::AudioHandlerMeta trait'>AudioHandlerMeta</a></td><td class='docblock-short'><p>Define the maximum number of audio inputs and the maximum number of audio outputs.</p>
 </td></tr><tr class='module-item'><td><a class="trait" href="trait.AudioRenderer.html" title='rsynth::AudioRenderer trait'>AudioRenderer</a></td><td class='docblock-short'><p>Defines how audio is rendered.</p>
 </td></tr><tr class='module-item'><td><a class="trait" href="trait.CommonAudioPortMeta.html" title='rsynth::CommonAudioPortMeta trait'>CommonAudioPortMeta</a></td><td class='docblock-short'><p>Provides some meta-data of the audio-ports used by the plugin or application to the host.
 This trait can be more conveniently implemented by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.</p>
@@ -114,7 +107,7 @@ This trait can be more conveniently implemented by implementing the <a href="./m
 </td></tr><tr class='module-item'><td><a class="trait" href="trait.CommonPluginMeta.html" title='rsynth::CommonPluginMeta trait'>CommonPluginMeta</a></td><td class='docblock-short'><p>Provides common meta-data of the plugin or application to the host.
 This trait is common for all backends that need this info.
 This trait can be more conveniently implemented by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.</p>
-</td></tr><tr class='module-item'><td><a class="trait" href="trait.ContextualAudioRenderer.html" title='rsynth::ContextualAudioRenderer trait'>ContextualAudioRenderer</a></td><td class='docblock-short'><p>Defines how audio is rendered, similar to the <code>AudioRenderer</code> trait.
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.ContextualAudioRenderer.html" title='rsynth::ContextualAudioRenderer trait'>ContextualAudioRenderer</a></td><td class='docblock-short'><p>Defines how audio is rendered, similar to the [<code>AudioRenderer</code>] trait.
 The extra parameter <code>context</code> can be used by the backend to provide extra information.</p>
 </td></tr><tr class='module-item'><td><a class="trait" href="trait.MidiHandlerMeta.html" title='rsynth::MidiHandlerMeta trait'>MidiHandlerMeta</a></td><td class='docblock-short'><p>Define the maximum number of midi inputs and the maximum number of midi outputs.
 This trait can be more conveniently implemented by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.</p>

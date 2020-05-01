@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../rsynth/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../rsynth/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -344,120 +344,6 @@
 <span id="344">344</span>
 <span id="345">345</span>
 <span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
-<span id="355">355</span>
-<span id="356">356</span>
-<span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
-<span id="360">360</span>
-<span id="361">361</span>
-<span id="362">362</span>
-<span id="363">363</span>
-<span id="364">364</span>
-<span id="365">365</span>
-<span id="366">366</span>
-<span id="367">367</span>
-<span id="368">368</span>
-<span id="369">369</span>
-<span id="370">370</span>
-<span id="371">371</span>
-<span id="372">372</span>
-<span id="373">373</span>
-<span id="374">374</span>
-<span id="375">375</span>
-<span id="376">376</span>
-<span id="377">377</span>
-<span id="378">378</span>
-<span id="379">379</span>
-<span id="380">380</span>
-<span id="381">381</span>
-<span id="382">382</span>
-<span id="383">383</span>
-<span id="384">384</span>
-<span id="385">385</span>
-<span id="386">386</span>
-<span id="387">387</span>
-<span id="388">388</span>
-<span id="389">389</span>
-<span id="390">390</span>
-<span id="391">391</span>
-<span id="392">392</span>
-<span id="393">393</span>
-<span id="394">394</span>
-<span id="395">395</span>
-<span id="396">396</span>
-<span id="397">397</span>
-<span id="398">398</span>
-<span id="399">399</span>
-<span id="400">400</span>
-<span id="401">401</span>
-<span id="402">402</span>
-<span id="403">403</span>
-<span id="404">404</span>
-<span id="405">405</span>
-<span id="406">406</span>
-<span id="407">407</span>
-<span id="408">408</span>
-<span id="409">409</span>
-<span id="410">410</span>
-<span id="411">411</span>
-<span id="412">412</span>
-<span id="413">413</span>
-<span id="414">414</span>
-<span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
-<span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
-<span id="447">447</span>
-<span id="448">448</span>
-<span id="449">449</span>
-<span id="450">450</span>
-<span id="451">451</span>
-<span id="452">452</span>
-<span id="453">453</span>
-<span id="454">454</span>
-<span id="455">455</span>
-<span id="456">456</span>
-<span id="457">457</span>
-<span id="458">458</span>
-<span id="459">459</span>
-<span id="460">460</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! # Rsynth</span>
 <span class="doccomment">//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.</span>
@@ -470,20 +356,28 @@
 <span class="doccomment">//! * [`combined`] combine different back-ends for audio input, audio output, midi input and</span>
 <span class="doccomment">//!     midi output, mostly for offline rendering and testing (behind various features)</span>
 <span class="doccomment">//! * [`jack`] (behind the `backend-jack` feature)</span>
-<span class="doccomment">//! * [`vst`] (behind the backend-vst)</span>
+<span class="doccomment">//! * [`vst`] (behind the `backend-vst` feature)</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! See the documentation of each back-end for more information.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Rendering audio</span>
-<span class="doccomment">//! Audio can be rendered with the [`ContextualAudioRenderer`] trait that is generic over the floating</span>
-<span class="doccomment">//! point type (`f32` or `f64`). The parameter `context` is used by the</span>
-<span class="doccomment">//! host or environment to pass extra data.</span>
+<span class="doccomment">//! Audio can be rendered by using a number of traits:</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! The plugin or application can internally also use the [`AudioRenderer`] trait, which is similar</span>
-<span class="doccomment">//! to the [`ContextualAudioRenderer`] trait, but does not have a `context` parameter.</span>
+<span class="doccomment">//! * the [`AudioRenderer`] trait</span>
+<span class="doccomment">//! * the [`ContextualAudioRenderer`] trait</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The difference between these traits is that the [`ContextualAudioRenderer`] trait adds one extra</span>
+<span class="doccomment">//! parameter that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that</span>
+<span class="doccomment">//! the implementor of the trait does not need to own all data that is needed for rendering the</span>
+<span class="doccomment">//! audio; it can also borrow some data with additional the `context` parameter.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Both traits are generic over the data type that represents the sample.</span>
+<span class="doccomment">//! For which specific data-type an application or plugin needs to implement the trait, depends on</span>
+<span class="doccomment">//! the back-end. Because the trait is generic, the application or plugin can have a generic implementation</span>
+<span class="doccomment">//! as well that can be used by different back-ends.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Meta-data</span>
-<span class="doccomment">//! There are a number of traits to define some meta-data.</span>
+<span class="doccomment">//! There are a number of traits that an application or plugin needs to implement in order to define meta-data.</span>
 <span class="doccomment">//! Every plugin should implement these, but it can be tedious, so you can implement these</span>
 <span class="doccomment">//! traits in a more straightforward way by implementing the [`Meta`] trait.</span>
 <span class="doccomment">//! However, you can also implement these trait &quot;by hand&quot;:</span>
@@ -499,57 +393,34 @@
 <span class="doccomment">//! * [`CommonPluginMeta`]</span>
 <span class="doccomment">//!     * Name of the plugin or application</span>
 <span class="doccomment">//!</span>
+<span class="doccomment">//! Additionally, back-ends can require extra trait related to meta-data.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Handling events</span>
-<span class="doccomment">//! Plugins and applications can also implement [`ContextualEventHandler`] and [`EventHandler`]</span>
-<span class="doccomment">//! for each event type that they support.</span>
-<span class="doccomment">//! Currently supported events are:</span>
+<span class="doccomment">//! Plugins or application can handle events by implementing a number of traits:</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! * [`RawMidiEvent`]</span>
-<span class="doccomment">//! * [`SysExEvent`]</span>
-<span class="doccomment">//! * [`Timed&lt;T&gt;`]</span>
-<span class="doccomment">//! * [`Indexed&lt;T&gt;`]</span>
+<span class="doccomment">//! * [`EventHandler`]</span>
+<span class="doccomment">//! * [`ContextualEventHandler`]</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Both traits are generic over the event type.</span>
+<span class="doccomment">//! These traits are very similar, the [`ContextualEventHandler`] trait adds one extra parameter</span>
+<span class="doccomment">//! that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that the</span>
+<span class="doccomment">//! implementor of the trait does not need to own all data that is needed for handling the event;</span>
+<span class="doccomment">//! it can also borrow some data with additional the `context` parameter.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ### Events</span>
+<span class="doccomment">//! `rsynth` defines a number of event types:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! * [`RawMidiEvent`]: a raw MIDI event</span>
+<span class="doccomment">//! * [`SysExEvent`]: a system exclusive event</span>
+<span class="doccomment">//! * [`Timed&lt;T&gt;`]: a generic timed event</span>
+<span class="doccomment">//! * [`Indexed&lt;T&gt;`]: a generic event that associates a timestamp with the event</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Utilities</span>
 <span class="doccomment">//! Utilities are are types that you can include to perform several common tasks for the</span>
 <span class="doccomment">//! plugin or application:</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * polyphony: managing of different voices</span>
-<span class="doccomment">//! * timesplitting: split the audio buffer at the events</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! ## Some audio concepts</span>
-<span class="doccomment">//! A *sample* is a single number representing the air pressure at a given time.</span>
-<span class="doccomment">//! It is usually represented by an `f32`, `f64`, `i16` or `i32` number, but other</span>
-<span class="doccomment">//! types are possible as well.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! A *channel* usually corresponds with a speaker or a number of speakers.</span>
-<span class="doccomment">//! E.g. in a stereo setup, there is a &quot;left&quot; channel and a &quot;right&quot; channel.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! A *frame* consists of the samples for all the channels at a given time.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! A *buffer* consists of subsequent samples for a given channel and corresponds</span>
-<span class="doccomment">//! to a certain time period.</span>
-<span class="doccomment">//! (Non-standard terminology.)</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! A *chunk* consists of the buffers for all channels for a given time period.</span>
-<span class="doccomment">//! (Non-standard terminology.)</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//!```text</span>
-<span class="doccomment">//!                         ┌ chunk     ┌ frame</span>
-<span class="doccomment">//!             ┌ sample    ↓           ↓</span>
-<span class="doccomment">//!             │      ┌─────────┐     ┌─┐</span>
-<span class="doccomment">//!          ┌──↓──────┼─────────┼─────┼─┼───────────────────┐</span>
-<span class="doccomment">//! channel →│• • • • •│• • • • •│• • •│•│• • • • • • • • • •│</span>
-<span class="doccomment">//!          └─────────┼─────────┼─────┼─┼───────────────────┘</span>
-<span class="doccomment">//!           • • • • •│• • • • •│• • •│•│• • • • • • • • • •</span>
-<span class="doccomment">//!                    │         │     │ │   ┌───────┐</span>
-<span class="doccomment">//!           • • • • •│• • • • •│• • •│•│• •│• • • •│• • • •</span>
-<span class="doccomment">//!                    └─────────┘     └─┘   └───────┘</span>
-<span class="doccomment">//!                                            ↑</span>
-<span class="doccomment">//!                                            └ buffer</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! [`Plugin`]: ./trait.Plugin.html</span>
 <span class="doccomment">//! [`jack`]: ./backend/jack_backend/index.html</span>
 <span class="doccomment">//! [`vst`]: ./backend/vst_backend/index.html</span>
 <span class="doccomment">//! [`combined`]: ./backend/combined/index.html</span>
@@ -558,8 +429,6 @@
 <span class="doccomment">//! [`SysExEvent`]: ./event/struct.SysExEvent.html</span>
 <span class="doccomment">//! [`Timed&lt;T&gt;`]: ./event/struct.Timed.html</span>
 <span class="doccomment">//! [`Indexed&lt;T&gt;`]: ./event/struct.Indexed.html</span>
-<span class="doccomment">//! [`render_buffer`]: ./trait.Plugin.html#tymethod.render_buffer</span>
-<span class="doccomment">//! [`handle_event`]: ./event/trait.EventHandler.html#tymethod.handle_event</span>
 <span class="doccomment">//! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html</span>
 <span class="doccomment">//! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html</span>
 <span class="doccomment">//! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html</span>
@@ -587,6 +456,7 @@
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">doc_comment</span>;
 
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::<span class="ident">AudioBufferInOut</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">meta</span>::{<span class="ident">AudioPort</span>, <span class="ident">General</span>, <span class="ident">Meta</span>, <span class="ident">MidiPort</span>, <span class="ident">Name</span>, <span class="ident">Port</span>};
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
@@ -595,126 +465,26 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">envelope</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">event</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">meta</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">middleware</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">test_utilities</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">utilities</span>;
 
 <span class="macro">doctest</span><span class="macro">!</span>(<span class="string">&quot;../README.md&quot;</span>);
 
-<span class="comment">// Notes about the design</span>
-<span class="comment">// ======================</span>
-<span class="comment">//</span>
-<span class="comment">// The `Default` trait is not required</span>
-<span class="comment">// -----------------------------------</span>
-<span class="comment">// Implementing `Default` is sometimes not possible with `#[derive(Default)]` and it feels</span>
-<span class="comment">// awkward to implement setup (e.g. reading config files) in the `default()` method.</span>
-<span class="comment">// For `rust-vst`, an extra macro wraps the setup in a `Default` implementation, so that at least it</span>
-<span class="comment">// doesn&#39;t _feel_ awkward (but it&#39;s still a hack, of course).</span>
-<span class="comment">// Also note that `rust-vst` only requires the `Default` trait to enable a default implementation</span>
-<span class="comment">// for the `new()` function, it is not used directly by `rust-vst` itself.</span>
-<span class="comment">//</span>
-<span class="comment">// Not object safe</span>
-<span class="comment">// ---------------</span>
-<span class="comment">// Many of the traits are not object safe. In practice, this is not a problem for using `rust-vst`</span>
-<span class="comment">// because an extra macro wraps it.</span>
-<span class="comment">//</span>
-<span class="comment">// Separate `EventHandler` trait</span>
-<span class="comment">// -----------------------------</span>
-<span class="comment">// There is a separate trait for event handling:</span>
-<span class="comment">// ```</span>
-<span class="comment">// trait EventHandler&lt;E&gt; {</span>
-<span class="comment">//      fn handle_event(&amp;mut self, event: E);</span>
-<span class="comment">// }</span>
-<span class="comment">// ```</span>
-<span class="comment">// In this way, third party crates that define backends can define their own event types.</span>
-<span class="comment">//</span>
-<span class="comment">//</span>
-<span class="comment">// No associated constants for plugin meta-data</span>
-<span class="comment">// --------------------------------------------</span>
-<span class="comment">// The idea behind this was that it cannot change during the execution of the application.</span>
-<span class="comment">// We got rid of this in order to enable a more dynamic approach and in order to enable the</span>
-<span class="comment">// `Meta` trait.</span>
-<span class="comment">//</span>
-<span class="comment">// Separate `AudioRenderer` and `ContextualAudioRenderer` traits</span>
-<span class="comment">// -------------------------------------------------------------</span>
-<span class="comment">// These methods were originally together with some meta-data in the `Plugin` trait,</span>
-<span class="comment">// but we have split this off so that backends can have special meta-data, without</span>
-<span class="comment">// interfering with the rendering.</span>
-<span class="comment">//</span>
-<span class="comment">// Generic trait instead of generic method</span>
-<span class="comment">// ---------------------------------------</span>
-<span class="comment">// The `AudioRenderer` and `ContextualAudioRenderer` traits are generic over the floating</span>
-<span class="comment">// point type, instead of having a method that is generic over _all_ float types.</span>
-<span class="comment">// In practice, backends only require renderers over f32 and/or f64, not over _all_ floating</span>
-<span class="comment">// point types. So in practice, for instance the vst backend can require</span>
-<span class="comment">// `AudioRenderer&lt;f32&gt;` and `AudioRenderer&lt;f64&gt;`. These can be implemented separately,</span>
-<span class="comment">// allowing for SIMD optimization, or together in one generic impl block.</span>
-<span class="comment">//</span>
-<span class="comment">// Separate method for `set_sample_rate`</span>
-<span class="comment">// -------------------------------------</span>
-<span class="comment">// This is a separate method and not an &quot;event type&quot;. The idea behind this is that it&#39;s guaranteed</span>
-<span class="comment">// to be called before other methods and outside of the &quot;realtime&quot; path (whereas</span>
-<span class="comment">// `handle_events` is called in the &quot;realtime&quot; path).</span>
-<span class="comment">// I don&#39;t know if this is the best solution, though. Leaving as it is until we have a more clear</span>
-<span class="comment">// understanding of it.</span>
-<span class="comment">//</span>
-<span class="comment">// Decisions behind `render_buffer`</span>
-<span class="comment">// -------------------------------</span>
-<span class="comment">// `render_buffer` is at the core and some design decisions made it the way it is now.</span>
-<span class="comment">//</span>
-<span class="comment">// ### Push-based (instead of pull-based)</span>
-<span class="comment">// The `render_buffer` gets the buffers it needs as parameters instead of getting a queue from which</span>
-<span class="comment">// it has to &quot;pull&quot; the input buffers (like Jack works and if I&#39;m not mistaken AudioUnits as well).</span>
-<span class="comment">// The upside is that it&#39;s straightforward from a developer perspective, the downside is that it&#39;s</span>
-<span class="comment">// less flexible. E.g. it&#39;s hard to implement real-time sample rate conversion in this way.</span>
-<span class="comment">// Nevertheless, I&#39;ve chosen this design because it&#39;s what is convenient for most plugin developers</span>
-<span class="comment">// and developers wanting to write something like real-time sample rate conversion will probably</span>
-<span class="comment">// not use high-level abstractions like rsynth.</span>
-<span class="comment">//</span>
-<span class="comment">// ### Buffers as slices of slices</span>
-<span class="comment">// Somewhere an intermediate design was to have traits `InputBuffer&lt;&#39;a&gt;` and `OutputBuffer&lt;&#39;a&gt;`,</span>
-<span class="comment">// but this lead to a cascade of fights with the borrow checker:</span>
-<span class="comment">//     * First it was problematic for the `Polyphonic` middleware (simplified pseudo-Rust of</span>
-<span class="comment">//      `Polyphonic`s `render_buffer` method):</span>
-<span class="comment">//      ```</span>
-<span class="comment">//      fn render_buffer&lt;&#39;a, I: InputBuffers&lt;&#39;a&gt;, O: OutputBuffers&lt;&#39;a&gt;&gt;(&amp;mut self, inputs: &amp;I, outputs: &amp;mut O) {</span>
-<span class="comment">//           for voice in self.voices {</span>
-<span class="comment">//               voice.render_buffer(inputs, outputs); // &lt;-- the borrow of outputs needs to be shorter</span>
-<span class="comment">//           }</span>
-<span class="comment">//      }</span>
-<span class="comment">//      ```</span>
-<span class="comment">//      The compiler didn&#39;t allow this because the borrow of `outputs` must be shorter than the</span>
-<span class="comment">//      &quot;external&quot; lifetime `&#39;a` in order to avoid overlapping borrows.</span>
-<span class="comment">//</span>
-<span class="comment">//    * Then we implemented it as follows:</span>
-<span class="comment">//      ```</span>
-<span class="comment">//      fn render_buffer&lt;I, O&gt;(&amp;mut self, inputs: &amp;I, outputs: &amp;mut O)</span>
-<span class="comment">//      where for&lt;&#39;a&gt; I: InputBuffers&lt;&#39;a&gt;, O: OutputBuffers&lt;&#39;a&gt;</span>
-<span class="comment">//      {</span>
-<span class="comment">//          // ...</span>
-<span class="comment">//      }</span>
-<span class="comment">//      ```</span>
-<span class="comment">//      That solved one problem, but introduced `for&lt;&#39;a&gt;` which is not a frequently used feature</span>
-<span class="comment">//      in Rust and which is not supported in some contexts, so I ran into some trouble with this</span>
-<span class="comment">//      (I&#39;ve forgotten which).</span>
-<span class="comment">//</span>
-<span class="comment">// For these reasons, I have abandoned this design and started using the slices instead.</span>
-<span class="comment">// This in turn gives a problem for the API-wrappers, which will want to pre-allocate the buffer</span>
-<span class="comment">// for the slices, but want to use this buffer for slices with different lifetimes.</span>
-<span class="comment">// This has been solved by the `VecStorage` struct, which has moved to its own crate.</span>
-<span class="comment">//</span>
-<span class="comment">// One remaining issue is that the length of the buffer cannot be known when there are 0 inputs and</span>
-<span class="comment">// 0 outputs.</span>
-<span class="comment">//</span>
-<span class="comment">// Events</span>
-<span class="comment">// ------</span>
-<span class="comment">// Currently, backends that support one MIDI-port use the `Timed&lt;RawMidiEvent&gt;` type</span>
-<span class="comment">// and backends that support moree MIDI-ports use the `Indexed&lt;Timed&lt;RawMidiEvent&gt;&gt;` type.</span>
-
-<span class="doccomment">/// Define the maximum number of audioinputs and the maximum number of audio outputs.</span>
+<span class="doccomment">/// Define the maximum number of audio inputs and the maximum number of audio outputs.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Backends that require the plugin to implement this trait ensure that when calling the</span>
+<span class="doccomment">/// [`render_buffer`] method of the [`AudioRenderer`] trait</span>
+<span class="doccomment">/// *  the number of inputs channels (`buffer.number_of_input_channels()`) is smaller than or equal to</span>
+<span class="doccomment">///    `Self::max_number_of_audio_inputs()` and</span>
+<span class="doccomment">/// * the number of outputs (`buffer.number_of_output_channels()`) is smaller than or equal to</span>
+<span class="doccomment">///    `Self::max_number_of_audio_outputs()`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Remark</span>
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
+<span class="doccomment">/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer</span>
+<span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of audio inputs supported.</span>
     <span class="doccomment">/// This method should return the same value every time it is called.</span>
@@ -726,15 +496,14 @@
 }
 
 <span class="doccomment">/// Define how sample-rate changes are handled.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandler</span>: <span class="ident">AudioHandlerMeta</span> {
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandler</span> {
     <span class="doccomment">/// Called when the sample-rate changes.</span>
     <span class="doccomment">/// The backend should ensure that this function is called before</span>
-    <span class="doccomment">/// any other.</span>
+    <span class="doccomment">/// any other method.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">/// `sample_rate`: The new sample rate in frames per second (Hz).</span>
-    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz,</span>
-    <span class="doccomment">/// commonly used for video production.</span>
+    <span class="doccomment">/// Common sample rates are 44100 Hz (CD quality) and 48000 Hz.</span>
     <span class="comment">// TODO: Looking at the WikiPedia list https://en.wikipedia.org/wiki/Sample_rate, it seems that</span>
     <span class="comment">// TODO: there are no fractional sample rates. Maybe change the data type into u32?</span>
     <span class="kw">fn</span> <span class="ident">set_sample_rate</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">sample_rate</span>: <span class="ident">f64</span>);
@@ -748,39 +517,42 @@
     <span class="doccomment">/// The maximum number of midi inputs supported.</span>
     <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
     <span class="kw">fn</span> <span class="ident">max_number_of_midi_inputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
+
     <span class="doccomment">/// The maximum number of midi outputs supported.</span>
     <span class="doccomment">/// This method should return the same value for subsequent calls.</span>
     <span class="kw">fn</span> <span class="ident">max_number_of_midi_outputs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span>;
 }
 
+<span class="comment">// TODO: Is this trait actually used?</span>
 <span class="doccomment">/// Defines how audio is rendered.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// The type parameter `F` refers to the floating point type.</span>
+<span class="doccomment">/// The type parameter `S` refers to the data type of a sample.</span>
 <span class="doccomment">/// It is typically `f32` or `f64`.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioRenderer</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>: <span class="ident">AudioHandler</span> {
-    <span class="doccomment">/// This method is called repeatedly for subsequent buffers.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// You may assume that the number of inputs (`inputs.len()`)</span>
-    <span class="doccomment">/// is smaller than or equal to [`Self::max_number_of_audio_inputs()`].</span>
-    <span class="doccomment">/// You may assume that the number of outputs (`outputs.len()`)</span>
-    <span class="doccomment">/// is smaller than or equal to [`Self::max_number_of_audio_outputs()`].</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// The lengths of all elements of `inputs` and the lengths of all elements of `outputs`</span>
-    <span class="doccomment">/// are all guaranteed to equal to each other.</span>
-    <span class="doccomment">/// This shared length can however be different for subsequent calls to `render_buffer`.</span>
-    <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">inputs</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>[<span class="ident">F</span>]], <span class="ident">outputs</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">F</span>]]);
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioRenderer</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">S</span>: <span class="ident">Copy</span>,
+{
+    <span class="doccomment">/// This method is called repeatedly for subsequent audio buffers.</span>
+    <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferInOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>);
 }
 
-<span class="doccomment">/// Defines how audio is rendered, similar to the `AudioRenderer` trait.</span>
+<span class="doccomment">/// Defines how audio is rendered, similar to the [`AudioRenderer`] trait.</span>
 <span class="doccomment">/// The extra parameter `context` can be used by the backend to provide extra information.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// See the documentation of [`AudioRenderer`] for more information.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">Context</span><span class="op">&gt;</span>: <span class="ident">AudioHandler</span> {
+<span class="doccomment">/// The type parameter `S` refers to the data type of a sample.</span>
+<span class="doccomment">/// It is typically `f32` or `f64`.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">Context</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">S</span>: <span class="ident">Copy</span>,
+{
     <span class="doccomment">/// This method called repeatedly for subsequent buffers.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// It is similar to the [`render_buffer`] from the [`AudioRenderer`] trait,</span>
     <span class="doccomment">/// see its documentation for more information.</span>
-    <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">inputs</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>[<span class="ident">F</span>]], <span class="ident">outputs</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">F</span>]], <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span>);
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html</span>
+    <span class="doccomment">/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer</span>
+    <span class="kw">fn</span> <span class="ident">render_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferInOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>, <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span>);
 }
 
 <span class="doccomment">/// Provides common meta-data of the plugin or application to the host.</span>
@@ -790,7 +562,7 @@
 <span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CommonPluginMeta</span> {
     <span class="doccomment">/// The name of the plugin or application.</span>
-    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>;
+    <span class="kw">fn</span> <span class="ident">name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span>;
 }
 
 <span class="doccomment">/// Provides some meta-data of the audio-ports used by the plugin or application to the host.</span>
@@ -855,7 +627,7 @@
     <span class="ident">T</span>::<span class="ident">MetaData</span>: <span class="ident">General</span>,
     <span class="op">&lt;</span><span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Meta</span><span class="op">&gt;</span>::<span class="ident">MetaData</span> <span class="kw">as</span> <span class="ident">General</span><span class="op">&gt;</span>::<span class="ident">GeneralData</span>: <span class="ident">Name</span>,
 {
-    <span class="kw">fn</span> <span class="ident">name</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span> {
+    <span class="kw">fn</span> <span class="ident">name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
         <span class="self">self</span>.<span class="ident">meta</span>().<span class="ident">general</span>().<span class="ident">name</span>()
     }
 }

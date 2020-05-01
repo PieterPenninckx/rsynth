@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["SimpleVoiceState",""]],"struct":[["SimpleEventDispatcher",""]]});
+initSidebarItems({"enum":[["SimpleVoiceState","A simple voice state"]],"struct":[["SimpleEventDispatcher","A simple event dispatcher."]]});

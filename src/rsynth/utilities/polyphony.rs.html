@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/utilities/polyphony.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>polyphony.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../rsynth/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/utilities/polyphony.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>polyphony.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../rsynth/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -266,6 +266,88 @@
 <span id="266">266</span>
 <span id="267">267</span>
 <span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Polyphony consists of different steps:</span>
 <span class="doccomment">//!</span>
@@ -277,7 +359,74 @@
 <span class="doccomment">//! 3. Then, the event can be dispatched.</span>
 <span class="doccomment">//!    The `EventDispatcher` trait and the `ContextualEventDispatcher` trait define</span>
 <span class="doccomment">//!    methods for doing this.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! # Example of using polyphony</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The following example illustrates a plugin (or application) that has multiple voices that</span>
+<span class="doccomment">//! correspond to different tones.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//! use rsynth::utilities::polyphony::{Voice, EventDispatchClassifier, ToneIdentifier, RawMidiEventToneIdentifierDispatchClassifier, ContextualEventDispatcher};</span>
+<span class="doccomment">//! use rsynth::utilities::polyphony::simple_event_dispatching::{SimpleVoiceState, SimpleEventDispatcher};</span>
+<span class="doccomment">//! use rsynth::event::{ContextualEventHandler, Indexed, Timed, RawMidiEvent};</span>
+<span class="doccomment">//! use rsynth::ContextualAudioRenderer;</span>
+<span class="doccomment">//! use rsynth::buffer::AudioBufferInOut;</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! struct MyVoice {</span>
+<span class="doccomment">//!     // ...</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! impl Voice&lt;SimpleVoiceState&lt;ToneIdentifier&gt;&gt; for MyVoice {</span>
+<span class="doccomment">//!     fn state(&amp;self) -&gt; SimpleVoiceState&lt;ToneIdentifier&gt; {</span>
+<span class="doccomment">//!         // Let the event dispatcher know what state this voice is in.</span>
+<span class="doccomment">//!         unimplemented!();</span>
+<span class="doccomment">//!     }</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! impl&lt;Context&gt; ContextualEventHandler&lt;Timed&lt;RawMidiEvent&gt;, Context&gt; for MyVoice {</span>
+<span class="doccomment">//!     fn handle_event(&amp;mut self, event: Timed&lt;RawMidiEvent&gt;, context: &amp;mut Context) {</span>
+<span class="doccomment">//!         // Here you typically change the state of the voice.</span>
+<span class="doccomment">//!         unimplemented!()</span>
+<span class="doccomment">//!     }</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! impl&lt;Context&gt; ContextualAudioRenderer&lt;f32, Context&gt; for MyVoice {</span>
+<span class="doccomment">//!     fn render_buffer(&amp;mut self, buffer: &amp;mut AudioBufferInOut&lt;f32&gt;, context: &amp;mut Context) {</span>
+<span class="doccomment">//!         // Render one voice.</span>
+<span class="doccomment">//!         unimplemented!()</span>
+<span class="doccomment">//!     }</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! struct MyPlugin {</span>
+<span class="doccomment">//!     voices: Vec&lt;MyVoice&gt;,</span>
+<span class="doccomment">//!     // ...</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! impl&lt;Context&gt; ContextualEventHandler&lt;Indexed&lt;Timed&lt;RawMidiEvent&gt;&gt;, Context&gt; for MyPlugin</span>
+<span class="doccomment">//! {</span>
+<span class="doccomment">//!     fn handle_event(&amp;mut self, event: Indexed&lt;Timed&lt;RawMidiEvent&gt;&gt;, context: &amp;mut Context) {</span>
+<span class="doccomment">//!         let mut dispatcher = SimpleEventDispatcher::new(RawMidiEventToneIdentifierDispatchClassifier);</span>
+<span class="doccomment">//!         // Here we simply pass the context that we&#39;re given, but you can also pass a custom</span>
+<span class="doccomment">//!         // context that uses shared data that is stored in `self`.</span>
+<span class="doccomment">//!         dispatcher.dispatch_contextual_event(event.event, &amp;mut self.voices, context);</span>
+<span class="doccomment">//!     }</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! impl&lt;Context&gt; ContextualAudioRenderer&lt;f32, Context&gt; for MyPlugin</span>
+<span class="doccomment">//! {</span>
+<span class="doccomment">//!     fn render_buffer(&amp;mut self, buffer: &amp;mut AudioBufferInOut&lt;f32&gt;, context: &amp;mut Context) {</span>
+<span class="doccomment">//!         for voice in self.voices.iter_mut() {</span>
+<span class="doccomment">//!             // Here we simply pass the context that we&#39;re given, but you can also pass a custom</span>
+<span class="doccomment">//!             // context that uses shared data that is stored in `self`.</span>
+<span class="doccomment">//!             voice.render_buffer(buffer, context);</span>
+<span class="doccomment">//!         }</span>
+<span class="doccomment">//!     }</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```</span>
+
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">ContextualEventHandler</span>, <span class="ident">EventHandler</span>, <span class="ident">RawMidiEvent</span>};
+<span class="kw">use</span> <span class="ident">midi_consts</span>::<span class="ident">channel_event</span>::<span class="kw-2">*</span>;
 
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">EventDispatchClass</span><span class="op">&lt;</span><span class="ident">Identifier</span><span class="op">&gt;</span> {
     <span class="ident">Broadcast</span>,
@@ -286,6 +435,7 @@
     <span class="ident">ReleaseVoice</span>(<span class="ident">Identifier</span>),
 }
 
+<span class="doccomment">/// Used to dispatch polyphonic event to the correct voice, based on the tone of the event.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ToneIdentifier</span>(<span class="kw">pub</span> <span class="ident">u8</span>);
 
@@ -309,10 +459,9 @@
 
     <span class="kw">fn</span> <span class="ident">classify</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">event</span>: <span class="kw-2">&amp;</span><span class="ident">Event</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">EventDispatchClass</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">VoiceIdentifier</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">event</span>.<span class="ident">as_ref</span>().<span class="ident">data</span>();
-        <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::<span class="ident">raw_midi_event_event_types</span>::<span class="kw-2">*</span>;
-        <span class="kw">match</span> <span class="ident">data</span>[<span class="number">0</span>] <span class="op">&amp;</span> <span class="number">0xF0</span> {
-            <span class="ident">RAW_MIDI_EVENT_NOTE_OFF</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">EventDispatchClass</span>::<span class="ident">ReleaseVoice</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>])),
-            <span class="ident">RAW_MIDI_EVENT_NOTE_ON</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="kw">match</span> <span class="ident">data</span>[<span class="number">0</span>] <span class="op">&amp;</span> <span class="ident">EVENT_TYPE_MASK</span> {
+            <span class="ident">NOTE_OFF</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">EventDispatchClass</span>::<span class="ident">ReleaseVoice</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>])),
+            <span class="ident">NOTE_ON</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">if</span> <span class="ident">data</span>[<span class="number">2</span>] <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
                     <span class="comment">// Velocity 0 is considered the same as note off.</span>
                     <span class="ident">EventDispatchClass</span>::<span class="ident">ReleaseVoice</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>]))
@@ -320,9 +469,7 @@
                     <span class="ident">EventDispatchClass</span>::<span class="ident">AssignNewVoice</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>]))
                 }
             }
-            <span class="ident">RAW_MIDI_EVENT_NOTE_AFTERTOUCH</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">EventDispatchClass</span>::<span class="ident">VoiceSpecific</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>]))
-            }
+            <span class="ident">POLYPHONIC_KEY_PRESSURE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">EventDispatchClass</span>::<span class="ident">VoiceSpecific</span>(<span class="ident">ToneIdentifier</span>(<span class="ident">data</span>[<span class="number">1</span>])),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">EventDispatchClass</span>::<span class="ident">Broadcast</span>,
         }
     }
@@ -335,6 +482,7 @@
     <span class="prelude-val">Some</span>(<span class="ident">usize</span>),
 }
 
+<span class="doccomment">/// Implement this trait to inform the polyphonic event dispatcher what state this voice is in.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Voice</span><span class="op">&lt;</span><span class="ident">State</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">State</span>;
 }
@@ -399,6 +547,7 @@
     <span class="ident">Event</span>: <span class="ident">Copy</span>,
     <span class="self">Self</span>::<span class="ident">Voice</span>: <span class="ident">ContextualEventHandler</span><span class="op">&lt;</span><span class="ident">Event</span>, <span class="ident">Context</span><span class="op">&gt;</span>,
 {
+    <span class="doccomment">/// Dispatch an event to the voice or voices that should handle it.</span>
     <span class="kw">fn</span> <span class="ident">dispatch_contextual_event</span>(
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
         <span class="ident">event</span>: <span class="ident">Event</span>,
@@ -419,6 +568,7 @@
     }
 }
 
+<span class="doccomment">/// Some basic event dispatching.</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">simple_event_dispatching</span> {
     <span class="kw">use</span> <span class="kw">super</span>::{
         <span class="ident">ContextualEventDispatcher</span>, <span class="ident">EventDispatchClass</span>, <span class="ident">EventDispatchClassifier</span>, <span class="ident">EventDispatcher</span>,
@@ -427,16 +577,30 @@
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">ContextualEventHandler</span>, <span class="ident">EventHandler</span>};
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span>;
 
+    <span class="doccomment">/// A simple voice state</span>
     <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
     <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SimpleVoiceState</span><span class="op">&lt;</span><span class="ident">VoiceIdentifier</span><span class="op">&gt;</span>
     <span class="kw">where</span>
         <span class="ident">VoiceIdentifier</span>: <span class="ident">Copy</span> <span class="op">+</span> <span class="ident">Eq</span>,
     {
+        <span class="doccomment">/// The voice is idle (in other words: doing nothing).</span>
         <span class="ident">Idle</span>,
+        <span class="doccomment">/// The voice has received a signal to stop, but is still rendering audio (e.g. some reverb</span>
+        <span class="doccomment">/// after the end of the audio).</span>
+        <span class="doccomment">///</span>
+        <span class="doccomment">/// The `VoiceIdentifier` indicates what it is still rendering.</span>
         <span class="ident">Releasing</span>(<span class="ident">VoiceIdentifier</span>),
+        <span class="doccomment">/// The voice has not yet received a signal to stop and is still rendering audio.</span>
         <span class="ident">Active</span>(<span class="ident">VoiceIdentifier</span>),
     }
 
+    <span class="doccomment">/// A simple event dispatcher.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The type parameter `Classifier` refers to the classifier that is used to classify events.</span>
+    <span class="doccomment">/// In order to use this `SimpleEventDispatcher`,</span>
+    <span class="doccomment">/// the concrete type used for `Classifier` should implement the `EventDispatchClassifier` trait.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The type parameter `V` refers to the voice.</span>
     <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SimpleEventDispatcher</span><span class="op">&lt;</span><span class="ident">Classifier</span>, <span class="ident">V</span><span class="op">&gt;</span> {
         <span class="ident">classifier</span>: <span class="ident">Classifier</span>,
         <span class="ident">_voice_phantom</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>,
@@ -513,7 +677,7 @@
                     <span class="ident">SimpleVoiceState</span>::<span class="ident">Active</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {}
                 }
             }
-            <span class="kw">return</span> <span class="ident">second_best</span>;
+            <span class="ident">second_best</span>
         }
     }
 
