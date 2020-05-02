@@ -345,6 +345,8 @@
 <span id="345">345</span>
 <span id="346">346</span>
 <span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! # Rsynth</span>
 <span class="doccomment">//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.</span>
@@ -485,8 +487,8 @@
 <span class="doccomment">/// This trait can be more conveniently implemented by implementing the [`Meta`] trait.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
-<span class="doccomment">/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer</span>
-<span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html</span>
+<span class="doccomment">/// [`render_buffer`]: ./trait.AudioRenderer.html#tymethod.render_buffer</span>
+<span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">AudioHandlerMeta</span> {
     <span class="doccomment">/// The maximum number of audio inputs supported.</span>
     <span class="doccomment">/// This method should return the same value every time it is called.</span>
@@ -543,6 +545,8 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The type parameter `S` refers to the data type of a sample.</span>
 <span class="doccomment">/// It is typically `f32` or `f64`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`AudioRenderer`]: ./trait.AudioRenderer.html</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">Context</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">S</span>: <span class="ident">Copy</span>,
