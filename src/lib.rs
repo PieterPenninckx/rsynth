@@ -137,8 +137,8 @@ doctest!("../README.md");
 /// This trait can be more conveniently implemented by implementing the [`Meta`] trait.
 ///
 /// [`Meta`]: ./meta/trait.Meta.html
-/// [`render_buffer`]: ./trait.AudioHandlerMeta.html#tymethod.render_buffer
-/// [`AudioRenderer`]: ./trait.AudioHandlerMeta.html
+/// [`render_buffer`]: ./trait.AudioRenderer.html#tymethod.render_buffer
+/// [`AudioRenderer`]: ./trait.AudioRenderer.html
 pub trait AudioHandlerMeta {
     /// The maximum number of audio inputs supported.
     /// This method should return the same value every time it is called.
@@ -195,6 +195,8 @@ where
 ///
 /// The type parameter `S` refers to the data type of a sample.
 /// It is typically `f32` or `f64`.
+///
+/// [`AudioRenderer`]: ./trait.AudioRenderer.html
 pub trait ContextualAudioRenderer<S, Context>
 where
     S: Copy,
