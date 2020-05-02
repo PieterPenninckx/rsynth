@@ -26,7 +26,7 @@ It has the following features
 
 The documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
-* [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for an irregularly updated documentation of the master branch
+* [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for ~~an irregularly~~ a regularly and completely automatically updated documentation of the master branch
 * on your local machine after running `cargo rustdoc --features all` for the most up-to-date documentation 
 
 # Examples
