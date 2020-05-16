@@ -18,19 +18,30 @@ use crate::{
     ContextualAudioRenderer,
 };
 use core::cmp;
-use jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
-use jack::{Client, ClientOptions, Control, ProcessHandler};
 use std::io;
 use std::slice;
 use vecstorage::VecStorage;
 
+/// Re-exports of the [`jack`](https://crates.io/crates/jack crate).
+/// Use this so that your code doesn't break when `rsynth` upgrades its dependency on `jack`.
+mod jack {
+    pub use jack::*;
+}
+
+use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
+use self::jack::{Client, ClientOptions, Control, ProcessHandler};
+
 pub struct JackHost<'c, 'mp, 'mw> {
-    // Note: the `_client` field is currently not used, but is is rather likely that it
-    // will be used in the future. Because it may introduce an extra complexity because of
-    // the lifetime, we keep it, so that we can keep track of this complexity.
-    _client: &'c Client,
+    client: &'c Client,
     midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
     control: jack::Control,
+}
+
+impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
+    /// Get access to the underlying `Client` so that you can use Jack-specific features.
+    pub fn client(&self) -> &'c Client {
+        self.client
+    }
 }
 
 impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
@@ -285,7 +296,7 @@ where
             midi_writer_guard.push(midi_output.writer(process_scope));
         }
         let mut jack_host: JackHost = JackHost {
-            _client: client,
+            client,
             midi_out_ports: midi_writer_guard.as_mut_slice(),
             control: jack::Control::Continue,
         };
