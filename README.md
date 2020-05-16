@@ -6,31 +6,33 @@ Use it to write real-time audio effects, software synthesizers, ... and target d
 It is currently most suitable for real-time or "streaming" audio processing.
 E.g. you cannot use it to reverse audio in time.
 
-## Supported API's
-
-* VST 2.4 via the [rust-vst](https://github.com/RustAudio/vst-rs) crate
-* Jack via the [Jack](https://crates.io/crates/jack) crate
-* Offline audio rendering (from/to `.wav` and `.mid` files)
+## Feature matrix
 
 We focus on API's that are typically used for audio effects and software synthesizers.
 If you want to "just" play audio on various platforms, [cpal](https://crates.io/crates/cpal) may
 be better suited for you.
 
-## Features
-
-* Full duplex audio input and output
-* Midi input and output
-* Basic meta-data
-
-For historical reasons, `rsynth` also has some "utilities" for polyphony etc., but we plan to move
-these to separate crates.
+| feature |  VST 2.4 via [`rust-vst`]      | Jack via [`jack`] | Offline audio rendering |
+|---------|:------------------------------:|:-----------------:|:-----------------------:|
+| Full duplex audio input and output |  ✓  |        ✓          |           ✓             |
+| Midi input                         |  ✓  |        ✓          |           ✘             |
+| Midi output                        | N/A |        ✓          |           ✘             |
+| Sample accurate midi               | N/A |        ✓          |           ✘             |
+| Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
+| Sampling frequency change          |  ✓  |        ✘          |          N/A            |
+| Signal stopping the application    | N/A |        ✓          |          N/A            |
+| Jack-specific events               | N/A |        ✘          |          N/A            |
+| Basic meta-data                    |  ✓  |        ✓          |          N/A            |
+| Access to the underlying host      |  ✓  |        ✓          |          N/A            |
+| Parameter changes                  |  ✘  |        ✘          |           ✘             |
+| GUI stuff                          |  ✘  |        ✘          |           ✘             |
 
 ## Documentation
 
 The documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
-* [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for ~~an irregularly~~ a regularly and completely automatically updated documentation of the master branch
-* on your local machine after running `cargo rustdoc --features all` for the most up-to-date documentation 
+* [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for the documentation of the master branch
+* on your local machine after running `cargo rustdoc --features all`
 
 ## Examples
 There are full examples in 
@@ -133,3 +135,6 @@ The source code of `rsynth` is licensed under the MIT/BSD-3 License.
 Note that in order to use `rsynth` in combination with other crates (libraries), the combined work needs
 to comply with the license of that crate as well. In particular, the following optional dependencies may require your attention:
 * the `hound` crate (behind the `backend-file-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details
+
+[`rust-vst`]: https://github.com/RustAudio/vst-rs
+[`jack`]:https://crates.io/crates/jack

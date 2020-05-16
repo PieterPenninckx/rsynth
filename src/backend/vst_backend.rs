@@ -20,13 +20,19 @@ use crate::{
 };
 use core::cmp;
 use vecstorage::VecStorage;
-use vst::api::Events;
-use vst::buffer::AudioBuffer;
-use vst::channels::ChannelInfo;
-use vst::event::MidiEvent as VstMidiEvent;
-use vst::event::{Event as VstEvent, SysExEvent as VstSysExEvent};
-use vst::plugin::Category;
-use vst::plugin::{HostCallback, Info};
+
+/// Re-exports from the [`rust-vst`](https://github.com/RustAudio/vst-rs) crate.
+pub mod vst {
+    pub use vst::*;
+}
+
+use self::vst::{
+    api::Events,
+    buffer::AudioBuffer,
+    channels::ChannelInfo,
+    event::{Event as VstEvent, MidiEvent as VstMidiEvent, SysExEvent as VstSysExEvent},
+    plugin::{Category, HostCallback, Info},
+};
 
 /// A VST plugin should implement this trait in addition to some other traits.
 // TODO: document which other traits.
@@ -192,17 +198,12 @@ impl HostInterface for HostCallback {
 /// that creates your plugin.
 /// This function may also do some setup (e.g. initialize logging).
 ///
-/// Example:
+/// # Example using generic code
 /// ```
 /// # #[macro_use] extern crate rsynth;
 /// # extern crate num_traits;
 /// # extern crate asprim;
 /// # #[macro_use] extern crate vst;
-/// struct MyPlugin {
-///   meta: MetaData<&'static str, &'static str, &'static str>
-///   // Define other fields here
-/// }
-///
 /// use rsynth::{
 ///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},
 ///     event::{
@@ -219,6 +220,11 @@ impl HostInterface for HostCallback {
 ///     AudioHandler
 /// };
 ///
+/// struct MyPlugin {
+///   meta: MetaData<&'static str, &'static str, &'static str>
+///   // Define other fields here
+/// }
+///
 /// impl Meta for MyPlugin {
 ///    type MetaData = MetaData<&'static str, &'static str, &'static str>;
 ///     fn meta(&self) -> &Self::MetaData {
@@ -226,7 +232,9 @@ impl HostInterface for HostCallback {
 ///     }
 /// }
 ///
-/// use vst::plugin::Category;
+/// // Use the re-exports from `rsynth` so that your code doesn't break when `rsynth` upgrades
+/// // its dependency on `vst-rs`
+/// use rsynth::backend::vst_backend::vst::plugin::Category;
 /// impl VstPluginMeta for MyPlugin {
 ///     fn plugin_id(&self) -> i32 { 123 }
 ///     fn category(&self) -> Category { Category::Synth }
@@ -268,6 +276,103 @@ impl HostInterface for HostCallback {
 /// {
 /// #    fn handle_event(&mut self, event: Timed<SysExEvent<'a>>, context: &mut H) {}
 ///     // Implementation omitted for brevity.
+/// }
+///
+/// vst_init!(
+///    fn init() -> MyPlugin {
+///        MyPlugin {
+///             meta: MetaData {
+///                 general_meta: "my_plugin",
+///                 audio_port_meta: InOut {
+///                     inputs: vec!["audio in 1", "audio in 2"],
+///                     outputs: vec!["audio out 1", "audio out 2"],
+///                 },
+///                 midi_port_meta: InOut {
+///                     inputs: vec!["midi in 1"],
+///                     outputs: vec![],
+///                 },
+///             }
+///        }
+///    }
+/// );
+/// ```
+/// # Example using VST-specific code
+/// ```
+/// # #[macro_use] extern crate rsynth;
+/// # extern crate num_traits;
+/// # extern crate asprim;
+/// # #[macro_use] extern crate vst;
+/// use rsynth::{
+///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},
+///     event::{
+///         ContextualEventHandler,
+///         Timed,
+///         RawMidiEvent,
+///         SysExEvent
+///     },
+///     backend::{
+///         HostInterface,
+///         vst_backend::VstPluginMeta
+///     },
+///     ContextualAudioRenderer,
+///     AudioHandler
+/// };
+///
+/// struct MyPlugin {
+///   meta: MetaData<&'static str, &'static str, &'static str>
+///   // Define other fields here
+/// }
+///
+/// impl Meta for MyPlugin {
+///    type MetaData = MetaData<&'static str, &'static str, &'static str>;
+///     fn meta(&self) -> &Self::MetaData {
+///         &self.meta
+///     }
+/// }
+///
+/// // Use the re-exports from `rsynth` so that your code doesn't break when `rsynth` upgrades
+/// // its dependency on `vst-rs`
+/// use rsynth::backend::vst_backend::vst::plugin::Category;
+/// impl VstPluginMeta for MyPlugin {
+///     fn plugin_id(&self) -> i32 { 123 }
+///     fn category(&self) -> Category { Category::Synth }
+/// }
+///
+/// use asprim::AsPrim;
+/// use num_traits::Float;
+/// # use rsynth::buffer::AudioBufferInOut;
+///
+/// impl AudioHandler for MyPlugin {
+///     // Implementation omitted for brevity.
+/// #     fn set_sample_rate(&mut self, new_sample_rate: f64) {}
+/// }
+///
+/// // Use the re-exports from `rsynth` so that your code doesn't break when `rsynth` upgrades
+/// // its dependency on `vst-rs`
+/// use rsynth::backend::vst_backend::vst::plugin::HostCallback;
+/// impl<S> ContextualAudioRenderer<S, HostCallback> for MyPlugin
+/// where
+///     S: Float + AsPrim,
+/// {
+///     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut HostCallback)
+///     {
+///          // Here you can call functions on the context if you want.
+/// #        unimplemented!()
+///     }
+/// }
+///
+/// impl ContextualEventHandler<Timed<RawMidiEvent>, HostCallback> for MyPlugin
+/// {
+///     fn handle_event(&mut self, event: Timed<RawMidiEvent>, context: &mut HostCallback) {
+///         // Here you can call functions on the context if you want.
+///     }
+/// }
+///
+/// impl<'a> ContextualEventHandler<Timed<SysExEvent<'a>>, HostCallback> for MyPlugin
+/// {
+///     fn handle_event(&mut self, event: Timed<SysExEvent<'a>>, context: &mut HostCallback) {
+///         // Here you can call functions on the context if you want.
+///     }
 /// }
 ///
 /// vst_init!(
