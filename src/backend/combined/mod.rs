@@ -36,7 +36,8 @@ use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
 use num_traits::Zero;
-use std::fmt::Debug;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use vecstorage::VecStorage;
 
 pub mod dummy;
@@ -152,6 +153,32 @@ pub enum CombinedError<AudioInErr, AudioOutErr> {
     AudioInError(AudioInErr),
     /// An error occurred when writing the audio.
     AudioOutError(AudioOutErr),
+}
+
+impl<AudioInErr, AudioOutErr> Display for CombinedError<AudioInErr, AudioOutErr>
+where
+    AudioInErr: Display,
+    AudioOutErr: Display,
+{
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            CombinedError::AudioInError(ref e) => write!(f, "Audio in error: {}", e),
+            CombinedError::AudioOutError(ref e) => write!(f, "Audio out error: {}", e),
+        }
+    }
+}
+
+impl<AudioInErr, AudioOutErr> Error for CombinedError<AudioInErr, AudioOutErr>
+where
+    AudioInErr: Error,
+    AudioOutErr: Error,
+{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            CombinedError::AudioInError(ref e) => e.source(),
+            CombinedError::AudioOutError(ref e) => e.source(),
+        }
+    }
 }
 
 /// Run an audio renderer with the given audio input, audio output, midi input and midi output.

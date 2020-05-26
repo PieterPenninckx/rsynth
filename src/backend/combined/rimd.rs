@@ -6,14 +6,6 @@ use rimd::{Event, MetaCommand, MetaEvent, MidiMessage, SMFBuilder, TrackEvent, S
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
 
-#[derive(Debug)]
-pub enum MidiHandleError {
-    NotOneTrack { number_of_tracks: usize },
-    TimeDivisionNotSupported,
-    TempoSetMoreThanOnce,
-    TempoSetParseError,
-}
-
 const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
 pub struct RimdMidiReader<'a> {

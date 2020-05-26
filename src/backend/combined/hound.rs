@@ -3,6 +3,8 @@ use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use hound::{WavReader, WavSamples, WavWriter};
 use sample::conv::{FromSample, ToSample};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::io::{Read, Seek, Write};
 
 pub struct HoundAudioReader<'wr, S>
@@ -14,8 +16,21 @@ where
     frames_per_second: u64,
 }
 
+#[derive(Debug)]
 pub enum HoundAudioError {
     UnsupportedAudioFormat,
+}
+
+impl Display for HoundAudioError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "Unsupported audio format")
+    }
+}
+
+impl Error for HoundAudioError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
 }
 
 impl<'wr, S> HoundAudioReader<'wr, S>
