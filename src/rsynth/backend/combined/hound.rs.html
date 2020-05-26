@@ -287,12 +287,29 @@
 <span id="287">287</span>
 <span id="288">288</span>
 <span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Backend for reading and writing `.wav` files, based on the `hound` crate.</span>
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AudioReader</span>, <span class="ident">AudioWriter</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{<span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferOut</span>};
 <span class="kw">use</span> <span class="ident">hound</span>::{<span class="ident">WavReader</span>, <span class="ident">WavSamples</span>, <span class="ident">WavWriter</span>};
 <span class="kw">use</span> <span class="ident">sample</span>::<span class="ident">conv</span>::{<span class="ident">FromSample</span>, <span class="ident">ToSample</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="ident">Display</span>, <span class="ident">Formatter</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="ident">Read</span>, <span class="ident">Seek</span>, <span class="ident">Write</span>};
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HoundAudioReader</span><span class="op">&lt;</span><span class="lifetime">&#39;wr</span>, <span class="ident">S</span><span class="op">&gt;</span>
@@ -304,8 +321,21 @@
     <span class="ident">frames_per_second</span>: <span class="ident">u64</span>,
 }
 
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HoundAudioError</span> {
     <span class="ident">UnsupportedAudioFormat</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Display</span> <span class="kw">for</span> <span class="ident">HoundAudioError</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Unsupported audio format&quot;</span>)
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Error</span> <span class="kw">for</span> <span class="ident">HoundAudioError</span> {
+    <span class="kw">fn</span> <span class="ident">source</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>(<span class="kw">dyn</span> <span class="ident">Error</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>)<span class="op">&gt;</span> {
+        <span class="prelude-val">None</span>
+    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;wr</span>, <span class="ident">S</span><span class="op">&gt;</span> <span class="ident">HoundAudioReader</span><span class="op">&lt;</span><span class="lifetime">&#39;wr</span>, <span class="ident">S</span><span class="op">&gt;</span>

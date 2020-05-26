@@ -741,6 +741,33 @@
 <span id="741">741</span>
 <span id="742">742</span>
 <span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Combine different back-ends for audio input, audio output, midi input and</span>
 <span class="doccomment">//! midi output, mostly for offline rendering and testing.</span>
@@ -780,7 +807,8 @@
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">EventHandler</span>, <span class="ident">RawMidiEvent</span>, <span class="ident">Timed</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ContextualAudioRenderer</span>;
 <span class="kw">use</span> <span class="ident">num_traits</span>::<span class="ident">Zero</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">Formatter</span>};
 <span class="kw">use</span> <span class="ident">vecstorage</span>::<span class="ident">VecStorage</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">dummy</span>;
@@ -896,6 +924,32 @@
     <span class="ident">AudioInError</span>(<span class="ident">AudioInErr</span>),
     <span class="doccomment">/// An error occurred when writing the audio.</span>
     <span class="ident">AudioOutError</span>(<span class="ident">AudioOutErr</span>),
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">AudioInErr</span>, <span class="ident">AudioOutErr</span><span class="op">&gt;</span> <span class="ident">Display</span> <span class="kw">for</span> <span class="ident">CombinedError</span><span class="op">&lt;</span><span class="ident">AudioInErr</span>, <span class="ident">AudioOutErr</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">AudioInErr</span>: <span class="ident">Display</span>,
+    <span class="ident">AudioOutErr</span>: <span class="ident">Display</span>,
+{
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="ident">CombinedError</span>::<span class="ident">AudioInError</span>(<span class="kw-2">ref</span> <span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Audio in error: {}&quot;</span>, <span class="ident">e</span>),
+            <span class="ident">CombinedError</span>::<span class="ident">AudioOutError</span>(<span class="kw-2">ref</span> <span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Audio out error: {}&quot;</span>, <span class="ident">e</span>),
+        }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">AudioInErr</span>, <span class="ident">AudioOutErr</span><span class="op">&gt;</span> <span class="ident">Error</span> <span class="kw">for</span> <span class="ident">CombinedError</span><span class="op">&lt;</span><span class="ident">AudioInErr</span>, <span class="ident">AudioOutErr</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">AudioInErr</span>: <span class="ident">Error</span>,
+    <span class="ident">AudioOutErr</span>: <span class="ident">Error</span>,
+{
+    <span class="kw">fn</span> <span class="ident">source</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>(<span class="kw">dyn</span> <span class="ident">Error</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>)<span class="op">&gt;</span> {
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="ident">CombinedError</span>::<span class="ident">AudioInError</span>(<span class="kw-2">ref</span> <span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">e</span>.<span class="ident">source</span>(),
+            <span class="ident">CombinedError</span>::<span class="ident">AudioOutError</span>(<span class="kw-2">ref</span> <span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">e</span>.<span class="ident">source</span>(),
+        }
+    }
 }
 
 <span class="doccomment">/// Run an audio renderer with the given audio input, audio output, midi input and midi output.</span>
