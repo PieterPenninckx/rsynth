@@ -2,7 +2,6 @@ use super::MICROSECONDS_PER_SECOND;
 use crate::backend::combined::MidiWriter;
 use crate::event::{DeltaEvent, RawMidiEvent};
 use rimd::{Event, MetaCommand, MetaEvent, MidiMessage, SMFBuilder, TrackEvent, SMF};
-use std::fmt::{Display, Formatter};
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
