@@ -306,8 +306,8 @@
 <span class="doccomment">//! Backend for reading and writing `.wav` files, based on the `hound` crate.</span>
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AudioReader</span>, <span class="ident">AudioWriter</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{<span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferOut</span>};
+<span class="kw">use</span> <span class="ident">dasp_sample</span>::<span class="ident">conv</span>::{<span class="ident">FromSample</span>, <span class="ident">ToSample</span>};
 <span class="kw">use</span> <span class="ident">hound</span>::{<span class="ident">WavReader</span>, <span class="ident">WavSamples</span>, <span class="ident">WavWriter</span>};
-<span class="kw">use</span> <span class="ident">sample</span>::<span class="ident">conv</span>::{<span class="ident">FromSample</span>, <span class="ident">ToSample</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="ident">Display</span>, <span class="ident">Formatter</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="ident">Read</span>, <span class="ident">Seek</span>, <span class="ident">Write</span>};
