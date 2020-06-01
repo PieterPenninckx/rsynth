@@ -2,7 +2,7 @@
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use hound::{WavReader, WavSamples, WavWriter};
-use sample::conv::{FromSample, ToSample};
+use dasp_sample::conv::{FromSample, ToSample};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::{Read, Seek, Write};
