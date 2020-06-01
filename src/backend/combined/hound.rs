@@ -1,8 +1,8 @@
 //! Backend for reading and writing `.wav` files, based on the `hound` crate.
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
+use dasp_sample::conv::{FromSample, ToSample};
 use hound::{WavReader, WavSamples, WavWriter};
-use sample::conv::{FromSample, ToSample};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::{Read, Seek, Write};
