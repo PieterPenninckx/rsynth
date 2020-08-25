@@ -1,3 +1,7 @@
+#![deprecated(
+    since = "0.1.1",
+    note = "This was never really worked out and should best be improved in a separate crate."
+)]
 //! This module has not been thoroughly tested, so expect some rough edges here and there.
 //!
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
