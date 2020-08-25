@@ -1,0 +1,26 @@
+name: Rust
+
+on:
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: install libjack-dev
+      run: sudo apt-get install libjack-dev
+    - name: Build
+      run: cargo build --verbose --features all
+    - name: Run tests
+      run: cargo test --verbose --features all
+    - name: Install rustfmt
+      run: rustup component add rustfmt
+    - name: Check formatting
+      run: cargo fmt --all -- --check
