@@ -1,0 +1,21 @@
+Copyrights in the rsynth project are retained by their contributors. 
+
+Authors of rsynth are:
+* Alexander Lozada
+* Pieter Penninckx
+
+Via private communication, Alexander Lozada has given Pieter Penninckx
+the permission to license rsynth as below.
+
+
+Rsynth is licensed under the MIT license or the 3-Clause BSD License, at your option.
+
+For the application of the MIT license, the examples included in the doc comments are not
+considered "substatial portions of this Software".
+
+
+License texts can be found:
+* for the 3-Clause BSD License: <LICENSE-BSD.txt> or 
+    <https://opensource.org/licenses/BSD-3-Clause>
+* for the MIT license: <LICENSE-MIT.txt> or 
+    <http://opensource.org/licenses/MIT>.
