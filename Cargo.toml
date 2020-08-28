@@ -1,6 +1,6 @@
 [package]
 name = "rsynth"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>", "Pieter Penninckx"]
 description = "A library for developing audio plugins and applications, with a focus on software synthesis."
 license = "MIT OR BSD-3-Clause"
