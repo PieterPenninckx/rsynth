@@ -10,6 +10,7 @@ readme = "README.md"
 repository = "https://github.com/PieterPenninckx/rsynth"
 keywords = ["audio", "real-time", "synthesis"]
 categories = ["multimedia::audio"]
+exclude = [".github/"]
 
 [features]
 all = ["backend-jack", "backend-vst", "backend-combined-all"]
