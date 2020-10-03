@@ -45,7 +45,7 @@ pub mod dummy;
 pub mod hound;
 pub mod memory;
 #[cfg(feature = "backend-combined-rimd")]
-pub mod rimd; // TODO: choose better name for this module.
+pub mod rimd;
 
 /// Define how audio is read.
 ///
