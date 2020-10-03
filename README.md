@@ -73,7 +73,7 @@ Note: we plan to switch to MIT/Apache 2.0 in a future release.
 
 Note that in order to use `rsynth` in combination with other crates (libraries), the combined work needs
 to comply with the license of that crate as well. In particular, the following optional dependencies may require your attention:
-* the `hound` crate (behind the `backend-file-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details
+* the `hound` crate (behind the `backend-combined-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details
 
 [`rust-vst`]: https://github.com/RustAudio/vst-rs
 [`jack`]:https://crates.io/crates/jack

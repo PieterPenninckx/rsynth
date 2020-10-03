@@ -64,33 +64,6 @@ where
     }
 }
 
-#[test]
-fn staircase_envelope_iterator_next_called_with_empty_staircase_initial_value_returned() {
-    let se = StairCaseEnvelope {
-        initial_value: 4,
-        event_queue: EventQueue::from_vec(vec![]),
-    };
-    let mut iterator = se.iter();
-    assert_eq!(iterator.next().map(|x| x.item), Some(4));
-}
-
-#[test]
-fn staircase_envelope_iterator_next_called_with_nonempty_staircase_initial_value_returned() {
-    let se = StairCaseEnvelope {
-        initial_value: 1,
-        event_queue: EventQueue::from_vec(vec![
-            Timed::new(2, 4),
-            Timed::new(3, 9),
-            Timed::new(5, 25),
-        ]),
-    };
-    let iterator = se.iter();
-    assert_eq!(
-        iterator.take(7).map(|x| x.item).collect::<Vec<_>>(),
-        vec![1, 1, 4, 9, 9, 25, 25]
-    );
-}
-
 pub struct StairCaseEnvelope<T>
 where
     T: Copy,

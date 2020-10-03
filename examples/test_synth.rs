@@ -1,18 +1,21 @@
 // This file contains the actual sound generation of a plugin that is shared between all backends.
 // The integration with VST is in the `vst_synt.rs` file.
 // The integration with Jack is in the `jack_synth.rs` file.
+
+extern crate polyphony;
+
 use asprim::AsPrim;
 use num_traits::Float;
+use polyphony::{
+    midi::{RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier},
+    simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
+    EventDispatchClassifier, Voice, VoiceAssigner,
+};
 use rand::{thread_rng, Rng};
 use rsynth::event::{
     ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
-use rsynth::utilities::polyphony::{
-    simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
-    EventDispatcher, RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier, Voice,
-};
 use rsynth::{AudioHandler, ContextualAudioRenderer};
-use std::default::Default;
 
 use midi_consts::channel_event::*;
 use rsynth::buffer::AudioBufferInOut;
@@ -111,7 +114,6 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
 pub struct NoisePlayer {
     meta_data: MetaData<&'static str, &'static str, &'static str>,
     voices: Vec<Noise>,
-    dispatcher: SimpleEventDispatcher<RawMidiEventToneIdentifierDispatchClassifier, Noise>,
 }
 
 impl NoisePlayer {
@@ -136,7 +138,6 @@ impl NoisePlayer {
         Self {
             meta_data: Self::meta_data(),
             voices: voices,
-            dispatcher: SimpleEventDispatcher::default(),
         }
     }
 }
@@ -170,7 +171,11 @@ where
 
 impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlayer {
     fn handle_event(&mut self, event: Timed<RawMidiEvent>, _context: &mut Context) {
-        self.dispatcher.dispatch_event(event, &mut self.voices)
+        let classifier = RawMidiEventToneIdentifierDispatchClassifier;
+        let classification = classifier.classify(event.event.data());
+        let mut dispatcher = SimpleEventDispatcher;
+        let assignment = dispatcher.assign(classification, &mut self.voices);
+        assignment.dispatch(event, &mut self.voices, Noise::handle_event);
     }
 }
 

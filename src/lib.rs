@@ -95,20 +95,6 @@
 
 #[macro_use]
 extern crate log;
-extern crate num_traits;
-extern crate vecstorage;
-
-#[cfg(feature = "backend-file-hound")]
-extern crate hound;
-#[cfg(feature = "backend-jack")]
-extern crate jack;
-#[cfg(feature = "backend-file-hound")]
-extern crate sample;
-#[cfg(feature = "backend-vst")]
-extern crate vst;
-
-#[macro_use]
-extern crate doc_comment;
 
 use crate::buffer::AudioBufferInOut;
 use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
@@ -121,8 +107,6 @@ pub mod event;
 pub mod meta;
 pub mod test_utilities;
 pub mod utilities;
-
-doctest!("../README.md");
 
 /// Define the maximum number of audio inputs and the maximum number of audio outputs.
 ///
