@@ -6,14 +6,14 @@ extern crate polyphony;
 
 use asprim::AsPrim;
 use num_traits::Float;
+use polyphony::{
+    midi::{RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier},
+    simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
+    EventDispatchClassifier, Voice, VoiceAssigner,
+};
 use rand::{thread_rng, Rng};
 use rsynth::event::{
     ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
-};
-use polyphony::{
-    simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
-    Voice, EventDispatchClassifier, VoiceAssigner,
-    midi::{ToneIdentifier, RawMidiEventToneIdentifierDispatchClassifier}
 };
 use rsynth::{AudioHandler, ContextualAudioRenderer};
 
