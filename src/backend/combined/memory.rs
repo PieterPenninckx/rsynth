@@ -7,39 +7,44 @@ use crate::buffer::{AudioBufferIn, AudioBufferOut, AudioChunk};
 ///
 /// [`AudioReader`]: ../trait.AudioReader.html
 /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
-pub struct AudioBufferReader<'b, S>
+pub struct AudioChunkReader<S, T>
 where
+    T: Borrow<AudioChunk<S>>,
     S: Copy,
 {
     frames_per_second: u64,
     frame: usize,
-    buffer: &'b AudioChunk<S>,
+    chunk: T,
+    phantom: PhantomData<S>,
 }
 
-impl<'b, S> AudioBufferReader<'b, S>
+impl<S, T> AudioChunkReader<S, T>
 where
+    T: Borrow<AudioChunk<S>>,
     S: Copy,
 {
     /// Construct a new `AudioBufferReader` with the given [`AudioChunk`] and
     /// sample rate in frames per second.
     ///
     /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
-    pub fn new(buffer: &'b AudioChunk<S>, frames_per_second: u64) -> Self {
+    pub fn new(buffer: T, frames_per_second: u64) -> Self {
         Self {
-            buffer,
+            chunk: buffer,
             frames_per_second,
             frame: 0,
+            phantom: PhantomData::<S>,
         }
     }
 }
 
-impl<'b, S> AudioReader<S> for AudioBufferReader<'b, S>
+impl<S, T> AudioReader<S> for AudioChunkReader<S, T>
 where
+    T: Borrow<AudioChunk<S>>,
     S: Copy,
 {
     type Err = std::convert::Infallible;
     fn number_of_channels(&self) -> usize {
-        self.buffer.channels().len()
+        self.chunk.borrow().channels().len()
     }
     fn frames_per_second(&self) -> u64 {
         self.frames_per_second
@@ -49,11 +54,12 @@ where
         assert_eq!(output.number_of_channels(), self.number_of_channels());
         // Note: `self.number_of_channels() > 0`
         let buffer_size = output.number_of_frames();
-        let remainder = self.buffer.channels()[0].len() - self.frame;
+        let remainder = self.chunk.borrow().channels()[0].len() - self.frame;
         let frames_to_copy = std::cmp::min(buffer_size, remainder);
 
-        for (output_channel, input_channel) in
-            output.channel_iter_mut().zip(self.buffer.channels().iter())
+        for (output_channel, input_channel) in output
+            .channel_iter_mut()
+            .zip(self.chunk.borrow().channels().iter())
         {
             assert_eq!(buffer_size, output_channel.len());
             output_channel[0..frames_to_copy]
@@ -63,6 +69,18 @@ where
         Ok(frames_to_copy)
     }
 }
+
+/// An [`AudioReader`] that reads from a given [`AudioChunk`].
+/// The generic parameter type `S` represents the sample type.
+///
+/// [`AudioReader`]: ../trait.AudioReader.html
+/// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
+pub type AudioBufferReader<'b, S> = AudioChunkReader<S, &'b AudioChunk<S>>;
+
+use std::borrow::Borrow;
+use std::marker::PhantomData;
+#[cfg(feature = "backend-combined-wav")]
+use wav::{BitDepth, Header};
 
 #[cfg(test)]
 mod AudioBufferReaderTests {
