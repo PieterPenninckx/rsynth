@@ -747,7 +747,9 @@ impl<S> AudioChunk<S> {
     /// Panics if the number of elements yielded by the iterator is not an
     /// integer multiple of `number_of_channels`.
     pub fn from_interlaced_iterator<I>(iterator: I, number_of_channels: usize) -> Self
-    where I: Iterator<Item = S>, S: Copy
+    where
+        I: Iterator<Item = S>,
+        S: Copy,
     {
         let mut result = Self::new(number_of_channels);
         let mut index = 0;
@@ -755,7 +757,11 @@ impl<S> AudioChunk<S> {
             result.channels[index % number_of_channels].push(s.clone());
             index += 1;
         }
-        assert_eq!(index % number_of_channels, 0, "Number of elements must be an integer multiple of the number of channels.");
+        assert_eq!(
+            index % number_of_channels,
+            0,
+            "Number of elements must be an integer multiple of the number of channels."
+        );
         result
     }
 

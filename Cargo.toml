@@ -13,7 +13,6 @@ categories = ["multimedia::audio"]
 exclude = [".github/"]
 
 [features]
-default = ["all"]
 all = ["backend-jack", "backend-vst", "backend-combined-all"]
 backend-jack = ["jack"]
 backend-vst = ["vst"]
