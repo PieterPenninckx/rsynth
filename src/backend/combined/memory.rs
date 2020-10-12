@@ -1,6 +1,14 @@
 //! In-memory backend, useful for testing.
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut, AudioChunk};
+use std::borrow::Borrow;
+use std::marker::PhantomData;
+#[cfg(feature = "backend-combined-wav")]
+use wav::{BitDepth, Header};
+#[cfg(feature = "backend-combined-wav")]
+use dasp_sample::FromSample;
+use dasp_sample::I24;
+
 
 /// An [`AudioReader`] that reads from a given [`AudioChunk`].
 /// The generic parameter type `S` represents the sample type.
@@ -77,10 +85,19 @@ where
 /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
 pub type AudioBufferReader<'b, S> = AudioChunkReader<S, &'b AudioChunk<S>>;
 
-use std::borrow::Borrow;
-use std::marker::PhantomData;
 #[cfg(feature = "backend-combined-wav")]
-use wav::{BitDepth, Header};
+impl<S> From<(Header, BitDepth)> for AudioChunkReader<S, AudioChunk<S>>
+where S: Copy + FromSample<u8> + FromSample<i16> + FromSample<I24> {
+    fn from((header, samples): (Header, BitDepth)) -> Self {
+        Self {
+            frames_per_second: header.sampling_rate as u64,
+            frame: 0,
+            chunk: unimplemented!(),
+            phantom: PhantomData
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod AudioBufferReaderTests {

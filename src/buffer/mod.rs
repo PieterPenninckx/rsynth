@@ -742,6 +742,25 @@ impl<S> AudioChunk<S> {
         Self { channels }
     }
 
+    /// # Panics
+    /// Panics if `number_of_channels == 0`.
+    /// Panics if the number of elements yielded by the iterator is not an
+    /// integer multiple of `number_of_channels`.
+    pub fn from_interlaced_iterator<I>(iterator: I, number_of_channels: usize) -> Self
+    where I: Iterator<Item = S>, S: Copy
+    {
+        let mut result = Self::new(number_of_channels);
+        let mut index = 0;
+        for s in iterator {
+            result.channels[index % number_of_channels].push(s.clone());
+            index += 1;
+        }
+        assert_eq!(index % number_of_channels, 0, "Number of elements must be an integer multiple of the number of channels.");
+        result
+    }
+
+    /// # Panics
+    /// Panics if `number_of_channels == 0`.
     /// Note: cannot be used in a real-time context
     /// -------------------------------------
     /// This method allocates memory and cannot be used in a real-time context.
@@ -938,6 +957,13 @@ fn split_works_with_non_dividing_input_length() {
             audio_chunk![[4], [9]]
         ]
     )
+}
+
+#[test]
+fn from_interlaced_iterator_works() {
+    let input = vec![1, 2, 3, 4, 5, 6];
+    let chunk = AudioChunk::from_interlaced_iterator(input.iter().cloned(), 2);
+    assert_eq!(chunk.channels, vec![vec![1, 3, 5], vec![2, 4, 6]]);
 }
 
 pub fn buffers_as_slice<'a, S>(buffers: &'a [Vec<S>], slice_len: usize) -> Vec<&'a [S]> {
