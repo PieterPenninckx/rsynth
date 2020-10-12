@@ -950,6 +950,38 @@
 <span id="950">950</span>
 <span id="951">951</span>
 <span id="952">952</span>
+<span id="953">953</span>
+<span id="954">954</span>
+<span id="955">955</span>
+<span id="956">956</span>
+<span id="957">957</span>
+<span id="958">958</span>
+<span id="959">959</span>
+<span id="960">960</span>
+<span id="961">961</span>
+<span id="962">962</span>
+<span id="963">963</span>
+<span id="964">964</span>
+<span id="965">965</span>
+<span id="966">966</span>
+<span id="967">967</span>
+<span id="968">968</span>
+<span id="969">969</span>
+<span id="970">970</span>
+<span id="971">971</span>
+<span id="972">972</span>
+<span id="973">973</span>
+<span id="974">974</span>
+<span id="975">975</span>
+<span id="976">976</span>
+<span id="977">977</span>
+<span id="978">978</span>
+<span id="979">979</span>
+<span id="980">980</span>
+<span id="981">981</span>
+<span id="982">982</span>
+<span id="983">983</span>
+<span id="984">984</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Audio buffers.</span>
 <span class="doccomment">//!</span>
@@ -1695,6 +1727,31 @@
         <span class="self">Self</span> { <span class="ident">channels</span> }
     }
 
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">/// Panics if `number_of_channels == 0`.</span>
+    <span class="doccomment">/// Panics if the number of elements yielded by the iterator is not an</span>
+    <span class="doccomment">/// integer multiple of `number_of_channels`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_interlaced_iterator</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">iterator</span>: <span class="ident">I</span>, <span class="ident">number_of_channels</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>
+    <span class="kw">where</span>
+        <span class="ident">I</span>: <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">S</span><span class="op">&gt;</span>,
+        <span class="ident">S</span>: <span class="ident">Copy</span>,
+    {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">new</span>(<span class="ident">number_of_channels</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">index</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">for</span> <span class="ident">s</span> <span class="kw">in</span> <span class="ident">iterator</span> {
+            <span class="ident">result</span>.<span class="ident">channels</span>[<span class="ident">index</span> <span class="op">%</span> <span class="ident">number_of_channels</span>].<span class="ident">push</span>(<span class="ident">s</span>.<span class="ident">clone</span>());
+            <span class="ident">index</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+        }
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">index</span> <span class="op">%</span> <span class="ident">number_of_channels</span>,
+            <span class="number">0</span>,
+            <span class="string">&quot;Number of elements must be an integer multiple of the number of channels.&quot;</span>
+        );
+        <span class="ident">result</span>
+    }
+
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">/// Panics if `number_of_channels == 0`.</span>
     <span class="doccomment">/// Note: cannot be used in a real-time context</span>
     <span class="doccomment">/// -------------------------------------</span>
     <span class="doccomment">/// This method allocates memory and cannot be used in a real-time context.</span>
@@ -1891,6 +1948,13 @@
             <span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">4</span>], [<span class="number">9</span>]]
         ]
     )
+}
+
+<span class="attribute">#[<span class="ident">test</span>]</span>
+<span class="kw">fn</span> <span class="ident">from_interlaced_iterator_works</span>() {
+    <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];
+    <span class="kw">let</span> <span class="ident">chunk</span> <span class="op">=</span> <span class="ident">AudioChunk</span>::<span class="ident">from_interlaced_iterator</span>(<span class="ident">input</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>(), <span class="number">2</span>);
+    <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">chunk</span>.<span class="ident">channels</span>, <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">vec</span><span class="macro">!</span>[<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>], <span class="macro">vec</span><span class="macro">!</span>[<span class="number">2</span>, <span class="number">4</span>, <span class="number">6</span>]]);
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">buffers_as_slice</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">S</span><span class="op">&gt;</span>(<span class="ident">buffers</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>], <span class="ident">slice_len</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">S</span>]<span class="op">&gt;</span> {
