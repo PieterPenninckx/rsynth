@@ -130,6 +130,7 @@ impl NoisePlayer {
             },
         }
     }
+
     pub fn new() -> Self {
         let mut voices = Vec::new();
         for _ in 0..NUMBER_OF_VOICES {
@@ -169,8 +170,8 @@ where
     }
 }
 
-impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlayer {
-    fn handle_event(&mut self, event: Timed<RawMidiEvent>, _context: &mut Context) {
+impl EventHandler<Timed<RawMidiEvent>> for NoisePlayer {
+    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
         let classifier = RawMidiEventToneIdentifierDispatchClassifier;
         let classification = classifier.classify(event.event.data());
         let mut dispatcher = SimpleEventDispatcher;
@@ -179,10 +180,16 @@ impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlay
     }
 }
 
+impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlayer {
+    fn handle_event(&mut self, event: Timed<RawMidiEvent>, _context: &mut Context) {
+        EventHandler::handle_event(self, event);
+    }
+}
+
 // Only needed for Jack: delegate to the normal event handler.
 impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for NoisePlayer {
-    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, context: &mut Context) {
-        self.handle_event(event.event, context)
+    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, _context: &mut Context) {
+        EventHandler::handle_event(self, event.event)
     }
 }
 
@@ -192,9 +199,9 @@ impl<'a, Context> ContextualEventHandler<Timed<SysExEvent<'a>>, Context> for Noi
     }
 }
 
-// Only needed for Jack: delegate to the normal event handler.
+// Only needed for Jack.
 impl<'a, Context> ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, Context> for NoisePlayer {
-    fn handle_event(&mut self, event: Indexed<Timed<SysExEvent>>, context: &mut Context) {
-        self.handle_event(event.event, context)
+    fn handle_event(&mut self, _event: Indexed<Timed<SysExEvent>>, _context: &mut Context) {
+        // We don't do anything with SysEx events
     }
 }

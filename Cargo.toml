@@ -53,3 +53,6 @@ crate-type = ["cdylib"]
 
 [[example]]
 name = "jack_synth"
+
+[[example]]
+name = "offline_synth"

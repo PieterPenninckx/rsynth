@@ -4,7 +4,7 @@
 //! [the cargo reference] for more information on setting cargo features.
 //!
 //! For an example, see `vst_synth.rs` in the `examples` folder.
-//! `examples/test_synth.rs` contains the code that is shared for all backends and
+//! `examples/example_synth` contains the code that is shared for all backends and
 //! `examples/vst_synth.rs` contains the jack-specific code.
 //!
 //! # Usage

@@ -2,17 +2,35 @@
 use super::{AudioReader, AudioWriter, MidiWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use crate::event::{DeltaEvent, RawMidiEvent};
+use core::cmp;
 use std::marker::PhantomData;
 
+/// Dummy backend that does nothing, useful for testing and e.g. for offline renderers
+/// that have no audio input or output.
 pub struct AudioDummy<S> {
     _phantom: PhantomData<S>,
+    frames_per_second: u32,
+    length_in_frames: usize,
 }
 
 impl<S> AudioDummy<S> {
-    pub fn new() -> Self {
-        AudioDummy {
+    /// Create a new `AudioDummy` with the given sample rate, in frames per second.
+    pub fn with_sample_rate_and_length(frames_per_second: u32, length_in_frames: usize) -> Self {
+        Self {
+            frames_per_second,
+            length_in_frames,
             _phantom: PhantomData,
         }
+    }
+
+    #[deprecated(
+        since = "0.1.2",
+        note = "Deprecated in favour of the dedicated `polyphony` crate."
+    )]
+    /// Create a new `AudioDummy` with the "default" sample rate
+    /// of 44100 frames per second (CD quality) and a length of 0 samples.
+    pub fn new() -> Self {
+        Self::with_sample_rate_and_length(44100, 0)
     }
 }
 
@@ -26,11 +44,13 @@ where
     }
 
     fn frames_per_second(&self) -> u64 {
-        44100
+        self.frames_per_second as u64
     }
 
-    fn fill_buffer(&mut self, _output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
-        Ok(0) // TODO: Have a look at this implementation again: is this logical?
+    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
+        let number_of_frames_written = cmp::min(self.length_in_frames, output.number_of_frames());
+        self.length_in_frames -= number_of_frames_written;
+        Ok(number_of_frames_written)
     }
 }
 

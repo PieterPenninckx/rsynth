@@ -1,5 +1,5 @@
 // An example of a software synthesizer using the JACK back-end.
-// The code that is shared between all backends is in the `test_synth.rs` file.
+// The code that is shared between all backends is in the `example_synth` file.
 //
 // Compiling
 // =========
@@ -48,8 +48,8 @@ extern crate rand;
 #[macro_use]
 extern crate rsynth;
 
-mod test_synth;
-use test_synth::*;
+mod example_synth;
+use example_synth::*;
 
 #[cfg(feature = "backend-vst")]
 use rsynth::backend::vst_backend::VstPluginMeta;

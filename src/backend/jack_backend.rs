@@ -3,7 +3,7 @@
 //! [the cargo reference] for more information on setting cargo features.
 //!
 //! For an example, see `jack_synth.rs` in the `examples` folder.
-//! `examples/test_synth.rs` contains the code that is shared for all backends and
+//! `examples/example_synth` contains the code that is shared for all backends and
 //! `examples/jack_synth.rs` contains the jack-specific code.
 //!
 //! [JACK]: http://www.jackaudio.org/
