@@ -11,16 +11,19 @@
 //!
 //! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output
 //! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
-//! * Rimd: [`RimdMidiReader`] and [`RimdMidiWriter`]: reand and write `.mid` files (behind the "backend-combined-rimd" feature, only available when using `rsynth` from sources, not from crates.io)
+//! * Midly: [`MidlyMidiReader`] and [`MidlyMidiWriter`]: read and write `.mid` files (behind the "backend-combined-midly" feature)
 //! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
+//!
+//! Note that, when compiled with the `backend-combined-wav` feature,
+//! `AudioChunkReader` implements `From<(Header, BitDepth)>`.
 //!
 //! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
 //! [`MidiDummy`]: ./dummy/struct.MidiDummy.html
 //! [`HoundAudioReader`]: ./hound/struct.HoundAudioReader.html
 //! [`HoundAudioWriter`]: ./hound/struct.HoundAudioWriter.html
-//! [`RimdMidiReader`]: ./rimd/struct.RimdMidiReader.html
-//! [`RimdMidiWriter`]: ./rimd/struct.RimdMidiWriter.html
+//! [`MidlyMidiReader`]: ./midly/struct.MidlyMidiReader.html
+//! [`MidlyMidiWriter`]: ./midly/struct.MidlyMidiWriter.html
 //! [`TestAudioReader`]: ./struct.TestAudioReader.html
 //! [`TestAudioWriter`]: ./struct.TestAudioWriter.html
 //! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html
@@ -44,8 +47,8 @@ pub mod dummy;
 #[cfg(feature = "backend-combined-hound")]
 pub mod hound;
 pub mod memory;
-#[cfg(feature = "backend-combined-rimd")]
-pub mod rimd;
+#[cfg(feature = "backend-combined-hound")]
+pub mod midly;
 
 /// Define how audio is read.
 ///
@@ -84,6 +87,8 @@ where
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
 
+/// Define how midi is written.
+/// _Note_: there is no "`MidiReader`"; we use `Iterator<Item = DeltaEvent<RawMidiEvent>>` for that.
 pub trait MidiWriter {
     fn write_event(&mut self, event: DeltaEvent<RawMidiEvent>);
 }
