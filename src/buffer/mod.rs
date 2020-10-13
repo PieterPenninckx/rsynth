@@ -711,6 +711,53 @@ pub struct AudioChunk<S> {
     channels: Vec<Vec<S>>,
 }
 
+/// An iterator over the samples of an `AudioChunk`, operating frame by frame.
+pub struct InterlacedSampleIterator<'a, S>
+where
+    S: Copy,
+{
+    channel_index: usize,
+    frame_index: usize,
+    chunk: &'a AudioChunk<S>,
+}
+
+impl<'a, S> InterlacedSampleIterator<'a, S>
+where
+    S: Copy,
+{
+    fn new(chunk: &'a AudioChunk<S>) -> Self {
+        Self {
+            channel_index: 0,
+            frame_index: 0,
+            chunk,
+        }
+    }
+}
+
+impl<'a, S> Iterator for InterlacedSampleIterator<'a, S>
+where
+    S: Copy,
+{
+    type Item = S;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.chunk.channels.is_empty() {
+            return None;
+        }
+        let result = self.chunk.channels[self.channel_index]
+            .get(self.frame_index)
+            .cloned();
+        if result.is_some() {
+            self.channel_index += 1;
+            if self.channel_index >= self.chunk.channels.len() {
+                self.channel_index = 0;
+                self.frame_index += 1;
+            }
+        }
+        result
+    }
+}
+
 impl<S> AudioChunk<S> {
     // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
     /// Note: cannot be used in a real-time context
@@ -763,6 +810,25 @@ impl<S> AudioChunk<S> {
             "Number of elements must be an integer multiple of the number of channels."
         );
         result
+    }
+
+    /// Create an interlaced iterator from an `AudioChunk`
+    /// # Example
+    /// ```
+    /// #[macro_use]
+    /// extern crate rsynth;
+    /// # fn main() {
+    /// let chunk = audio_chunk![[0, 1, 2], [3, 4, 5]];
+    /// let iterator = chunk.interlaced();
+    /// let interlaced: Vec<_> = iterator.collect();
+    /// assert_eq!(interlaced, vec![0, 3, 1, 4, 2, 5]);
+    /// # }
+    /// ```
+    pub fn interlaced<'a>(&'a self) -> InterlacedSampleIterator<'a, S>
+    where
+        S: Copy,
+    {
+        InterlacedSampleIterator::new(self)
     }
 
     /// # Panics
