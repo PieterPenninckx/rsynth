@@ -759,6 +759,20 @@ where
 }
 
 impl<S> AudioChunk<S> {
+    /// # Panics
+    /// Panics if `number_of_channels == 0`.
+    /// Note: cannot be used in a real-time context
+    /// -------------------------------------
+    /// This method allocates memory and cannot be used in a real-time context.
+    pub fn new(number_of_channels: usize) -> Self {
+        assert!(number_of_channels > 0);
+        let mut channels = Vec::with_capacity(number_of_channels);
+        for _ in 0..number_of_channels {
+            channels.push(Vec::new());
+        }
+
+        Self { channels }
+    }
     // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
     /// Note: cannot be used in a real-time context
     /// -------------------------------------
@@ -831,21 +845,6 @@ impl<S> AudioChunk<S> {
         InterlacedSampleIterator::new(self)
     }
 
-    /// # Panics
-    /// Panics if `number_of_channels == 0`.
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
-    /// This method allocates memory and cannot be used in a real-time context.
-    pub fn new(number_of_channels: usize) -> Self {
-        assert!(number_of_channels > 0);
-        let mut channels = Vec::with_capacity(number_of_channels);
-        for _ in 0..number_of_channels {
-            channels.push(Vec::new());
-        }
-
-        Self { channels }
-    }
-
     /// Create a new `AudioChunk` in which each channel has the given capacity.
     /// This allows to append `capacity` frames to the `AudioChunk` (e.g. by calling
     /// `append_sliced_chunk`).
@@ -865,6 +864,11 @@ impl<S> AudioChunk<S> {
 
     pub fn channels(&self) -> &Vec<Vec<S>> {
         &self.channels
+    }
+
+    /// Return the number of channels.
+    pub fn number_of_channels(&self) -> usize {
+        self.channels().len()
     }
 
     /// Note about using in a real-time context

@@ -176,7 +176,6 @@ where
             "`handle_event` is called after {} calls to `render_buffer`; this is unexpected",
             self.expected_events.len()
         );
-        dbg!(&self.expected_events);
         let expected_events_for_this_buffer = &self.expected_events[self.buffer_index];
         assert!(
             self.event_index < expected_events_for_this_buffer.len(),

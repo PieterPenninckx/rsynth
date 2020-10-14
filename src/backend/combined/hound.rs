@@ -234,6 +234,14 @@ where
 
         self.hound_sample_writer.flush()
     }
+
+    fn specifies_number_of_channels(&self) -> bool {
+        true
+    }
+
+    fn number_of_channels(&self) -> usize {
+        self.number_of_channels
+    }
 }
 
 trait HoundSampleWriter<S> {
