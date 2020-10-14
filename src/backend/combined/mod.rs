@@ -11,7 +11,7 @@
 //!
 //! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output
 //! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
-//! * Midly: [`MidlyMidiReader`] and [`MidlyMidiWriter`]: read and write `.mid` files (behind the "backend-combined-midly" feature)
+//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the "backend-combined-midly" feature)
 //! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
@@ -23,7 +23,6 @@
 //! [`HoundAudioReader`]: ./hound/struct.HoundAudioReader.html
 //! [`HoundAudioWriter`]: ./hound/struct.HoundAudioWriter.html
 //! [`MidlyMidiReader`]: ./midly/struct.MidlyMidiReader.html
-//! [`MidlyMidiWriter`]: ./midly/struct.MidlyMidiWriter.html
 //! [`TestAudioReader`]: ./struct.TestAudioReader.html
 //! [`TestAudioWriter`]: ./struct.TestAudioWriter.html
 //! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html
@@ -31,6 +30,7 @@
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
+use crate::backend::HostInterface;
 use crate::buffer::{
     buffers_as_mut_slice, buffers_as_slice, AudioBufferIn, AudioBufferInOut, AudioBufferOut,
     AudioChunk,
@@ -47,7 +47,7 @@ pub mod dummy;
 #[cfg(feature = "backend-combined-hound")]
 pub mod hound;
 pub mod memory;
-#[cfg(feature = "backend-combined-hound")]
+#[cfg(feature = "backend-combined-midly")]
 pub mod midly;
 
 /// Define how audio is read.
@@ -81,8 +81,40 @@ where
 {
     /// The type of the error that occurs when reading data.
     type Err;
-    // TODO: What if the writer gets an unexpected number of channels?
+
+    /// Write to the specified audio buffer.
+    ///
+    /// If `specifies_number_of_channels()` returns `false`, the number of audio channels is
+    /// determined by the first call to this method.
+    /// If `specifies_number_of_channels()` returns `true`, the number of audio channels is
+    /// determined by the `number_of_channels()` method.
+    ///
+    /// # Panics
+    /// Implementations of this method may panic if the number of audio channels is not as expected.
     fn write_buffer(&mut self, buffer: &AudioBufferIn<S>) -> Result<(), Self::Err>;
+
+    // TODO: remove this method in a future version.
+    /// Return `true` if this `AudioWriter` is responsible for specifying the number of channels
+    /// and false if this is determined by the first call to `write_buffer`.
+    ///
+    /// _Note_: this method will disappear in a future version of `rsynth` and it will be the
+    /// default that the `AudioWriter` specifies the number of channels.
+    /// This method has a default implementation that returns `false`.
+    fn specifies_number_of_channels(&self) -> bool {
+        false
+    }
+
+    /// Return the number of channels. This method is only called if `specifies_number_of_channels`
+    /// returns `true`.
+    /// This method should always return the same number.
+    ///
+    /// _Note_: this method has a default implementation that returns `0`.
+    /// This default implementation will disappear in a future version of `rsynth` and then
+    /// implementors have to specify the number of channels.
+    fn number_of_channels(&self) -> usize {
+        // TODO: remove this default implementation.
+        0
+    }
 }
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
@@ -105,6 +137,19 @@ where
     previous_time_in_microseconds: u64,
     micro_seconds_per_frame: f64,
     event_queue: EventQueue<RawMidiEvent>,
+}
+
+impl<W> HostInterface for MidiWriterWrapper<W>
+where
+    W: MidiWriter,
+{
+    fn output_initialized(&self) -> bool {
+        false
+    }
+
+    fn stop(&mut self) {
+        // TODO: this should really do something.
+    }
 }
 
 impl<W> MidiWriterWrapper<W>
@@ -194,7 +239,7 @@ where
 ///
 /// Panics
 /// ======
-/// Panics if `buffer_size_in_frames` is `0` or `> u32::max_value()`.
+/// Panics if `buffer_size_in_frames` is `0` or `> u32::MAX`.
 // TODO: support different number of input and output channels.
 pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     plugin: &mut R,
@@ -213,9 +258,14 @@ where
     R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
 {
     assert!(buffer_size_in_frames > 0);
-    assert!(buffer_size_in_frames < u32::max_value() as usize);
+    assert!(buffer_size_in_frames < u32::MAX as usize);
 
     let number_of_input_channels = audio_in.number_of_channels();
+    let number_of_output_channels = if audio_out.specifies_number_of_channels() {
+        audio_out.number_of_channels()
+    } else {
+        number_of_input_channels
+    };
 
     let frames_per_second = audio_in.frames_per_second();
     assert!(frames_per_second > 0);
@@ -223,12 +273,10 @@ where
     let mut input_buffers =
         AudioChunk::zero(number_of_input_channels, buffer_size_in_frames).inner();
     let mut output_buffers =
-        AudioChunk::zero(number_of_input_channels, buffer_size_in_frames).inner();
+        AudioChunk::zero(number_of_output_channels, buffer_size_in_frames).inner();
 
     let mut last_time_in_frames = 0;
     let mut last_event_time_in_microseconds = 0;
-
-    let frames_per_second = audio_in.frames_per_second();
 
     let mut writer = MidiWriterWrapper::new(
         midi_out,
@@ -256,7 +304,7 @@ where
         }
 
         // Handle events
-        if let Some(event) = peekable_midi_reader.peek() {
+        while let Some(event) = peekable_midi_reader.peek() {
             let time_in_frames = (last_event_time_in_microseconds
                 + event.microseconds_since_previous_event)
                 * frames_per_second
@@ -271,6 +319,8 @@ where
                     event: event.event,
                 });
                 last_event_time_in_microseconds += event.microseconds_since_previous_event;
+            } else {
+                break;
             }
         }
 
@@ -498,7 +548,7 @@ mod tests {
         }
 
         #[test]
-        fn reads_events_at_the_right_time() {
+        fn reads_one_event_at_the_right_time() {
             const BUFFER_SIZE: usize = 3;
             const NUMBER_OF_CHANNELS: usize = 1;
             const SAMPLE_RATE: u64 = 8000;
@@ -551,6 +601,73 @@ mod tests {
                     output_data.clone().split(BUFFER_SIZE),
                 ),
                 TestMidiReader::new(vec![input_event]),
+                MidiDummy::new(),
+            )
+            .expect("Unexpected error");
+            test_plugin.check_last();
+        }
+
+        #[test]
+        fn reads_two_events_at_the_right_time() {
+            const BUFFER_SIZE: usize = 3;
+            const NUMBER_OF_CHANNELS: usize = 1;
+            const SAMPLE_RATE: u64 = 8000;
+            let input_data = AudioChunk::<i16>::zero(1, 16);
+            let output_data = AudioChunk::<i16>::zero(1, 16);
+
+            // So 1 frame  is 1/8000 seconds,
+            //    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.
+            let event = RawMidiEvent::new(&[1, 2, 3]);
+            // Event is expected at frame 7:
+            // 0 1 2 3 4 5 6 7 8        (in 1000 microseconds)
+            // . . .|. . .|. E .|. . .|. . .|.
+            let input_event1 = DeltaEvent {
+                microseconds_since_previous_event: 875,
+                event,
+            };
+            // Event is expected at frame 8:
+            // 0 1 2 3 4 5 6 7 8        (in 1000 microseconds)
+            // . . .|. . .|. . E|. . .|. . .|.
+            let input_event2 = DeltaEvent {
+                microseconds_since_previous_event: 125,
+                event,
+            };
+
+            let mut test_plugin = TestPlugin::new(
+                input_data.clone().split(BUFFER_SIZE),
+                output_data.clone().split(BUFFER_SIZE),
+                vec![
+                    vec![],
+                    vec![],
+                    vec![Timed::new(1, event), Timed::new(2, event)],
+                    vec![],
+                    vec![],
+                    vec![],
+                ],
+                vec![Vec::new(); 6],
+                DummyMeta,
+            );
+            let mut output_buffer = AudioChunk::new(NUMBER_OF_CHANNELS);
+            super::super::run(
+                &mut test_plugin,
+                BUFFER_SIZE,
+                TestAudioReader::new(
+                    AudioBufferReader::new(&input_data, SAMPLE_RATE),
+                    NUMBER_OF_CHANNELS,
+                    vec![
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                        BUFFER_SIZE,
+                    ],
+                ),
+                TestAudioWriter::new(
+                    &mut AudioBufferWriter::new(&mut output_buffer),
+                    output_data.clone().split(BUFFER_SIZE),
+                ),
+                TestMidiReader::new(vec![input_event1, input_event2]),
                 MidiDummy::new(),
             )
             .expect("Unexpected error");

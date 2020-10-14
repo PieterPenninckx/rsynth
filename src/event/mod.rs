@@ -11,9 +11,15 @@
 //!
 //! If possible, implement the `Copy` trait for the event,
 //! so that the event can be dispatched to different voices in a polyphonic context.
+#[cfg(feature = "backend-combined-midly")]
+use midly::EventKind;
+#[cfg(all(test, feature = "backend-combined-midly"))]
+use midly::{
+    number::{u4, u7},
+    MidiMessage,
+};
 use std::convert::{AsMut, AsRef};
 use std::fmt::{Debug, Error, Formatter};
-
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -115,6 +121,43 @@ impl RawMidiEvent {
     pub fn data(&self) -> &[u8; 3] {
         &self.data
     }
+}
+
+#[cfg(feature = "backend-combined-midly")]
+impl<'a> From<midly::EventKind<'a>> for RawMidiEvent {
+    fn from(event_kind: EventKind<'a>) -> Self {
+        let mut raw_data: [u8; 3] = [0, 0, 0];
+        let mut slice = &mut raw_data[0..3];
+        event_kind
+            .write(&mut None, &mut slice)
+            .expect("Unexpected error when writing to memory.");
+        // The slice is updated to point to the not-yet-overwritten bytes.
+        let number_of_bytes = 3 - slice.len();
+        RawMidiEvent::new(&raw_data[0..number_of_bytes])
+    }
+}
+
+#[cfg(feature = "backend-combined-midly")]
+#[test]
+fn conversion_from_midly_to_raw_midi_event_works() {
+    let channel = 1;
+    let program = 2;
+    let event_kind = EventKind::Midi {
+        channel: u4::from(channel),
+        message: MidiMessage::ProgramChange {
+            program: u7::from(program),
+        },
+    };
+    let raw_midi_event = RawMidiEvent::from(event_kind);
+    assert_eq!(raw_midi_event.length, 2);
+    assert_eq!(
+        raw_midi_event.data,
+        [
+            channel | midi_consts::channel_event::PROGRAM_CHANGE,
+            program,
+            0
+        ]
+    );
 }
 
 impl AsRef<Self> for RawMidiEvent {

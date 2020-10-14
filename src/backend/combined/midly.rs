@@ -1,7 +1,11 @@
 use super::MICROSECONDS_PER_SECOND;
 use crate::event::{DeltaEvent, RawMidiEvent};
+#[cfg(test)]
+use midly::number::{u15, u24, u28, u4, u7};
 pub use midly::Event;
 use midly::{EventKind, Header, MetaMessage, Timing};
+#[cfg(test)]
+use midly::{Format, MidiMessage};
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
@@ -10,7 +14,7 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 /// Read from midi events as parsed by the `midly` crate.
 pub struct MidlyMidiReader<'v, 'a> {
     events: &'v [Event<'a>],
-    index: usize,
+    event_index: usize,
     current_tempo_in_micro_seconds_per_beat: f64,
     ticks_per_beat: f64,
 }
@@ -24,10 +28,9 @@ impl<'v, 'a> MidlyMidiReader<'v, 'a> {
     pub fn new(header: Header, events: &'v [Event<'a>]) -> Self {
         Self {
             events,
-            index: 0,
-            current_tempo_in_micro_seconds_per_beat: (MICROSECONDS_PER_MINUTE
-                / DEFAULT_BEATS_PER_MINUTE)
-                as f64,
+            event_index: 0,
+            current_tempo_in_micro_seconds_per_beat: (MICROSECONDS_PER_MINUTE as f64
+                / DEFAULT_BEATS_PER_MINUTE as f64),
             ticks_per_beat: match header.timing {
                 Timing::Metrical(t) => t.as_int() as f64,
                 Timing::Timecode(_, _) => unimplemented!(),
@@ -36,36 +39,158 @@ impl<'v, 'a> MidlyMidiReader<'v, 'a> {
     }
 }
 
+#[test]
+fn ticks_per_microsecond_works() {
+    // 1 beat per second
+    let mr = MidlyMidiReader {
+        events: &[],
+        event_index: 0,
+        current_tempo_in_micro_seconds_per_beat: 1000_000.0,
+        ticks_per_beat: 100.0 * 1000_000.0,
+    };
+    assert_eq!(mr.ticks_per_microsecond(), 100.0);
+}
+
+#[test]
+fn new_works() {
+    let header = Header {
+        format: Format::SingleTrack,
+        timing: Timing::Metrical(u15::from(12345)),
+    };
+    let mr = MidlyMidiReader::new(header, &[]);
+    assert_eq!(mr.event_index, 0);
+    assert_eq!(mr.ticks_per_beat, 12345.0);
+    // 120 beats per minute
+    // = 120 beats per 60 seconds
+    // = 120 beats per 60 000 000 microseconds
+    // so the tempo is
+    //   60 000 000 / 120 beats per microsecond
+    //   = 10 000 000 / 20 beats per microsecond
+    //   =    500 000 beats per microsecond
+    assert_eq!(mr.current_tempo_in_micro_seconds_per_beat, 500000.0);
+}
+
 impl<'e, 'a> Iterator for MidlyMidiReader<'e, 'a> {
     type Item = DeltaEvent<RawMidiEvent>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut microseconds_since_previous_event = 0.0;
-        while let Some(event) = self.events.get(self.index) {
+        while let Some(event) = self.events.get(self.event_index) {
+            self.event_index += 1;
             microseconds_since_previous_event +=
                 (event.delta.as_int() as f64) / self.ticks_per_microsecond();
-            if let EventKind::Meta(MetaMessage::Tempo(t)) = event.kind {
-                self.current_tempo_in_micro_seconds_per_beat = t.as_int() as f64;
+            if let EventKind::Meta(MetaMessage::Tempo(new_tempo_in_microseconds_per_beat)) =
+                event.kind
+            {
+                self.current_tempo_in_micro_seconds_per_beat =
+                    new_tempo_in_microseconds_per_beat.as_int() as f64;
             }
             if let EventKind::Midi { .. } = event.kind {
-                let mut raw_data: [u8; 3] = [0, 0, 0];
-                let mut slice = &mut raw_data[0..3];
-                event
-                    .kind
-                    .write(&mut None, &mut slice)
-                    .expect("Unexpected error when writing to memory.");
-                // The slice is updated to point to the not-yet-overwritten bytes.
-                let number_of_bytes = 3 - slice.len();
-                let raw_midi_event = RawMidiEvent::new(&raw_data[0..number_of_bytes]);
+                let raw_midi_event = RawMidiEvent::from(event.kind);
                 return Some(DeltaEvent {
                     microseconds_since_previous_event: microseconds_since_previous_event as u64,
                     event: raw_midi_event,
                 });
             }
-            self.index += 1;
         }
         return None;
     }
 }
 
-pub struct MidlyMidiWriter {}
+#[test]
+fn iterator_correctly_returns_one_event() {
+    // 120 beats per minute
+    // = 120 beats per 60 seconds
+    // = 120 beats per 60 000 000 microseconds
+    // so the tempo is
+    //   60 000 000 / 120 microseconds per beat
+    //   = 10 000 000 / 20 microseconds per beat
+    //   =    500 000 microseconds per beat
+    let tempo_in_microseconds_per_beat = 500000;
+    let ticks_per_beat = 32;
+    // One event after 1 second.
+    // One second corresponds to two beats, so to 64 ticks.
+    let event_time_in_ticks = 64;
+    let events = vec![
+        Event {
+            delta: u28::from(0),
+            kind: EventKind::Meta(MetaMessage::Tempo(u24::from(
+                tempo_in_microseconds_per_beat,
+            ))),
+        },
+        Event {
+            delta: u28::from(event_time_in_ticks),
+            kind: EventKind::Midi {
+                channel: u4::from(0),
+                message: MidiMessage::NoteOn {
+                    key: u7::from(60),
+                    vel: u7::from(90),
+                },
+            },
+        },
+    ];
+    let header = Header {
+        timing: Timing::Metrical(u15::from(ticks_per_beat)),
+        format: Format::SingleTrack,
+    };
+    let mut mr = MidlyMidiReader::new(header, &events);
+    let observed = mr.next().expect("MidlyMidiReader should return one event.");
+    assert_eq!(observed.microseconds_since_previous_event, 1000000);
+    assert_eq!(mr.next(), None);
+}
+
+#[cfg(test)]
+fn iterator_correctly_returns_two_events() {
+    // 120 beats per minute
+    // = 120 beats per 60 seconds
+    // = 120 beats per 60 000 000 microseconds
+    // so the tempo is
+    //   60 000 000 / 120 microseconds per beat
+    //   = 10 000 000 / 20 microseconds per beat
+    //   =    500 000 microseconds per beat
+    let tempo_in_microseconds_per_beat = 500000;
+    let ticks_per_beat = 32;
+    // One event after 1 second.
+    // One second corresponds to two beats, so to 64 ticks.
+    let event_delta_time_in_ticks = 64;
+    let events = vec![
+        Event {
+            delta: u28::from(0),
+            kind: EventKind::Meta(MetaMessage::Tempo(u24::from(
+                tempo_in_microseconds_per_beat,
+            ))),
+        },
+        Event {
+            delta: u28::from(event_delta_time_in_ticks),
+            kind: EventKind::Midi {
+                channel: u4::from(0),
+                message: MidiMessage::NoteOn {
+                    key: u7::from(60),
+                    vel: u7::from(90),
+                },
+            },
+        },
+        Event {
+            delta: u28::from(event_delta_time_in_ticks),
+            kind: EventKind::Midi {
+                channel: u4::from(0),
+                message: MidiMessage::NoteOn {
+                    key: u7::from(60),
+                    vel: u7::from(90),
+                },
+            },
+        },
+    ];
+    let header = Header {
+        timing: Timing::Metrical(u15::from(ticks_per_beat)),
+        format: Format::SingleTrack,
+    };
+    let mut mr = MidlyMidiReader::new(header, &events);
+    let observed = mr.next().expect("MidlyMidiReader should return one event.");
+    assert_eq!(observed.microseconds_since_previous_event, 1000000);
+    let observed = mr
+        .next()
+        .expect("MidlyMidiReader should return a second event.");
+    assert_eq!(observed.microseconds_since_previous_event, 1000000);
+    assert_eq!(mr.next(), None);
+}

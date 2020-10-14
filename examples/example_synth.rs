@@ -18,6 +18,7 @@ use rsynth::event::{
 use rsynth::{AudioHandler, ContextualAudioRenderer};
 
 use midi_consts::channel_event::*;
+use rsynth::backend::HostInterface;
 use rsynth::buffer::AudioBufferInOut;
 use rsynth::meta::{InOut, Meta, MetaData};
 
@@ -96,15 +97,23 @@ impl Voice<SimpleVoiceState<ToneIdentifier>> for Noise {
 
 impl EventHandler<Timed<RawMidiEvent>> for Noise {
     fn handle_event(&mut self, timed: Timed<RawMidiEvent>) {
-        let state_and_chanel = timed.event.data()[0];
+        let state_and_channel = timed.event.data()[0];
 
         // We are digging into the details of midi-messages here.
         // Alternatively, you could use the `wmidi` crate.
-        if state_and_chanel & EVENT_TYPE_MASK == NOTE_ON {
-            self.amplitude = timed.event.data()[2] as f32 / 127.0 * AMPLIFY_MULTIPLIER;
-            self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
+        let mut is_note_off_event = state_and_channel & EVENT_TYPE_MASK == NOTE_OFF;
+        if state_and_channel & EVENT_TYPE_MASK == NOTE_ON {
+            let velocity = timed.event.data()[2];
+            if velocity != 0 {
+                println!("Note on!");
+                self.amplitude = velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER;
+                self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
+            } else {
+                is_note_off_event = true;
+            }
         }
-        if state_and_chanel & EVENT_TYPE_MASK == NOTE_OFF {
+        if is_note_off_event {
+            println!("Note off!");
             self.amplitude = 0.0;
             self.state = SimpleVoiceState::Idle;
         }
@@ -162,8 +171,13 @@ impl AudioHandler for NoisePlayer {
 impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
 where
     S: AsPrim + Float,
+    Context: HostInterface,
 {
-    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, _context: &mut Context) {
+    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context) {
+        if !context.output_initialized() {
+            // Initialize the output buffer.
+            buffer.outputs().set(S::zero());
+        }
         for noise in self.voices.iter_mut() {
             noise.render_audio_buffer(buffer);
         }

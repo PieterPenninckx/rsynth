@@ -31,16 +31,15 @@ use midly::Smf;
 use rsynth::backend::combined::dummy::{AudioDummy, MidiDummy};
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::memory::AudioBufferWriter;
-#[cfg(feature = "backend-combined")]
+#[cfg(feature = "backend-combined-midly")]
 use rsynth::backend::combined::midly::MidlyMidiReader;
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::run;
 use rsynth::buffer::AudioChunk;
 use std::fs::OpenOptions;
 use std::{env, fs};
-use wav::BitDepth;
 #[cfg(feature = "backend-combined-wav")]
-use wav::Header;
+use wav::{BitDepth, Header};
 
 #[cfg(all(feature = "backend-combined-midly", feature = "backend-combined-wav"))]
 fn main() {
@@ -64,7 +63,7 @@ fn main() {
             samplerate,
             number_of_seconds * samplerate as usize,
         );
-        let midi_event_reader = MidlyMidiReader::new(smf.header, &smf.tracks[0]);
+        let midi_event_reader = MidlyMidiReader::new(smf.header, &smf.tracks[1]);
         let midi_out = MidiDummy::new();
         println!("Rendering {} tracks of audio.", number_of_seconds);
         run(
@@ -85,12 +84,14 @@ fn main() {
         let header = Header::new(1, 2, samplerate, 16);
         let track = BitDepth::Sixteen(output_data_interlaced);
 
-        println!("Writing to output file.");
+        println!("Opening output file.");
         let output_wav_filename = args[2].clone();
         let mut output_file = OpenOptions::new()
+            .write(true)
             .create_new(true)
             .open(output_wav_filename)
             .unwrap();
+        println!("Writing to output file.");
         // Note: normally you will probably want to use a buffered writer.
         wav::write(header, track, &mut output_file).unwrap();
     }
