@@ -302,6 +302,14 @@
 <span id="302">302</span>
 <span id="303">303</span>
 <span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Backend for reading and writing `.wav` files, based on the `hound` crate.</span>
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AudioReader</span>, <span class="ident">AudioWriter</span>};
@@ -538,6 +546,14 @@
         }
 
         <span class="self">self</span>.<span class="ident">hound_sample_writer</span>.<span class="ident">flush</span>()
+    }
+
+    <span class="kw">fn</span> <span class="ident">specifies_number_of_channels</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="bool-val">true</span>
+    }
+
+    <span class="kw">fn</span> <span class="ident">number_of_channels</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">number_of_channels</span>
     }
 }
 

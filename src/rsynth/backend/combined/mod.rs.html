@@ -768,6 +768,128 @@
 <span id="768">768</span>
 <span id="769">769</span>
 <span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
+<span id="780">780</span>
+<span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
+<span id="786">786</span>
+<span id="787">787</span>
+<span id="788">788</span>
+<span id="789">789</span>
+<span id="790">790</span>
+<span id="791">791</span>
+<span id="792">792</span>
+<span id="793">793</span>
+<span id="794">794</span>
+<span id="795">795</span>
+<span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
+<span id="803">803</span>
+<span id="804">804</span>
+<span id="805">805</span>
+<span id="806">806</span>
+<span id="807">807</span>
+<span id="808">808</span>
+<span id="809">809</span>
+<span id="810">810</span>
+<span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
+<span id="822">822</span>
+<span id="823">823</span>
+<span id="824">824</span>
+<span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
+<span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
+<span id="862">862</span>
+<span id="863">863</span>
+<span id="864">864</span>
+<span id="865">865</span>
+<span id="866">866</span>
+<span id="867">867</span>
+<span id="868">868</span>
+<span id="869">869</span>
+<span id="870">870</span>
+<span id="871">871</span>
+<span id="872">872</span>
+<span id="873">873</span>
+<span id="874">874</span>
+<span id="875">875</span>
+<span id="876">876</span>
+<span id="877">877</span>
+<span id="878">878</span>
+<span id="879">879</span>
+<span id="880">880</span>
+<span id="881">881</span>
+<span id="882">882</span>
+<span id="883">883</span>
+<span id="884">884</span>
+<span id="885">885</span>
+<span id="886">886</span>
+<span id="887">887</span>
+<span id="888">888</span>
+<span id="889">889</span>
+<span id="890">890</span>
+<span id="891">891</span>
+<span id="892">892</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Combine different back-ends for audio input, audio output, midi input and</span>
 <span class="doccomment">//! midi output, mostly for offline rendering and testing.</span>
@@ -782,16 +904,18 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output</span>
 <span class="doccomment">//! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the &quot;backend-combined-hound&quot; feature)</span>
-<span class="doccomment">//! * Rimd: [`RimdMidiReader`] and [`RimdMidiWriter`]: reand and write `.mid` files (behind the &quot;backend-combined-rimd&quot; feature, only available when using `rsynth` from sources, not from crates.io)</span>
+<span class="doccomment">//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the &quot;backend-combined-midly&quot; feature)</span>
 <span class="doccomment">//! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory</span>
 <span class="doccomment">//! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Note that, when compiled with the `backend-combined-wav` feature,</span>
+<span class="doccomment">//! `AudioChunkReader` implements `From&lt;(Header, BitDepth)&gt;`.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`AudioDummy`]: ./dummy/struct.AudioDummy.html</span>
 <span class="doccomment">//! [`MidiDummy`]: ./dummy/struct.MidiDummy.html</span>
 <span class="doccomment">//! [`HoundAudioReader`]: ./hound/struct.HoundAudioReader.html</span>
 <span class="doccomment">//! [`HoundAudioWriter`]: ./hound/struct.HoundAudioWriter.html</span>
-<span class="doccomment">//! [`RimdMidiReader`]: ./rimd/struct.RimdMidiReader.html</span>
-<span class="doccomment">//! [`RimdMidiWriter`]: ./rimd/struct.RimdMidiWriter.html</span>
+<span class="doccomment">//! [`MidlyMidiReader`]: ./midly/struct.MidlyMidiReader.html</span>
 <span class="doccomment">//! [`TestAudioReader`]: ./struct.TestAudioReader.html</span>
 <span class="doccomment">//! [`TestAudioWriter`]: ./struct.TestAudioWriter.html</span>
 <span class="doccomment">//! [`AudioBufferReader`]: ./memory/struct.AudioBufferReader.html</span>
@@ -799,6 +923,7 @@
 <span class="doccomment">//! [`run`]: ./fn.run.html</span>
 <span class="doccomment">//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section</span>
 
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">HostInterface</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{
     <span class="ident">buffers_as_mut_slice</span>, <span class="ident">buffers_as_slice</span>, <span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferInOut</span>, <span class="ident">AudioBufferOut</span>,
     <span class="ident">AudioChunk</span>,
@@ -815,8 +940,8 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-hound&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">hound</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">memory</span>;
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-rimd&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">rimd</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-midly&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">midly</span>;
 
 <span class="doccomment">/// Define how audio is read.</span>
 <span class="doccomment">///</span>
@@ -849,12 +974,46 @@
 {
     <span class="doccomment">/// The type of the error that occurs when reading data.</span>
     <span class="kw">type</span> <span class="prelude-val">Err</span>;
-    <span class="comment">// TODO: What if the writer gets an unexpected number of channels?</span>
+
+    <span class="doccomment">/// Write to the specified audio buffer.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If `specifies_number_of_channels()` returns `false`, the number of audio channels is</span>
+    <span class="doccomment">/// determined by the first call to this method.</span>
+    <span class="doccomment">/// If `specifies_number_of_channels()` returns `true`, the number of audio channels is</span>
+    <span class="doccomment">/// determined by the `number_of_channels()` method.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">/// Implementations of this method may panic if the number of audio channels is not as expected.</span>
     <span class="kw">fn</span> <span class="ident">write_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="ident">AudioBufferIn</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="self">Self</span>::<span class="prelude-val">Err</span><span class="op">&gt;</span>;
+
+    <span class="comment">// TODO: remove this method in a future version.</span>
+    <span class="doccomment">/// Return `true` if this `AudioWriter` is responsible for specifying the number of channels</span>
+    <span class="doccomment">/// and false if this is determined by the first call to `write_buffer`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// _Note_: this method will disappear in a future version of `rsynth` and it will be the</span>
+    <span class="doccomment">/// default that the `AudioWriter` specifies the number of channels.</span>
+    <span class="doccomment">/// This method has a default implementation that returns `false`.</span>
+    <span class="kw">fn</span> <span class="ident">specifies_number_of_channels</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="bool-val">false</span>
+    }
+
+    <span class="doccomment">/// Return the number of channels. This method is only called if `specifies_number_of_channels`</span>
+    <span class="doccomment">/// returns `true`.</span>
+    <span class="doccomment">/// This method should always return the same number.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// _Note_: this method has a default implementation that returns `0`.</span>
+    <span class="doccomment">/// This default implementation will disappear in a future version of `rsynth` and then</span>
+    <span class="doccomment">/// implementors have to specify the number of channels.</span>
+    <span class="kw">fn</span> <span class="ident">number_of_channels</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
+        <span class="comment">// TODO: remove this default implementation.</span>
+        <span class="number">0</span>
+    }
 }
 
 <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MICROSECONDS_PER_SECOND</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">1_000_000</span>;
 
+<span class="doccomment">/// Define how midi is written.</span>
+<span class="doccomment">/// _Note_: there is no &quot;`MidiReader`&quot;; we use `Iterator&lt;Item = DeltaEvent&lt;RawMidiEvent&gt;&gt;` for that.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">MidiWriter</span> {
     <span class="kw">fn</span> <span class="ident">write_event</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">event</span>: <span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>);
 }
@@ -871,6 +1030,19 @@
     <span class="ident">previous_time_in_microseconds</span>: <span class="ident">u64</span>,
     <span class="ident">micro_seconds_per_frame</span>: <span class="ident">f64</span>,
     <span class="ident">event_queue</span>: <span class="ident">EventQueue</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="ident">HostInterface</span> <span class="kw">for</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">W</span>: <span class="ident">MidiWriter</span>,
+{
+    <span class="kw">fn</span> <span class="ident">output_initialized</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="bool-val">false</span>
+    }
+
+    <span class="kw">fn</span> <span class="ident">stop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// TODO: this should really do something.</span>
+    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>
@@ -960,7 +1132,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// Panics</span>
 <span class="doccomment">/// ======</span>
-<span class="doccomment">/// Panics if `buffer_size_in_frames` is `0` or `&gt; u32::max_value()`.</span>
+<span class="doccomment">/// Panics if `buffer_size_in_frames` is `0` or `&gt; u32::MAX`.</span>
 <span class="comment">// TODO: support different number of input and output channels.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">AudioIn</span>, <span class="ident">AudioOut</span>, <span class="ident">MidiIn</span>, <span class="ident">MidiOut</span>, <span class="ident">R</span><span class="op">&gt;</span>(
     <span class="ident">plugin</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>,
@@ -979,9 +1151,14 @@
     <span class="ident">R</span>: <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">MidiOut</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">EventHandler</span><span class="op">&lt;</span><span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 {
     <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">buffer_size_in_frames</span> <span class="op">&gt;</span> <span class="number">0</span>);
-    <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">buffer_size_in_frames</span> <span class="op">&lt;</span> <span class="ident">u32</span>::<span class="ident">max_value</span>() <span class="kw">as</span> <span class="ident">usize</span>);
+    <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">buffer_size_in_frames</span> <span class="op">&lt;</span> <span class="ident">u32</span>::<span class="ident">MAX</span> <span class="kw">as</span> <span class="ident">usize</span>);
 
     <span class="kw">let</span> <span class="ident">number_of_input_channels</span> <span class="op">=</span> <span class="ident">audio_in</span>.<span class="ident">number_of_channels</span>();
+    <span class="kw">let</span> <span class="ident">number_of_output_channels</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">audio_out</span>.<span class="ident">specifies_number_of_channels</span>() {
+        <span class="ident">audio_out</span>.<span class="ident">number_of_channels</span>()
+    } <span class="kw">else</span> {
+        <span class="ident">number_of_input_channels</span>
+    };
 
     <span class="kw">let</span> <span class="ident">frames_per_second</span> <span class="op">=</span> <span class="ident">audio_in</span>.<span class="ident">frames_per_second</span>();
     <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">frames_per_second</span> <span class="op">&gt;</span> <span class="number">0</span>);
@@ -989,12 +1166,10 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input_buffers</span> <span class="op">=</span>
         <span class="ident">AudioChunk</span>::<span class="ident">zero</span>(<span class="ident">number_of_input_channels</span>, <span class="ident">buffer_size_in_frames</span>).<span class="ident">inner</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_buffers</span> <span class="op">=</span>
-        <span class="ident">AudioChunk</span>::<span class="ident">zero</span>(<span class="ident">number_of_input_channels</span>, <span class="ident">buffer_size_in_frames</span>).<span class="ident">inner</span>();
+        <span class="ident">AudioChunk</span>::<span class="ident">zero</span>(<span class="ident">number_of_output_channels</span>, <span class="ident">buffer_size_in_frames</span>).<span class="ident">inner</span>();
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">last_time_in_frames</span> <span class="op">=</span> <span class="number">0</span>;
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">last_event_time_in_microseconds</span> <span class="op">=</span> <span class="number">0</span>;
-
-    <span class="kw">let</span> <span class="ident">frames_per_second</span> <span class="op">=</span> <span class="ident">audio_in</span>.<span class="ident">frames_per_second</span>();
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">MidiWriterWrapper</span>::<span class="ident">new</span>(
         <span class="ident">midi_out</span>,
@@ -1022,7 +1197,7 @@
         }
 
         <span class="comment">// Handle events</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">event</span>) <span class="op">=</span> <span class="ident">peekable_midi_reader</span>.<span class="ident">peek</span>() {
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">event</span>) <span class="op">=</span> <span class="ident">peekable_midi_reader</span>.<span class="ident">peek</span>() {
             <span class="kw">let</span> <span class="ident">time_in_frames</span> <span class="op">=</span> (<span class="ident">last_event_time_in_microseconds</span>
                 <span class="op">+</span> <span class="ident">event</span>.<span class="ident">microseconds_since_previous_event</span>)
                 <span class="op">*</span> <span class="ident">frames_per_second</span>
@@ -1037,6 +1212,8 @@
                     <span class="ident">event</span>: <span class="ident">event</span>.<span class="ident">event</span>,
                 });
                 <span class="ident">last_event_time_in_microseconds</span> <span class="op">+</span><span class="op">=</span> <span class="ident">event</span>.<span class="ident">microseconds_since_previous_event</span>;
+            } <span class="kw">else</span> {
+                <span class="kw">break</span>;
             }
         }
 
@@ -1113,7 +1290,7 @@
     <span class="kw">fn</span> <span class="ident">fill_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">output</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="self">Self</span>::<span class="prelude-val">Err</span><span class="op">&gt;</span> {
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">number_of_channels</span>(), <span class="self">self</span>.<span class="ident">expected_channels</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(
-            <span class="self">self</span>.<span class="ident">expected_buffer_sizes</span>[<span class="macro">dbg</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">number_of_calls_to_fill_buffer</span>)],
+            <span class="self">self</span>.<span class="ident">expected_buffer_sizes</span>[<span class="self">self</span>.<span class="ident">number_of_calls_to_fill_buffer</span>],
             <span class="ident">output</span>.<span class="ident">number_of_frames</span>()
         );
         <span class="self">self</span>.<span class="ident">number_of_calls_to_fill_buffer</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
@@ -1264,7 +1441,7 @@
         }
 
         <span class="attribute">#[<span class="ident">test</span>]</span>
-        <span class="kw">fn</span> <span class="ident">reads_events_at_the_right_time</span>() {
+        <span class="kw">fn</span> <span class="ident">reads_one_event_at_the_right_time</span>() {
             <span class="kw">const</span> <span class="ident">BUFFER_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">3</span>;
             <span class="kw">const</span> <span class="ident">NUMBER_OF_CHANNELS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">1</span>;
             <span class="kw">const</span> <span class="ident">SAMPLE_RATE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">8000</span>;
@@ -1317,6 +1494,73 @@
                     <span class="ident">output_data</span>.<span class="ident">clone</span>().<span class="ident">split</span>(<span class="ident">BUFFER_SIZE</span>),
                 ),
                 <span class="ident">TestMidiReader</span>::<span class="ident">new</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="ident">input_event</span>]),
+                <span class="ident">MidiDummy</span>::<span class="ident">new</span>(),
+            )
+            .<span class="ident">expect</span>(<span class="string">&quot;Unexpected error&quot;</span>);
+            <span class="ident">test_plugin</span>.<span class="ident">check_last</span>();
+        }
+
+        <span class="attribute">#[<span class="ident">test</span>]</span>
+        <span class="kw">fn</span> <span class="ident">reads_two_events_at_the_right_time</span>() {
+            <span class="kw">const</span> <span class="ident">BUFFER_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">3</span>;
+            <span class="kw">const</span> <span class="ident">NUMBER_OF_CHANNELS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">1</span>;
+            <span class="kw">const</span> <span class="ident">SAMPLE_RATE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">8000</span>;
+            <span class="kw">let</span> <span class="ident">input_data</span> <span class="op">=</span> <span class="ident">AudioChunk</span>::<span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span>::<span class="ident">zero</span>(<span class="number">1</span>, <span class="number">16</span>);
+            <span class="kw">let</span> <span class="ident">output_data</span> <span class="op">=</span> <span class="ident">AudioChunk</span>::<span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span>::<span class="ident">zero</span>(<span class="number">1</span>, <span class="number">16</span>);
+
+            <span class="comment">// So 1 frame  is 1/8000 seconds,</span>
+            <span class="comment">//    8 frames is 1/1000 seconds = 1ms = 1000 microsecond.</span>
+            <span class="kw">let</span> <span class="ident">event</span> <span class="op">=</span> <span class="ident">RawMidiEvent</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);
+            <span class="comment">// Event is expected at frame 7:</span>
+            <span class="comment">// 0 1 2 3 4 5 6 7 8        (in 1000 microseconds)</span>
+            <span class="comment">// . . .|. . .|. E .|. . .|. . .|.</span>
+            <span class="kw">let</span> <span class="ident">input_event1</span> <span class="op">=</span> <span class="ident">DeltaEvent</span> {
+                <span class="ident">microseconds_since_previous_event</span>: <span class="number">875</span>,
+                <span class="ident">event</span>,
+            };
+            <span class="comment">// Event is expected at frame 8:</span>
+            <span class="comment">// 0 1 2 3 4 5 6 7 8        (in 1000 microseconds)</span>
+            <span class="comment">// . . .|. . .|. . E|. . .|. . .|.</span>
+            <span class="kw">let</span> <span class="ident">input_event2</span> <span class="op">=</span> <span class="ident">DeltaEvent</span> {
+                <span class="ident">microseconds_since_previous_event</span>: <span class="number">125</span>,
+                <span class="ident">event</span>,
+            };
+
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="ident">new</span>(
+                <span class="ident">input_data</span>.<span class="ident">clone</span>().<span class="ident">split</span>(<span class="ident">BUFFER_SIZE</span>),
+                <span class="ident">output_data</span>.<span class="ident">clone</span>().<span class="ident">split</span>(<span class="ident">BUFFER_SIZE</span>),
+                <span class="macro">vec</span><span class="macro">!</span>[
+                    <span class="macro">vec</span><span class="macro">!</span>[],
+                    <span class="macro">vec</span><span class="macro">!</span>[],
+                    <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Timed</span>::<span class="ident">new</span>(<span class="number">1</span>, <span class="ident">event</span>), <span class="ident">Timed</span>::<span class="ident">new</span>(<span class="number">2</span>, <span class="ident">event</span>)],
+                    <span class="macro">vec</span><span class="macro">!</span>[],
+                    <span class="macro">vec</span><span class="macro">!</span>[],
+                    <span class="macro">vec</span><span class="macro">!</span>[],
+                ],
+                <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Vec</span>::<span class="ident">new</span>(); <span class="number">6</span>],
+                <span class="ident">DummyMeta</span>,
+            );
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_buffer</span> <span class="op">=</span> <span class="ident">AudioChunk</span>::<span class="ident">new</span>(<span class="ident">NUMBER_OF_CHANNELS</span>);
+            <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">run</span>(
+                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">test_plugin</span>,
+                <span class="ident">BUFFER_SIZE</span>,
+                <span class="ident">TestAudioReader</span>::<span class="ident">new</span>(
+                    <span class="ident">AudioBufferReader</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">input_data</span>, <span class="ident">SAMPLE_RATE</span>),
+                    <span class="ident">NUMBER_OF_CHANNELS</span>,
+                    <span class="macro">vec</span><span class="macro">!</span>[
+                        <span class="ident">BUFFER_SIZE</span>,
+                        <span class="ident">BUFFER_SIZE</span>,
+                        <span class="ident">BUFFER_SIZE</span>,
+                        <span class="ident">BUFFER_SIZE</span>,
+                        <span class="ident">BUFFER_SIZE</span>,
+                        <span class="ident">BUFFER_SIZE</span>,
+                    ],
+                ),
+                <span class="ident">TestAudioWriter</span>::<span class="ident">new</span>(
+                    <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferWriter</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">output_buffer</span>),
+                    <span class="ident">output_data</span>.<span class="ident">clone</span>().<span class="ident">split</span>(<span class="ident">BUFFER_SIZE</span>),
+                ),
+                <span class="ident">TestMidiReader</span>::<span class="ident">new</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="ident">input_event1</span>, <span class="ident">input_event2</span>]),
                 <span class="ident">MidiDummy</span>::<span class="ident">new</span>(),
             )
             .<span class="ident">expect</span>(<span class="string">&quot;Unexpected error&quot;</span>);

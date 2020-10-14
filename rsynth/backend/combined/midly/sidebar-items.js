@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Event","Represents a fully parsed track event, with delta time."],["MidlyMidiReader","Read from midi events as parsed by the `midly` crate."]]});

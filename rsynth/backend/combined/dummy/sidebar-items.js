@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AudioDummy",""],["MidiDummy",""]]});
+initSidebarItems({"struct":[["AudioDummy","Dummy backend that does nothing, useful for testing and e.g. for offline renderers that have no audio input or output."],["MidiDummy",""]]});

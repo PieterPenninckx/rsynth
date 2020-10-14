@@ -63,22 +63,54 @@
 <span id="63">63</span>
 <span id="64">64</span>
 <span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Dummy backend that does nothing, useful for testing.</span>
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AudioReader</span>, <span class="ident">AudioWriter</span>, <span class="ident">MidiWriter</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{<span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferOut</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">RawMidiEvent</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">cmp</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span>;
 
+<span class="doccomment">/// Dummy backend that does nothing, useful for testing and e.g. for offline renderers</span>
+<span class="doccomment">/// that have no audio input or output.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AudioDummy</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="ident">_phantom</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
+    <span class="ident">frames_per_second</span>: <span class="ident">u32</span>,
+    <span class="ident">length_in_frames</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> <span class="ident">AudioDummy</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="ident">AudioDummy</span> {
+    <span class="doccomment">/// Create a new `AudioDummy` with the given sample rate, in frames per second.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_sample_rate_and_length</span>(<span class="ident">frames_per_second</span>: <span class="ident">u32</span>, <span class="ident">length_in_frames</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span> {
+            <span class="ident">frames_per_second</span>,
+            <span class="ident">length_in_frames</span>,
             <span class="ident">_phantom</span>: <span class="ident">PhantomData</span>,
         }
+    }
+
+    <span class="attribute">#[<span class="ident">deprecated</span>(<span class="ident">since</span> <span class="op">=</span> <span class="string">&quot;0.1.2&quot;</span>, <span class="ident">note</span> <span class="op">=</span> <span class="string">&quot;Use `with_sample_rate_and_length` instead.&quot;</span>)]</span>
+    <span class="doccomment">/// Create a new `AudioDummy` with the &quot;default&quot; sample rate</span>
+    <span class="doccomment">/// of 44100 frames per second (CD quality) and a length of 0 samples.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span>::<span class="ident">with_sample_rate_and_length</span>(<span class="number">44100</span>, <span class="number">0</span>)
     }
 }
 
@@ -92,11 +124,13 @@
     }
 
     <span class="kw">fn</span> <span class="ident">frames_per_second</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">u64</span> {
-        <span class="number">44100</span>
+        <span class="self">self</span>.<span class="ident">frames_per_second</span> <span class="kw">as</span> <span class="ident">u64</span>
     }
 
-    <span class="kw">fn</span> <span class="ident">fill_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">_output</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="self">Self</span>::<span class="prelude-val">Err</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="number">0</span>) <span class="comment">// TODO: Have a look at this implementation again: is this logical?</span>
+    <span class="kw">fn</span> <span class="ident">fill_buffer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">output</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">AudioBufferOut</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="self">Self</span>::<span class="prelude-val">Err</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">number_of_frames_written</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="self">self</span>.<span class="ident">length_in_frames</span>, <span class="ident">output</span>.<span class="ident">number_of_frames</span>());
+        <span class="self">self</span>.<span class="ident">length_in_frames</span> <span class="op">-</span><span class="op">=</span> <span class="ident">number_of_frames_written</span>;
+        <span class="prelude-val">Ok</span>(<span class="ident">number_of_frames_written</span>)
     }
 }
 

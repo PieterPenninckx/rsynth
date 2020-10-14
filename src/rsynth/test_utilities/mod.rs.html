@@ -198,7 +198,6 @@
 <span id="198">198</span>
 <span id="199">199</span>
 <span id="200">200</span>
-<span id="201">201</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Utilities for testing.</span>
 
@@ -378,7 +377,6 @@
             <span class="string">&quot;`handle_event` is called after {} calls to `render_buffer`; this is unexpected&quot;</span>,
             <span class="self">self</span>.<span class="ident">expected_events</span>.<span class="ident">len</span>()
         );
-        <span class="macro">dbg</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">expected_events</span>);
         <span class="kw">let</span> <span class="ident">expected_events_for_this_buffer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">expected_events</span>[<span class="self">self</span>.<span class="ident">buffer_index</span>];
         <span class="macro">assert</span><span class="macro">!</span>(
             <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">&lt;</span> <span class="ident">expected_events_for_this_buffer</span>.<span class="ident">len</span>(),
