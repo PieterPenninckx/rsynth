@@ -397,7 +397,7 @@ where
     fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
         assert_eq!(output.number_of_channels(), self.expected_channels);
         assert_eq!(
-            self.expected_buffer_sizes[dbg!(self.number_of_calls_to_fill_buffer)],
+            self.expected_buffer_sizes[self.number_of_calls_to_fill_buffer],
             output.number_of_frames()
         );
         self.number_of_calls_to_fill_buffer += 1;

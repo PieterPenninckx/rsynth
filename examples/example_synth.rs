@@ -105,7 +105,6 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
         if state_and_channel & EVENT_TYPE_MASK == NOTE_ON {
             let velocity = timed.event.data()[2];
             if velocity != 0 {
-                println!("Note on!");
                 self.amplitude = velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER;
                 self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
             } else {
@@ -113,7 +112,6 @@ impl EventHandler<Timed<RawMidiEvent>> for Noise {
             }
         }
         if is_note_off_event {
-            println!("Note off!");
             self.amplitude = 0.0;
             self.state = SimpleVoiceState::Idle;
         }
