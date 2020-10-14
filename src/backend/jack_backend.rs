@@ -1,4 +1,5 @@
-//! Wrapper for the [JACK] backend.
+//! Wrapper for the [JACK] backend (behind the `backend-jack` feature).
+//!
 //! Support is only enabled if you compile with the "backend-jack" feature, see
 //! [the cargo reference] for more information on setting cargo features.
 //!
@@ -22,15 +23,22 @@ use std::io;
 use std::slice;
 use vecstorage::VecStorage;
 
-/// Re-exports of the [`jack`](https://crates.io/crates/jack crate).
+/// Re-exports of the [`jack`](https://crates.io/crates/jack) crate.
 /// Use this so that your code doesn't break when `rsynth` upgrades its dependency on `jack`.
-mod jack {
+pub mod jack {
     pub use jack::*;
 }
 
 use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use self::jack::{Client, ClientOptions, Control, ProcessHandler};
 
+/// Used to communicate with `Jack`.
+///
+/// You don't need to instantiate this yourself: it is passed as the `context`
+/// parameter to the [`render_audio`] method when using the [`run`] function.
+///
+/// [`render_audio`]: ../../trait.ContextualAudioRenderer.html#tymethod.render_buffer
+/// [`run`]: ./fn.run.html
 pub struct JackHost<'c, 'mp, 'mw> {
     client: &'c Client,
     midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
@@ -38,7 +46,9 @@ pub struct JackHost<'c, 'mp, 'mw> {
 }
 
 impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
-    /// Get access to the underlying `Client` so that you can use Jack-specific features.
+    /// Get access to the underlying [`Client`] so that you can use Jack-specific features.
+    ///
+    /// ['Client`]: ./jack/struct.Client.html
     pub fn client(&self) -> &'c Client {
         self.client
     }

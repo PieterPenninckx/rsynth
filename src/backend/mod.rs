@@ -6,7 +6,7 @@
 //! * [`combined`] combine different back-ends for audio input, audio output, midi input and
 //!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
-//! * [`vst`] (behind the backend-vst)
+//! * [`vst`] (behind the `backend-vst` feature)
 //!
 //! These backends are currently in the `rsynth` crate, but we may eventually move them to
 //! separate crates.

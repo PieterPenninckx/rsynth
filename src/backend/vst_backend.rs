@@ -1,4 +1,4 @@
-//! Wrapper for the VST backend.
+//! Wrapper for the VST backend (behind the `backend-vst` feature).
 //!
 //! Support is only enabled if you compile with the "backend-vst" feature, see
 //! [the cargo reference] for more information on setting cargo features.
@@ -21,7 +21,9 @@ use crate::{
 use core::cmp;
 use vecstorage::VecStorage;
 
-/// Re-exports from the [`rust-vst`](https://github.com/RustAudio/vst-rs) crate.
+/// Re-exports from the [`vst-rs`](https://github.com/RustAudio/vst-rs) crate.
+/// Use this in libraries so that your library does not break when `rsynth` upgrades to another
+/// version of the `vst-rs` crate.
 pub mod vst {
     pub use vst::*;
 }
@@ -41,7 +43,8 @@ pub trait VstPluginMeta: CommonPluginMeta + AudioHandlerMeta {
     fn category(&self) -> Category;
 }
 
-/// A struct used internally by the `vst_init` macro. Normally, plugin's do not need to use this.
+/// A struct used internally by the [`vst_init`] macro. Normally, plugin's do not need to use this.
+// //! [`vst_init`]: ../../macro.vst_init.html
 pub struct VstPluginWrapper<P> {
     plugin: P,
     host: HostCallback,
@@ -73,6 +76,12 @@ where
         }
     }
 
+    /// Create a new `VstPluginWrapper`.
+    /// _Note_ Normally, plugin's do not need to use [`VstPluginWrapper`] and use the
+    /// [`vst_init`] macro instead.
+    ///
+    /// [`vst_init`]: ../../macro.vst_init.html
+    /// [`VstPluginWrapper`]: ./
     pub fn new(plugin: P, host: HostCallback) -> Self {
         Self {
             inputs_f32: VecStorage::with_capacity(plugin.max_number_of_audio_inputs()),

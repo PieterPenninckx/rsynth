@@ -55,7 +55,7 @@ where
     T: Borrow<AudioChunk<S>>,
     S: Copy,
 {
-    /// Construct a new `AudioBufferReader` with the given [`AudioChunk`] and
+    /// Construct a new `AudioChunkReader` with the given [`AudioChunk`] and
     /// sample rate in frames per second.
     ///
     /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html

@@ -83,7 +83,7 @@ fn number_of_frames_in_range_works_open_starting_range() {
 
 /// Audio input buffer
 ///
-/// It is guaranteed that all channels have the same length (number of samples).
+/// It is guaranteed that all channels have the same number of frames..
 #[derive(Clone, Copy)]
 pub struct AudioBufferIn<'channels, 'samples, S>
 where
@@ -243,7 +243,7 @@ fn buffer_in_index_frames_works() {
 
 /// An audio output buffer.
 ///
-/// It is guaranteed that all channels have the same length (number of samples).
+/// It is guaranteed that all channels have the same number of frames..
 pub struct AudioBufferOut<'channels, 'out_samples, S>
 where
     S: 'static + Copy,
@@ -284,7 +284,7 @@ where
     ///
     /// # Unsafe
     /// This method is marked unsafe because using it allows to change the length of the
-    /// channels, which invalidates the invariant
+    /// channels, which invalidates the invariant.
     pub unsafe fn channels<'a>(&'a mut self) -> &'a mut [&'samples mut [S]] {
         self.channels
     }
@@ -441,6 +441,9 @@ where
     }
 }
 
+/// An iterator over the channels of an [`AudioBufferOut`].
+///
+/// [`AudioBufferOut`]: ./struct.AudioBufferOut.html
 pub struct AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
     inner: std::slice::IterMut<'channels, &'samples mut [S]>,
 }
@@ -704,6 +707,9 @@ where
 }
 
 // Alternative name: "packet"?
+/// A buffer representing a fixed amount of samples for a fixed amount of audio channels.
+///
+/// An `AudioChunk` "owns" all its samples.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct AudioChunk<S> {
     // Invariant: channels is not empty.
@@ -759,10 +765,10 @@ where
 }
 
 impl<S> AudioChunk<S> {
+    /// Create a new `AudioChunk`.
     /// # Panics
     /// Panics if `number_of_channels == 0`.
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn new(number_of_channels: usize) -> Self {
         assert!(number_of_channels > 0);
@@ -774,8 +780,7 @@ impl<S> AudioChunk<S> {
         Self { channels }
     }
     // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn zero(number_of_channels: usize, number_of_frames: usize) -> Self
     where
@@ -849,8 +854,7 @@ impl<S> AudioChunk<S> {
     /// This allows to append `capacity` frames to the `AudioChunk` (e.g. by calling
     /// `append_sliced_chunk`).
     ///
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn with_capacity(number_of_channels: usize, capacity: usize) -> Self {
         assert!(number_of_channels > 0);
@@ -871,8 +875,7 @@ impl<S> AudioChunk<S> {
         self.channels().len()
     }
 
-    /// Note about using in a real-time context
-    /// ---------------------------------------
+    /// # Note about using in a real-time context
     /// This method will allocate memory if the capacity of the chunk is exceeded and cannot
     /// be used in a real-time context in that case.
     pub fn append_sliced_chunk(&mut self, chunk: &[&[S]])
@@ -893,8 +896,7 @@ impl<S> AudioChunk<S> {
         self.channels
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_slices<'a>(&'a self) -> Vec<&[S]> {
         self.channels
@@ -903,8 +905,7 @@ impl<S> AudioChunk<S> {
             .collect()
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_mut_slices<'a>(&'a mut self) -> Vec<&mut [S]> {
         self.channels
@@ -913,8 +914,7 @@ impl<S> AudioChunk<S> {
             .collect()
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn split(mut self, number_of_frames_per_chunk: usize) -> Vec<Self> {
         assert!(number_of_frames_per_chunk > 0);

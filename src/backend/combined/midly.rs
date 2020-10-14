@@ -1,11 +1,19 @@
+//! Read midi files.
 use super::MICROSECONDS_PER_SECOND;
 use crate::event::{DeltaEvent, RawMidiEvent};
+
+/// Re-exports from the `midly` crate.
+pub mod midly {
+    pub use midly::Event;
+}
+
 #[cfg(test)]
-use midly::number::{u15, u24, u28, u4, u7};
-pub use midly::Event;
-use midly::{EventKind, Header, MetaMessage, Timing};
+use ::midly::number::{u15, u24, u28, u4, u7};
+use ::midly::{EventKind, Header, MetaMessage, Timing};
 #[cfg(test)]
-use midly::{Format, MidiMessage};
+use ::midly::{Format, MidiMessage};
+
+use self::midly::Event;
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;

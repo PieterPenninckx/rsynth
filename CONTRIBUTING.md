@@ -1,29 +1,30 @@
+#Contributing
 Contributions and suggestions are welcome!
 
-### Opening and voting for issues
+## Opening and voting for issues
 
 If there is a feature you would like to see, feel free to open an issue or "vote" for an issue by
 adding the "thumbs up" emoji.
 
-### Reviewing pull requests
+## Reviewing pull requests
 
 Two pair of eyes see more than just one. Have a look at 
 [this issue](https://github.com/PieterPenninckx/rsynth/issues/74) if you want to help by reviewing
 code.
 
-### Writing blog posts
+## Writing blog posts
 
 If you write a plugin that uses `rsynth`, why not share your experience by writing a blog post?
 (Make sure you clearly indicate the date and the particular version you are trying.)
 
-### Updating documentation
+## Updating documentation
 
 Everybody loves good documentation, but it's a lot of work to write and maintain.
 Contributing to the doc comments is a way to contribute that does not require that many
 skills, but which has a big impact.
 For practical aspects, see "Contributing code" below.
 
-### Contributing code
+## Contributing code
 
 Code contributions are certainly welcome as well!
 
@@ -43,7 +44,7 @@ you don't want me to squash the commits, let me know when you open the pull requ
 
 Pull requests should be opened against the `master` branch.
 
-#### Code formatting
+### Code formatting
 Please use `cargo fmt` to format your code before opening a pull request.
 
 _Tip_: you can auto-format your code on save in your IDE:
