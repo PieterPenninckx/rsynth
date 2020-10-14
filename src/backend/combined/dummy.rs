@@ -23,10 +23,7 @@ impl<S> AudioDummy<S> {
         }
     }
 
-    #[deprecated(
-        since = "0.1.2",
-        note = "Deprecated in favour of the dedicated `polyphony` crate."
-    )]
+    #[deprecated(since = "0.1.2", note = "Use `with_sample_rate_and_length` instead.")]
     /// Create a new `AudioDummy` with the "default" sample rate
     /// of 44100 frames per second (CD quality) and a length of 0 samples.
     pub fn new() -> Self {
