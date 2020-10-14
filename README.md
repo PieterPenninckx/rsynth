@@ -12,12 +12,14 @@ We focus on API's that are typically used for audio effects and software synthes
 If you want to "just" play audio on various platforms, [cpal](https://crates.io/crates/cpal) may
 be better suited for you.
 
+Note: many of these features are behind feature flags.
+
 | feature |  VST 2.4 via [`rust-vst`]      | Jack via [`jack`] | Offline audio rendering |
 |---------|:------------------------------:|:-----------------:|:-----------------------:|
 | Full duplex audio input and output |  ✓  |        ✓          |           ✓             |
-| Midi input                         |  ✓  |        ✓          |           ✘             |
+| Midi input                         |  ✓  |        ✓          |           ✓             |
 | Midi output                        | N/A |        ✓          |           ✘             |
-| Sample accurate midi               | N/A |        ✓          |           ✘             |
+| Sample accurate midi               | N/A |        ✓          |           ✓             |
 | Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
 | Sampling frequency change          |  ✓  |        ✘          |          N/A            |
 | Signal stopping the application    | N/A |        ✓          |          N/A            |
