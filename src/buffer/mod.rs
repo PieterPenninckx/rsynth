@@ -105,10 +105,7 @@ where
         for channel in channels {
             assert_eq!(channel.len(), length);
         }
-        Self {
-            channels,
-            length,
-        }
+        Self { channels, length }
     }
 
     /// Get the number of channels.
