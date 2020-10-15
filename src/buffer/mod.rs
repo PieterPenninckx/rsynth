@@ -81,9 +81,9 @@ fn number_of_frames_in_range_works_open_starting_range() {
     assert_eq!(number_of_frames_in_range(4, ..2), 2);
 }
 
-/// Audio input buffer
+/// Audio input buffer.
 ///
-/// It is guaranteed that all channels have the same length (number of samples).
+/// It is guaranteed that all channels have the same number of frames.
 #[derive(Clone, Copy)]
 pub struct AudioBufferIn<'channels, 'samples, S>
 where
@@ -100,15 +100,12 @@ where
     /// Create a new audio input buffer.
     ///
     /// # Panics
-    /// Panics if one of the elements of `inputs` does not have the given length.
-    pub fn new(inputs: &'channels [&'samples [S]], length: usize) -> Self {
-        for channel in inputs {
+    /// Panics if one of the elements of `channels` does not have the given length.
+    pub fn new(channels: &'channels [&'samples [S]], length: usize) -> Self {
+        for channel in channels {
             assert_eq!(channel.len(), length);
         }
-        Self {
-            channels: inputs,
-            length,
-        }
+        Self { channels, length }
     }
 
     /// Get the number of channels.
@@ -126,9 +123,22 @@ where
         self.channels
     }
 
-    /// Get a sub-chunk with the given range of frames.
+    /// Get an `AudioBufferIn` with all channels and the given range of frames.
     ///
     /// The vector `vec` will be used to store the channels of the result.
+    ///
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    ///
+    /// # Usage in a real-time thread
+    /// This method will append `number_of_channels` elements to the given vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
     ///
     /// # Example
     /// ```
@@ -145,19 +155,6 @@ where
     /// assert_eq!(channels[0], &[12]);
     /// assert_eq!(channels[1], &[22]);
     /// ```
-    ///
-    /// # Remark
-    /// The vector `vec` will be cleared before use in order to guarantee that all channels
-    /// have the same length.
-    ///
-    /// # Usage in a real-time thread
-    /// This method will append `number_of_channels` elements to the given vector.
-    /// This will cause memory to be allocated if this exceeds the capacity of the
-    /// given vector.
-    ///
-    /// # Suggestion
-    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
-    /// different lifetimes.
     ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
     pub fn index_frames<'s, 'v, R>(
@@ -182,6 +179,8 @@ where
     }
 
     /// Get the channel with the given index.
+    ///
+    /// Return `None` when the index is out of bounds.
     // TODO: maybe find a better name for this method.
     pub fn get_channel(&self, index: usize) -> Option<&[S]> {
         if index > self.channels.len() {
@@ -243,7 +242,7 @@ fn buffer_in_index_frames_works() {
 
 /// An audio output buffer.
 ///
-/// It is guaranteed that all channels have the same length (number of samples).
+/// It is guaranteed that all channels have the same number of frames.
 pub struct AudioBufferOut<'channels, 'out_samples, S>
 where
     S: 'static + Copy,
@@ -284,7 +283,7 @@ where
     ///
     /// # Unsafe
     /// This method is marked unsafe because using it allows to change the length of the
-    /// channels, which invalidates the invariant
+    /// channels, which invalidates the invariant.
     pub unsafe fn channels<'a>(&'a mut self) -> &'a mut [&'samples mut [S]] {
         self.channels
     }
@@ -336,9 +335,22 @@ where
         )
     }
 
-    /// Get a sub-chunk with the given range of frames.
+    /// Get an `AdioBufferOut` with all channels and the given range of frames.
     ///
     /// The vector `vec` will be used to store the channels of the result.
+    ///
+    /// # Remark
+    /// The vector `vec` will be cleared before use in order to guarantee that all channels
+    /// have the same length.
+    ///
+    /// # Usage in a real-time threat
+    /// This method will append `number_of_channels` elements to the given vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
     ///
     /// # Example
     /// ```
@@ -356,19 +368,6 @@ where
     /// assert_eq!(sub_part.index_channel(0), &[12]);
     /// assert_eq!(sub_part.index_channel(1), &[22]);
     /// ```
-    ///
-    /// # Remark
-    /// The vector `vec` will be cleared before use in order to guarantee that all channels
-    /// have the same length.
-    ///
-    /// # Usage in a real-time threat
-    /// This method will append `number_of_channels` elements to the given vector.
-    /// This will cause memory to be allocated if this exceeds the capacity of the
-    /// given vector.
-    ///
-    /// # Suggestion
-    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
-    /// different lifetimes.
     ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
     pub fn index_frames<'s, 'v, R>(
@@ -393,6 +392,8 @@ where
     }
 
     /// Get the channel with the given index.
+    ///
+    /// Returns `None` if `index` is out of bonds.
     // TODO: maybe find a better name for this method.
     pub fn get_channel(&mut self, index: usize) -> Option<&mut [S]> {
         if index > self.channels.len() {
@@ -419,13 +420,16 @@ where
         }
     }
 
-    /// Get an iterator over the channels
+    /// Get an iterator over the channels.
     pub fn channel_iter_mut<'a>(&'a mut self) -> AudioBufferOutChannelIteratorMut<'a, 'samples, S> {
         AudioBufferOutChannelIteratorMut {
             inner: self.channels.iter_mut(),
         }
     }
 
+    /// Convert to an [`AudioBufferIn`].
+    ///
+    /// [`AudioBufferIn`]: struct.AudioBufferIn.html
     pub fn as_audio_buffer_in<'s, 'vec>(
         &'s self,
         vec: &'vec mut Vec<&'s [S]>,
@@ -441,6 +445,9 @@ where
     }
 }
 
+/// An iterator over the channels of an [`AudioBufferOut`].
+///
+/// [`AudioBufferOut`]: ./struct.AudioBufferOut.html
 pub struct AudioBufferOutChannelIteratorMut<'channels, 'samples, S> {
     inner: std::slice::IterMut<'channels, &'samples mut [S]>,
 }
@@ -510,6 +517,8 @@ impl<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
 where
     S: 'static + Copy,
 {
+    /// Create a new `AudioBufferInOut`.
+    ///
     /// # Panics
     /// Panics if one of the following happens:
     /// * not all elements of `inputs` have the same length,
@@ -576,7 +585,9 @@ where
         )
     }
 
-    /// Get the channel with the given index.
+    /// Get the input channel with the given index.
+    ///
+    /// Returns `None` when `index` is out of bounds.
     // TODO: maybe find a better name for this method.
     pub fn get_input_channel(&self, index: usize) -> Option<&[S]> {
         self.inputs.get_channel(index)
@@ -590,7 +601,9 @@ where
         self.inputs.index_channel(index)
     }
 
-    /// Get the channel with the given index.
+    /// Get the output channel with the given index.
+    ///
+    /// Returns `None` when `index` is out of bounds.
     // TODO: maybe find a better name for this method.
     pub fn get_output_channel(&mut self, index: usize) -> Option<&mut [S]> {
         self.outputs.get_channel(index)
@@ -604,9 +617,23 @@ where
         self.outputs.index_channel(index)
     }
 
-    /// Get a sub-chunk with the given range of frames.
+    /// Get an `AudioBufferInOut` with all channels and with the given range of frames.
     ///
     /// The vectors `vec_in` and `vec_out` will be used to store the channels of the result.
+    ///
+    /// # Remark
+    /// The vectors `vec_in` and `vec_out` will be cleared before use in order to guarantee that all
+    /// channels have the same length.
+    ///
+    /// # Usage in a real-time thread
+    /// This method will push `number_of_input_channels` elements to the given "input" vector
+    /// and `number_of_output_channels` to the "output" vector.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given vector.
+    ///
+    /// # Suggestion
+    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
+    /// different lifetimes.
     ///
     /// # Example
     /// ```
@@ -631,20 +658,6 @@ where
     /// assert_eq!(sub_part.index_output_channel(0), &[120]);
     /// ```
     ///
-    /// # Remark
-    /// The vectors `vec_in` and `vec_out` will be cleared before use in order to guarantee that all
-    /// channels have the same length.
-    ///
-    /// # Usage in a real-time thread
-    /// This method will append `number_of_input_channels` elements to the given "input" vector
-    /// and `number_of_output_channels` to the "output" vector.
-    /// This will cause memory to be allocated if this exceeds the capacity of the
-    /// given vector.
-    ///
-    /// # Suggestion
-    /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
-    /// different lifetimes.
-    ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
     pub fn index_frames<'s, 'in_vec, 'out_vec, R>(
         &'s mut self,
@@ -662,7 +675,9 @@ where
         }
     }
 
-    /// Separate into an `AudioBufferIn` and an `AudioBufferOut`.
+    /// Separate the input channels from the output channels.
+    ///
+    /// Separates the `AudioBufferInOut` into an `AudioBufferIn` and an `AudioBufferOut`.
     ///
     /// # Example
     /// ```
@@ -694,16 +709,25 @@ where
         )
     }
 
+    /// Get the input channels as an [`AudioBufferIn`].
+    ///
+    /// [`AudioBufferIn`]: ./struct.AudioBufferIn.html
     pub fn inputs(&self) -> &AudioBufferIn<'in_channels, 'in_samples, S> {
         &self.inputs
     }
 
+    /// Get the output channels as an [`AudioBufferOut`].
+    ///
+    /// [`AudioBufferOut`]: ./struct.AudioBufferOut.html
     pub fn outputs(&mut self) -> &mut AudioBufferOut<'out_channels, 'out_samples, S> {
         &mut self.outputs
     }
 }
 
 // Alternative name: "packet"?
+/// A buffer representing a fixed amount of samples for a fixed amount of audio channels.
+///
+/// An `AudioChunk` "owns" all its samples.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct AudioChunk<S> {
     // Invariant: channels is not empty.
@@ -759,10 +783,10 @@ where
 }
 
 impl<S> AudioChunk<S> {
+    /// Create a new `AudioChunk`.
     /// # Panics
     /// Panics if `number_of_channels == 0`.
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn new(number_of_channels: usize) -> Self {
         assert!(number_of_channels > 0);
@@ -774,8 +798,7 @@ impl<S> AudioChunk<S> {
         Self { channels }
     }
     // TODO: what we really want here, is to generate "silence" (equilibrium), this does not need to be equal to zero.
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn zero(number_of_channels: usize, number_of_frames: usize) -> Self
     where
@@ -849,8 +872,7 @@ impl<S> AudioChunk<S> {
     /// This allows to append `capacity` frames to the `AudioChunk` (e.g. by calling
     /// `append_sliced_chunk`).
     ///
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn with_capacity(number_of_channels: usize, capacity: usize) -> Self {
         assert!(number_of_channels > 0);
@@ -871,8 +893,7 @@ impl<S> AudioChunk<S> {
         self.channels().len()
     }
 
-    /// Note about using in a real-time context
-    /// ---------------------------------------
+    /// # Note about using in a real-time context
     /// This method will allocate memory if the capacity of the chunk is exceeded and cannot
     /// be used in a real-time context in that case.
     pub fn append_sliced_chunk(&mut self, chunk: &[&[S]])
@@ -893,8 +914,7 @@ impl<S> AudioChunk<S> {
         self.channels
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_slices<'a>(&'a self) -> Vec<&[S]> {
         self.channels
@@ -903,8 +923,7 @@ impl<S> AudioChunk<S> {
             .collect()
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn as_mut_slices<'a>(&'a mut self) -> Vec<&mut [S]> {
         self.channels
@@ -913,8 +932,7 @@ impl<S> AudioChunk<S> {
             .collect()
     }
 
-    /// Note: cannot be used in a real-time context
-    /// -------------------------------------
+    /// # Note: cannot be used in a real-time context
     /// This method allocates memory and cannot be used in a real-time context.
     pub fn split(mut self, number_of_frames_per_chunk: usize) -> Vec<Self> {
         assert!(number_of_frames_per_chunk > 0);

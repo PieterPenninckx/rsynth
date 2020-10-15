@@ -1,15 +1,17 @@
 //! # Rsynth
-//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.
-//! Rsynth is well suited as a bootstrap for common audio plugin generators.
-//! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
+//! An API abstraction for API's for audio plugins and applications.
+//! Use it to write real-time audio effects, software synthesizers, ... and target different platforms
+//! (vst, jack, offline audio rendering, ...).
+//! It is currently most suitable for real-time or "streaming" audio processing.
+//! E.g. you cannot use it to reverse audio in time.
 //!
 //! ## Back-ends
 //! `rsynth` currently supports the following back-ends:
 //!
-//! * [`combined`] combine different back-ends for audio input, audio output, midi input and
-//!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
 //! * [`vst`] (behind the `backend-vst` feature)
+//! * [`combined`] combine different back-ends for audio input, audio output, midi input and
+//!     midi output, mostly for offline rendering and testing (behind various features)
 //!
 //! See the documentation of each back-end for more information.
 //!
@@ -65,14 +67,8 @@
 //!
 //! * [`RawMidiEvent`]: a raw MIDI event
 //! * [`SysExEvent`]: a system exclusive event
-//! * [`Timed<T>`]: a generic timed event
-//! * [`Indexed<T>`]: a generic event that associates a timestamp with the event
-//!
-//! ## Utilities
-//! Utilities are are types that you can include to perform several common tasks for the
-//! plugin or application:
-//!
-//! * [polyphony]: managing of different voices
+//! * [`Timed<T>`]: a generic event that associates a timestamp with the event
+//! * [`Indexed<T>`]: a generic event that associates an index with the event
 //!
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
@@ -91,7 +87,6 @@
 //! [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html
 //! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
-//! [polyphony]: ./utilities/polyphony/index.html
 
 #[macro_use]
 extern crate log;

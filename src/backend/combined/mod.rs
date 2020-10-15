@@ -1,7 +1,7 @@
-//! Combine different back-ends for audio input, audio output, midi input and
-//! midi output, mostly for offline rendering and testing.
+//! Combine different back-ends for audio input, audio output and midi input,
+//! mostly for offline rendering and testing.
 //!
-//! Support is only enabled if `rsynth` is compiled with the "backend-combined"
+//! Support is only enabled if `rsynth` is compiled with the `backend-combined`
 //! feature, see [the cargo reference] for more information on setting cargo features.
 //!
 //! The [`run`] function can be used to run a plugin and read audio and midi from the
@@ -16,7 +16,8 @@
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
 //! Note that, when compiled with the `backend-combined-wav` feature,
-//! `AudioChunkReader` implements `From<(Header, BitDepth)>`.
+//! [`AudioChunkReader`] implements `From<(Header, BitDepth)>`
+//! (`Header` and `BitDepth` are from the `wav` crate) to ease integration with the `wav` crate.
 //!
 //! [`AudioDummy`]: ./dummy/struct.AudioDummy.html
 //! [`MidiDummy`]: ./dummy/struct.MidiDummy.html
@@ -29,6 +30,7 @@
 //! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
+//! [`AudioChunkReader`]: ./combined/memory/struct.AudioChunkReader.html
 
 use crate::backend::HostInterface;
 use crate::buffer::{

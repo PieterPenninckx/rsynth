@@ -12,9 +12,7 @@ We focus on API's that are typically used for audio effects and software synthes
 If you want to "just" play audio on various platforms, [cpal](https://crates.io/crates/cpal) may
 be better suited for you.
 
-Note: many of these features are behind feature flags.
-
-| feature |  VST 2.4 via [`rust-vst`]      | Jack via [`jack`] | Offline audio rendering |
+| feature |  VST 2.4 via [`vst-rs`]      | Jack via [`jack`] | Offline audio rendering |
 |---------|:------------------------------:|:-----------------:|:-----------------------:|
 | Full duplex audio input and output |  ✓  |        ✓          |           ✓             |
 | Midi input                         |  ✓  |        ✓          |           ✓             |
@@ -22,19 +20,25 @@ Note: many of these features are behind feature flags.
 | Sample accurate midi               | N/A |        ✓          |           ✓             |
 | Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
 | Sampling frequency change          |  ✓  |        ✘          |          N/A            |
-| Signal stopping the application    | N/A |        ✓          |          N/A            |
+| Signal stopping the application    | N/A |        ✓          |           ✘             |
 | Jack-specific events               | N/A |        ✘          |          N/A            |
 | Basic meta-data                    |  ✓  |        ✓          |          N/A            |
 | Access to the underlying host      |  ✓  |        ✓          |          N/A            |
 | Parameter changes                  |  ✘  |        ✘          |           ✘             |
 | GUI stuff                          |  ✘  |        ✘          |           ✘             |
 
+### Feature flags
+
+Many features are behind feature flags. See the `Cargo.toml` file for more information.
+
 ## Documentation
 
-The documentation can be found
+The API documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
 * [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for the documentation of the master branch
 * on your local machine after running `cargo rustdoc --features all`
+
+Background on the design can be found in the [design.md](design.md) document.
 
 ## Examples
 There are full examples in 
@@ -78,5 +82,5 @@ to comply with the license of that crate as well. In particular, the following o
 * the `hound` crate (behind the `backend-combined-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details
 * the `wav` crate (behind the `backend-combined-wav` feature) uses the LGPL license
 
-[`rust-vst`]: https://github.com/RustAudio/vst-rs
+[`vst-rs`]: https://github.com/RustAudio/vst-rs
 [`jack`]:https://crates.io/crates/jack
