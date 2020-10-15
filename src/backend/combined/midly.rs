@@ -4,7 +4,7 @@ use crate::event::{DeltaEvent, RawMidiEvent};
 
 /// Re-exports from the `midly` crate.
 pub mod midly {
-    pub use midly::Event;
+    pub use midly::*;
 }
 
 #[cfg(test)]

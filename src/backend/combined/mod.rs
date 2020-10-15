@@ -30,7 +30,7 @@
 //! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html
 //! [`run`]: ./fn.run.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-//! [`AudioChunkReader`]: ./combined/memory/struct.AudioChunkReader.html
+//! [`AudioChunkReader`]: ./memory/struct.AudioChunkReader.html
 
 use crate::backend::HostInterface;
 use crate::buffer::{

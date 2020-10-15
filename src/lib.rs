@@ -103,6 +103,11 @@ pub mod meta;
 pub mod test_utilities;
 pub mod utilities;
 
+/// Re-exports from the `vecstorage` crate.
+pub mod vecstorage {
+    pub use vecstorage::VecStorage;
+}
+
 /// Define the maximum number of audio inputs and the maximum number of audio outputs.
 ///
 /// Backends that require the plugin to implement this trait ensure that when calling the

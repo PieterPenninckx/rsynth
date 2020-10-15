@@ -173,6 +173,11 @@ impl AsMut<Self> for RawMidiEvent {
 }
 
 /// `Timed<E>` adds timing to an event.
+///
+/// # Suggestion
+/// If you want to handle events in a sample-accurate way, you can use an
+/// `EventQueue` to queue them when you receive them, and later use the
+/// `split` method on the queue to render the audio.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Timed<E> {
     /// The offset (in frames) of the event relative to the start of

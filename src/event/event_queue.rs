@@ -1,29 +1,38 @@
+//! Queue events.
 use super::Timed;
 use crate::buffer::AudioBufferInOut;
 use crate::event::EventHandler;
 #[cfg(test)]
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
+use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::ops::{Deref, Index, IndexMut};
-use vecstorage::VecStorage;
 
+/// A queue for timed events.
 pub struct EventQueue<T> {
     queue: VecDeque<Timed<T>>,
 }
 
+/// Determines what should happen when two events are queued with the same timing.
 pub enum EventCollisionHandling {
+    /// Insert the newly queued event before the previously queued.
     InsertNewBeforeOld,
+    /// Insert the newly queued event after the previously queued.
     InsertNewAfterOld,
+    /// Ignore the newly queued event.
     IgnoreNew,
+    /// Remove the previously queued event.
     RemoveOld,
 }
 
+/// Trait that describes how "event collision" (queing two events with the same timestamp) should happen.
 pub trait HandleEventCollision<T> {
     fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling;
 }
 
+/// Always queue the new newly queued event before the previously queued in case of collision (same timestamp).
 pub struct AlwaysInsertNewBeforeOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
     #[inline(always)]
@@ -32,6 +41,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
     }
 }
 
+/// Always queue the new newly queued event after the previously queued in case of collision (same timestamp).
 pub struct AlwaysInsertNewAfterOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
     #[inline(always)]
@@ -40,6 +50,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
     }
 }
 
+/// Always ignore the newly queued event in case of collision (there's already an event with that timestamp).
 pub struct AlwaysIgnoreNew;
 impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
     #[inline(always)]
@@ -48,6 +59,7 @@ impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
     }
 }
 
+/// Always remove the previously queued event in case of collision (there's already an event with that timestamp).
 pub struct AlwaysRemoveOld;
 impl<T> HandleEventCollision<T> for AlwaysRemoveOld {
     #[inline(always)]
@@ -71,6 +83,8 @@ impl<T> IndexMut<usize> for EventQueue<T> {
 }
 
 impl<T> EventQueue<T> {
+    /// Create a new `EventQueue` fom a vector of events.
+    /// _Note_: this may violate the invariants of the `EventQueue`, so it's only available for testing.
     #[cfg(test)]
     pub fn from_vec(events: Vec<Timed<T>>) -> Self {
         Self {
@@ -78,6 +92,7 @@ impl<T> EventQueue<T> {
         }
     }
 
+    /// Create a new `EventQueue`.
     /// # Panics
     /// Panics if `capacity == 0`.
     pub fn new(capacity: usize) -> Self {
@@ -192,10 +207,18 @@ impl<T> EventQueue<T> {
         }
     }
 
+    /// Get the first event from the `EventQueue` if there is one and return `None` if the queue is empty.
     pub fn first(&self) -> Option<&Timed<T>> {
         self.queue.get(0)
     }
 
+    /// Go through the `EventQueue` and alternatingly handle events and render audio.
+    ///
+    /// # Note about using in a realtime context.
+    /// There will be as many elements pushed to `input_storage` as there are
+    /// input channels.
+    /// There will be as many elements pushed to `output_storage` as there are
+    /// output channels.
     pub fn split<'in_storage, 'out_storage, 'in_channels, 's, 'chunk, S, R, C>(
         &mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
@@ -206,7 +229,6 @@ impl<T> EventQueue<T> {
     ) where
         S: Copy + 'static,
         R: ContextualAudioRenderer<S, C> + EventHandler<T>,
-        T: std::fmt::Debug,
     {
         let buffer_length = buffer.number_of_frames();
         let mut last_event_time = 0;
