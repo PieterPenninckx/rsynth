@@ -890,11 +890,13 @@
 <span id="890">890</span>
 <span id="891">891</span>
 <span id="892">892</span>
+<span id="893">893</span>
+<span id="894">894</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">//! Combine different back-ends for audio input, audio output, midi input and</span>
-<span class="doccomment">//! midi output, mostly for offline rendering and testing.</span>
+<span class="doccomment">//! Combine different back-ends for audio input, audio output and midi input,</span>
+<span class="doccomment">//! mostly for offline rendering and testing.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Support is only enabled if `rsynth` is compiled with the &quot;backend-combined&quot;</span>
+<span class="doccomment">//! Support is only enabled if `rsynth` is compiled with the `backend-combined`</span>
 <span class="doccomment">//! feature, see [the cargo reference] for more information on setting cargo features.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The [`run`] function can be used to run a plugin and read audio and midi from the</span>
@@ -909,7 +911,8 @@
 <span class="doccomment">//! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Note that, when compiled with the `backend-combined-wav` feature,</span>
-<span class="doccomment">//! `AudioChunkReader` implements `From&lt;(Header, BitDepth)&gt;`.</span>
+<span class="doccomment">//! [`AudioChunkReader`] implements `From&lt;(Header, BitDepth)&gt;`</span>
+<span class="doccomment">//! (`Header` and `BitDepth` are from the `wav` crate) to ease integration with the `wav` crate.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`AudioDummy`]: ./dummy/struct.AudioDummy.html</span>
 <span class="doccomment">//! [`MidiDummy`]: ./dummy/struct.MidiDummy.html</span>
@@ -922,6 +925,7 @@
 <span class="doccomment">//! [`AudioBufferWriter`]: ./memory/struct.AudioBufferWriter.html</span>
 <span class="doccomment">//! [`run`]: ./fn.run.html</span>
 <span class="doccomment">//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section</span>
+<span class="doccomment">//! [`AudioChunkReader`]: ./combined/memory/struct.AudioChunkReader.html</span>
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">HostInterface</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{

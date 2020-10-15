@@ -326,24 +326,21 @@
 <span id="326">326</span>
 <span id="327">327</span>
 <span id="328">328</span>
-<span id="329">329</span>
-<span id="330">330</span>
-<span id="331">331</span>
-<span id="332">332</span>
-<span id="333">333</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! # Rsynth</span>
-<span class="doccomment">//! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.</span>
-<span class="doccomment">//! Rsynth is well suited as a bootstrap for common audio plugin generators.</span>
-<span class="doccomment">//! It handles voices, voice-stealing, polyphony, etc. so the programmer&#39;s main focus can be DSP.</span>
+<span class="doccomment">//! An API abstraction for API&#39;s for audio plugins and applications.</span>
+<span class="doccomment">//! Use it to write real-time audio effects, software synthesizers, ... and target different platforms</span>
+<span class="doccomment">//! (vst, jack, offline audio rendering, ...).</span>
+<span class="doccomment">//! It is currently most suitable for real-time or &quot;streaming&quot; audio processing.</span>
+<span class="doccomment">//! E.g. you cannot use it to reverse audio in time.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ## Back-ends</span>
 <span class="doccomment">//! `rsynth` currently supports the following back-ends:</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! * [`combined`] combine different back-ends for audio input, audio output, midi input and</span>
-<span class="doccomment">//!     midi output, mostly for offline rendering and testing (behind various features)</span>
 <span class="doccomment">//! * [`jack`] (behind the `backend-jack` feature)</span>
 <span class="doccomment">//! * [`vst`] (behind the `backend-vst` feature)</span>
+<span class="doccomment">//! * [`combined`] combine different back-ends for audio input, audio output, midi input and</span>
+<span class="doccomment">//!     midi output, mostly for offline rendering and testing (behind various features)</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! See the documentation of each back-end for more information.</span>
 <span class="doccomment">//!</span>
@@ -399,14 +396,8 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * [`RawMidiEvent`]: a raw MIDI event</span>
 <span class="doccomment">//! * [`SysExEvent`]: a system exclusive event</span>
-<span class="doccomment">//! * [`Timed&lt;T&gt;`]: a generic timed event</span>
-<span class="doccomment">//! * [`Indexed&lt;T&gt;`]: a generic event that associates a timestamp with the event</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ## Utilities</span>
-<span class="doccomment">//! Utilities are are types that you can include to perform several common tasks for the</span>
-<span class="doccomment">//! plugin or application:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * [polyphony]: managing of different voices</span>
+<span class="doccomment">//! * [`Timed&lt;T&gt;`]: a generic event that associates a timestamp with the event</span>
+<span class="doccomment">//! * [`Indexed&lt;T&gt;`]: a generic event that associates an index with the event</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`jack`]: ./backend/jack_backend/index.html</span>
 <span class="doccomment">//! [`vst`]: ./backend/vst_backend/index.html</span>
@@ -425,7 +416,6 @@
 <span class="doccomment">//! [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html</span>
 <span class="doccomment">//! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html</span>
 <span class="doccomment">//! [`EventHandler`]: ./event/trait.EventHandler.html</span>
-<span class="doccomment">//! [polyphony]: ./utilities/polyphony/index.html</span>
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;

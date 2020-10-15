@@ -194,15 +194,31 @@
 <span id="194">194</span>
 <span id="195">195</span>
 <span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="doccomment">//! Read midi files.</span>
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">MICROSECONDS_PER_SECOND</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">RawMidiEvent</span>};
+
+<span class="doccomment">/// Re-exports from the `midly` crate.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">midly</span> {
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">midly</span>::<span class="ident">Event</span>;
+}
+
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">use</span> <span class="ident">midly</span>::<span class="ident">number</span>::{<span class="ident">u15</span>, <span class="ident">u24</span>, <span class="ident">u28</span>, <span class="ident">u4</span>, <span class="ident">u7</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">midly</span>::<span class="ident">Event</span>;
-<span class="kw">use</span> <span class="ident">midly</span>::{<span class="ident">EventKind</span>, <span class="ident">Header</span>, <span class="ident">MetaMessage</span>, <span class="ident">Timing</span>};
+<span class="kw">use</span> ::<span class="ident">midly</span>::<span class="ident">number</span>::{<span class="ident">u15</span>, <span class="ident">u24</span>, <span class="ident">u28</span>, <span class="ident">u4</span>, <span class="ident">u7</span>};
+<span class="kw">use</span> ::<span class="ident">midly</span>::{<span class="ident">EventKind</span>, <span class="ident">Header</span>, <span class="ident">MetaMessage</span>, <span class="ident">Timing</span>};
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">use</span> <span class="ident">midly</span>::{<span class="ident">Format</span>, <span class="ident">MidiMessage</span>};
+<span class="kw">use</span> ::<span class="ident">midly</span>::{<span class="ident">Format</span>, <span class="ident">MidiMessage</span>};
+
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Event</span>;
 
 <span class="kw">const</span> <span class="ident">SECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">60</span>;
 <span class="kw">const</span> <span class="ident">MICROSECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="ident">SECONDS_PER_MINUTE</span> <span class="op">*</span> <span class="ident">MICROSECONDS_PER_SECOND</span>;

@@ -488,8 +488,17 @@
 <span id="488">488</span>
 <span id="489">489</span>
 <span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">//! Wrapper for the VST backend.</span>
+<span class="doccomment">//! Wrapper for the VST backend (behind the `backend-vst` feature).</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Support is only enabled if you compile with the &quot;backend-vst&quot; feature, see</span>
 <span class="doccomment">//! [the cargo reference] for more information on setting cargo features.</span>
@@ -512,7 +521,9 @@
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">cmp</span>;
 <span class="kw">use</span> <span class="ident">vecstorage</span>::<span class="ident">VecStorage</span>;
 
-<span class="doccomment">/// Re-exports from the [`rust-vst`](https://github.com/RustAudio/vst-rs) crate.</span>
+<span class="doccomment">/// Re-exports from the [`vst-rs`](https://github.com/RustAudio/vst-rs) crate.</span>
+<span class="doccomment">/// Use this in libraries so that your library does not break when `rsynth` upgrades to another</span>
+<span class="doccomment">/// version of the `vst-rs` crate.</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">vst</span> {
     <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">vst</span>::<span class="kw-2">*</span>;
 }
@@ -532,7 +543,8 @@
     <span class="kw">fn</span> <span class="ident">category</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Category</span>;
 }
 
-<span class="doccomment">/// A struct used internally by the `vst_init` macro. Normally, plugin&#39;s do not need to use this.</span>
+<span class="doccomment">/// A struct used internally by the [`vst_init`] macro. Normally, plugin&#39;s do not need to use this.</span>
+<span class="comment">// //! [`vst_init`]: ../../macro.vst_init.html</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">VstPluginWrapper</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
     <span class="ident">plugin</span>: <span class="ident">P</span>,
     <span class="ident">host</span>: <span class="ident">HostCallback</span>,
@@ -564,6 +576,12 @@
         }
     }
 
+    <span class="doccomment">/// Create a new `VstPluginWrapper`.</span>
+    <span class="doccomment">/// _Note_ Normally, plugin&#39;s do not need to use [`VstPluginWrapper`] and use the</span>
+    <span class="doccomment">/// [`vst_init`] macro instead.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`vst_init`]: ../../macro.vst_init.html</span>
+    <span class="doccomment">/// [`VstPluginWrapper`]: ./</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">plugin</span>: <span class="ident">P</span>, <span class="ident">host</span>: <span class="ident">HostCallback</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">inputs_f32</span>: <span class="ident">VecStorage</span>::<span class="ident">with_capacity</span>(<span class="ident">plugin</span>.<span class="ident">max_number_of_audio_inputs</span>()),
