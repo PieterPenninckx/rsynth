@@ -117,9 +117,13 @@ impl RawMidiEvent {
         }
     }
 
-    /// Get the raw data from a `RawMidiEvent`.
+    /// Get the raw data from a `RawMidiEvent`, including "padding".
     pub fn data(&self) -> &[u8; 3] {
         &self.data
+    }
+
+    pub fn raw(&self) -> &[u8] {
+        &self.data[0..self.length]
     }
 }
 
