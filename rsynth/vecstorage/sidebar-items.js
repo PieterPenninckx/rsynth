@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["VecStorage","Re-usable memory for creating a vector of references."]]});
