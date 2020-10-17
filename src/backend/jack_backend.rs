@@ -72,7 +72,7 @@ impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, '
         if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
             let raw_midi = RawMidi {
                 time: event.time_in_frames,
-                bytes: event.event.raw(),
+                bytes: event.event.bytes(),
             };
             midi_out_port.write(&raw_midi); // TODO: error handling.
         } else {

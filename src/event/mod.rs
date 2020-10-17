@@ -93,8 +93,8 @@ impl RawMidiEvent {
     /// ------
     /// Panics when `data` does not have length 1, 2 or 3.
     #[inline]
-    pub fn new(data: &[u8]) -> Self {
-        Self::try_new(data).expect("Raw midi event is expected to have length 1, 2 or 3.")
+    pub fn new(bytes: &[u8]) -> Self {
+        Self::try_new(bytes).expect("Raw midi event is expected to have length 1, 2 or 3.")
     }
 
     /// Try to create a new `RawMidiEvent` with the given raw data.
@@ -122,7 +122,8 @@ impl RawMidiEvent {
         &self.data
     }
 
-    pub fn raw(&self) -> &[u8] {
+    /// Get the raw data from a `RawMidiEvent`.
+    pub fn bytes(&self) -> &[u8] {
         &self.data[0..self.length]
     }
 }
