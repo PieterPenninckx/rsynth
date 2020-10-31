@@ -131,10 +131,14 @@ impl RawMidiEvent {
 
 #[cfg(feature = "backend-combined-midly")]
 use crate::backend::combined::midly::midly::io::CursorError;
+
 #[cfg(feature = "backend-combined-midly")]
 #[derive(Debug, Clone)]
+/// The error type when converting from `midly`'s `TrackEventKind` to a `RawMidiEvent`.
 pub enum MidlyConversionError {
+    /// Not a live event.
     NotALiveEvent,
+    /// Cursor error (technical error).
     CursorError(CursorError),
 }
 

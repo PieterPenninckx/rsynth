@@ -15,21 +15,49 @@
 //!
 //! See the documentation of each back-end for more information.
 //!
+//! ## Features and how to use them
+//!
+//! `rsynth` puts common functionality of the different backends behind common traits.
+//! Conversely, a plugin can be used for different backends by implementing common traits.
+//! A mix-and-match approach is used: if a backend doesn't require a certain functionality,
+//! you don't need the corresponding trait.
+//!
+//! ### Using the backend
+//!
+//! * Jack: [`run()`](./backend/jack_backend/fn.run.html)
+//! * Offline : [`run()`](backend/combined/fn.run.html)
+//! * VST 2.4:  [`vst_init!`]
+//!
 //! ## Rendering audio
-//! Audio can be rendered by using a number of traits:
+//! All backends require the plugin/application to implement the [`ContextualAudioRenderer`] trait.
+//! [`ContextualAudioRenderer`] has two type parameters and the type parameter depends on the
+//! backends to use.
+//! One type parameter is the data type used to represent a sample.
+//! The other type parameter is called the "context" and can be used to access functionality of
+//! the backend in the audio rendering itself.
+//! Common functionality of the context is defined in the [`HostInterface`] trait.
+//! The application or plugin can have either a generic implementation of the [`ContextualAudioRenderer`]
+//! or choose to use different, specialized implementations if different behaviour is needed.
 //!
-//! * the [`AudioRenderer`] trait
-//! * the [`ContextualAudioRenderer`] trait
+//! ### Jack
 //!
-//! The difference between these traits is that the [`ContextualAudioRenderer`] trait adds one extra
-//! parameter that defines a "context" that can be passed to the implementor of the trait, so that
-//! the implementor of the trait does not need to own all data that is needed for rendering the
-//! audio; it can also borrow some data with additional the `context` parameter.
+//! Applications need to implement
+//! * [`AudioHandler`]
+//! * [`ContextualAudioRenderer`]`<f32,`[`JackHost`]`>`
 //!
-//! Both traits are generic over the data type that represents the sample.
-//! For which specific data-type an application or plugin needs to implement the trait, depends on
-//! the back-end. Because the trait is generic, the application or plugin can have a generic implementation
-//! as well that can be used by different back-ends.
+//! ### Offline rendering
+//! Applications need to implement
+//! * [`ContextualAudioRenderer`]`<S, `[`MidiWriterWrapper`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>>` Note: the type parameter `S`, which represents the sample data type, is free.
+//!
+//! ### VST 2.4
+//! Plugins need to implement
+//! * [`AudioHandler`]
+//! * [`ContextualAudioRenderer`]`<f32,`[`HostCallback`]`>`
+//! * [`ContextualAudioRenderer`]`<f64,`[`HostCallback`]`>`
+//!
+//! _Note_: [`HostCallback`] is re-exported from the VST crate, but implements `rsynth`'s
+//! [`HostInterface`], which defines functionality shared by all backends.
+//!
 //!
 //! ## Meta-data
 //! There are a number of traits that an application or plugin needs to implement in order to define meta-data.
@@ -77,6 +105,7 @@
 //! [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
 //! [`SysExEvent`]: ./event/struct.SysExEvent.html
 //! [`Timed<T>`]: ./event/struct.Timed.html
+//! [`Timed`]: ./event/struct.Timed.html
 //! [`Indexed<T>`]: ./event/struct.Indexed.html
 //! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html
 //! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
@@ -87,6 +116,14 @@
 //! [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html
 //! [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
 //! [`EventHandler`]: ./event/trait.EventHandler.html
+//! [`vst_init!`]: ./macro.vst_init.html
+//! [`jack_backend::run()`]:  ./backend/jack_backend/fn.run.html
+//! [`combined::run()`]: backend/combined/fn.run.html
+//! [`HostCallback`]: ./backend/vst_backend/vst/plugin/struct.HostCallback.html
+//! [`HostInterface`]: ./backend/trait.HostInterface.html
+//! [`JackHost`]: ./backend/jack_backend/struct.JackHost.html
+//! [`AudioHandler`]: ./trait.AudioHandler.html
+//! [`MidiWriterWrapper`]: ./backend/combined/struct.MidiWriterWrapper.html
 
 #[macro_use]
 extern crate log;

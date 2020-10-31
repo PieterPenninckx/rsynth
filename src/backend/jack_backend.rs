@@ -356,8 +356,9 @@ where
         + Send
         + Sync
         + 'static,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P:
+        ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
