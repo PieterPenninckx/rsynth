@@ -7,13 +7,16 @@ pub mod midly {
     pub use midly::*;
 }
 
+use self::midly::Header;
+use self::midly::Timing;
+use self::midly::TrackEvent;
 #[cfg(test)]
-use ::midly::number::{u15, u24, u28, u4, u7};
-use ::midly::{EventKind, Header, MetaMessage, Timing};
-#[cfg(test)]
-use ::midly::{Format, MidiMessage};
-
-use self::midly::Event;
+use self::midly::{
+    num::{u15, u24, u28, u4, u7},
+    Format, MidiMessage,
+};
+use self::midly::{MetaMessage, TrackEventKind};
+use std::convert::TryFrom;
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
@@ -21,7 +24,7 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
 /// Read from midi events as parsed by the `midly` crate.
 pub struct MidlyMidiReader<'v, 'a> {
-    events: &'v [Event<'a>],
+    events: &'v [TrackEvent<'a>],
     event_index: usize,
     current_tempo_in_micro_seconds_per_beat: f64,
     ticks_per_beat: f64,
@@ -33,7 +36,7 @@ impl<'v, 'a> MidlyMidiReader<'v, 'a> {
     }
 
     /// Create a new `MidlyMidiReader`.
-    pub fn new(header: Header, events: &'v [Event<'a>]) -> Self {
+    pub fn new(header: Header, events: &'v [TrackEvent<'a>]) -> Self {
         Self {
             events,
             event_index: 0,
@@ -87,14 +90,14 @@ impl<'e, 'a> Iterator for MidlyMidiReader<'e, 'a> {
             self.event_index += 1;
             microseconds_since_previous_event +=
                 (event.delta.as_int() as f64) / self.ticks_per_microsecond();
-            if let EventKind::Meta(MetaMessage::Tempo(new_tempo_in_microseconds_per_beat)) =
+            if let TrackEventKind::Meta(MetaMessage::Tempo(new_tempo_in_microseconds_per_beat)) =
                 event.kind
             {
                 self.current_tempo_in_micro_seconds_per_beat =
                     new_tempo_in_microseconds_per_beat.as_int() as f64;
             }
-            if let EventKind::Midi { .. } = event.kind {
-                let raw_midi_event = RawMidiEvent::from(event.kind);
+            if let TrackEventKind::Midi { .. } = event.kind {
+                let raw_midi_event = RawMidiEvent::try_from(event.kind).ok()?;
                 return Some(DeltaEvent {
                     microseconds_since_previous_event: microseconds_since_previous_event as u64,
                     event: raw_midi_event,
@@ -120,15 +123,15 @@ fn iterator_correctly_returns_one_event() {
     // One second corresponds to two beats, so to 64 ticks.
     let event_time_in_ticks = 64;
     let events = vec![
-        Event {
+        TrackEvent {
             delta: u28::from(0),
-            kind: EventKind::Meta(MetaMessage::Tempo(u24::from(
+            kind: TrackEventKind::Meta(MetaMessage::Tempo(u24::from(
                 tempo_in_microseconds_per_beat,
             ))),
         },
-        Event {
+        TrackEvent {
             delta: u28::from(event_time_in_ticks),
-            kind: EventKind::Midi {
+            kind: TrackEventKind::Midi {
                 channel: u4::from(0),
                 message: MidiMessage::NoteOn {
                     key: u7::from(60),
@@ -162,15 +165,15 @@ fn iterator_correctly_returns_two_events() {
     // One second corresponds to two beats, so to 64 ticks.
     let event_delta_time_in_ticks = 64;
     let events = vec![
-        Event {
+        TrackEvent {
             delta: u28::from(0),
-            kind: EventKind::Meta(MetaMessage::Tempo(u24::from(
+            kind: TrackEventKind::Meta(MetaMessage::Tempo(u24::from(
                 tempo_in_microseconds_per_beat,
             ))),
         },
-        Event {
+        TrackEvent {
             delta: u28::from(event_delta_time_in_ticks),
-            kind: EventKind::Midi {
+            kind: TrackEventKind::Midi {
                 channel: u4::from(0),
                 message: MidiMessage::NoteOn {
                     key: u7::from(60),
@@ -178,9 +181,9 @@ fn iterator_correctly_returns_two_events() {
                 },
             },
         },
-        Event {
+        TrackEvent {
             delta: u28::from(event_delta_time_in_ticks),
-            kind: EventKind::Midi {
+            kind: TrackEventKind::Midi {
                 channel: u4::from(0),
                 message: MidiMessage::NoteOn {
                     key: u7::from(60),

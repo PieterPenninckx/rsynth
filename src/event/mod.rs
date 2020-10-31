@@ -12,14 +12,15 @@
 //! If possible, implement the `Copy` trait for the event,
 //! so that the event can be dispatched to different voices in a polyphonic context.
 #[cfg(feature = "backend-combined-midly")]
-use midly::EventKind;
+use crate::backend::combined::midly::midly::TrackEventKind;
 #[cfg(all(test, feature = "backend-combined-midly"))]
-use midly::{
-    number::{u4, u7},
+use crate::backend::combined::midly::midly::{
+    num::{u4, u7},
     MidiMessage,
 };
-use std::convert::{AsMut, AsRef};
-use std::fmt::{Debug, Error, Formatter};
+use std::convert::{AsMut, AsRef, TryFrom};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -44,7 +45,7 @@ pub struct SysExEvent<'a> {
 }
 
 impl<'a> Debug for SysExEvent<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         write!(f, "SysExEvent{{data (length: {:?}): &[", self.data.len())?;
         for byte in self.data {
             write!(f, "{:X} ", byte)?;
@@ -72,7 +73,7 @@ pub struct RawMidiEvent {
 }
 
 impl Debug for RawMidiEvent {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self.length {
             1 => write!(f, "RawMidiEvent({:X})", self.data[0]),
             2 => write!(f, "RawMidiEvent({:X} {:X})", self.data[0], self.data[1]),
@@ -129,16 +130,59 @@ impl RawMidiEvent {
 }
 
 #[cfg(feature = "backend-combined-midly")]
-impl<'a> From<midly::EventKind<'a>> for RawMidiEvent {
-    fn from(event_kind: EventKind<'a>) -> Self {
+use crate::backend::combined::midly::midly::io::CursorError;
+#[cfg(feature = "backend-combined-midly")]
+#[derive(Debug, Clone)]
+pub enum MidlyConversionError {
+    NotALiveEvent,
+    CursorError(CursorError),
+}
+
+#[cfg(feature = "backend-combined-midly")]
+impl Display for MidlyConversionError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            MidlyConversionError::NotALiveEvent => write!(f, "Not a live event."),
+            MidlyConversionError::CursorError(e) => match e {
+                CursorError::InvalidInput(msg) => {
+                    write!(f, "Technical error: the input SMF was invalid: {}", msg)
+                }
+                CursorError::OutOfSpace => {
+                    write!(f, "Technical error: the in-memory buffer was too small")
+                }
+            },
+        }
+    }
+}
+
+#[cfg(feature = "backend-combined-midly")]
+impl Error for MidlyConversionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+#[cfg(feature = "backend-combined-midly")]
+impl From<CursorError> for MidlyConversionError {
+    fn from(e: CursorError) -> Self {
+        MidlyConversionError::CursorError(e)
+    }
+}
+
+#[cfg(feature = "backend-combined-midly")]
+impl<'a> TryFrom<TrackEventKind<'a>> for RawMidiEvent {
+    type Error = MidlyConversionError;
+
+    fn try_from(value: TrackEventKind<'a>) -> Result<Self, Self::Error> {
         let mut raw_data: [u8; 3] = [0, 0, 0];
         let mut slice = &mut raw_data[0..3];
-        event_kind
-            .write(&mut None, &mut slice)
-            .expect("Unexpected error when writing to memory.");
+        value
+            .as_live_event()
+            .ok_or(MidlyConversionError::NotALiveEvent)?
+            .write(&mut slice)?;
         // The slice is updated to point to the not-yet-overwritten bytes.
         let number_of_bytes = 3 - slice.len();
-        RawMidiEvent::new(&raw_data[0..number_of_bytes])
+        Ok(RawMidiEvent::new(&raw_data[0..number_of_bytes]))
     }
 }
 
@@ -147,13 +191,13 @@ impl<'a> From<midly::EventKind<'a>> for RawMidiEvent {
 fn conversion_from_midly_to_raw_midi_event_works() {
     let channel = 1;
     let program = 2;
-    let event_kind = EventKind::Midi {
+    let event_kind = TrackEventKind::Midi {
         channel: u4::from(channel),
         message: MidiMessage::ProgramChange {
             program: u7::from(program),
         },
     };
-    let raw_midi_event = RawMidiEvent::from(event_kind);
+    let raw_midi_event = RawMidiEvent::try_from(event_kind).unwrap();
     assert_eq!(raw_midi_event.length, 2);
     assert_eq!(
         raw_midi_event.data,
