@@ -203,6 +203,9 @@
 <span id="202">202</span>
 <span id="203">203</span>
 <span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Read midi files.</span>
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">MICROSECONDS_PER_SECOND</span>;
@@ -213,13 +216,16 @@
     <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">midly</span>::<span class="kw-2">*</span>;
 }
 
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Header</span>;
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Timing</span>;
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">TrackEvent</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">use</span> ::<span class="ident">midly</span>::<span class="ident">number</span>::{<span class="ident">u15</span>, <span class="ident">u24</span>, <span class="ident">u28</span>, <span class="ident">u4</span>, <span class="ident">u7</span>};
-<span class="kw">use</span> ::<span class="ident">midly</span>::{<span class="ident">EventKind</span>, <span class="ident">Header</span>, <span class="ident">MetaMessage</span>, <span class="ident">Timing</span>};
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">use</span> ::<span class="ident">midly</span>::{<span class="ident">Format</span>, <span class="ident">MidiMessage</span>};
-
-<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Event</span>;
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::{
+    <span class="ident">num</span>::{<span class="ident">u15</span>, <span class="ident">u24</span>, <span class="ident">u28</span>, <span class="ident">u4</span>, <span class="ident">u7</span>},
+    <span class="ident">Format</span>, <span class="ident">MidiMessage</span>,
+};
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::{<span class="ident">MetaMessage</span>, <span class="ident">TrackEventKind</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">convert</span>::<span class="ident">TryFrom</span>;
 
 <span class="kw">const</span> <span class="ident">SECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">60</span>;
 <span class="kw">const</span> <span class="ident">MICROSECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="ident">SECONDS_PER_MINUTE</span> <span class="op">*</span> <span class="ident">MICROSECONDS_PER_SECOND</span>;
@@ -227,7 +233,7 @@
 
 <span class="doccomment">/// Read from midi events as parsed by the `midly` crate.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;v</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">Event</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>],
+    <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">TrackEvent</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>],
     <span class="ident">event_index</span>: <span class="ident">usize</span>,
     <span class="ident">current_tempo_in_micro_seconds_per_beat</span>: <span class="ident">f64</span>,
     <span class="ident">ticks_per_beat</span>: <span class="ident">f64</span>,
@@ -239,7 +245,7 @@
     }
 
     <span class="doccomment">/// Create a new `MidlyMidiReader`.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">header</span>: <span class="ident">Header</span>, <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">Event</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>]) <span class="op">-&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">header</span>: <span class="ident">Header</span>, <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">TrackEvent</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>]) <span class="op">-&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">events</span>,
             <span class="ident">event_index</span>: <span class="number">0</span>,
@@ -293,14 +299,14 @@
             <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">+=</span> <span class="number">1</span>;
             <span class="ident">microseconds_since_previous_event</span> <span class="op">+=</span>
                 (<span class="ident">event</span>.<span class="ident">delta</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">f64</span>) <span class="op">/</span> <span class="self">self</span>.<span class="ident">ticks_per_microsecond</span>();
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">EventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">new_tempo_in_microseconds_per_beat</span>)) <span class="op">=</span>
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">new_tempo_in_microseconds_per_beat</span>)) <span class="op">=</span>
                 <span class="ident">event</span>.<span class="ident">kind</span>
             {
                 <span class="self">self</span>.<span class="ident">current_tempo_in_micro_seconds_per_beat</span> <span class="op">=</span>
                     <span class="ident">new_tempo_in_microseconds_per_beat</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">f64</span>;
             }
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">EventKind</span>::<span class="ident">Midi</span> { .. } <span class="op">=</span> <span class="ident">event</span>.<span class="ident">kind</span> {
-                <span class="kw">let</span> <span class="ident">raw_midi_event</span> <span class="op">=</span> <span class="ident">RawMidiEvent</span>::<span class="ident">from</span>(<span class="ident">event</span>.<span class="ident">kind</span>);
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> { .. } <span class="op">=</span> <span class="ident">event</span>.<span class="ident">kind</span> {
+                <span class="kw">let</span> <span class="ident">raw_midi_event</span> <span class="op">=</span> <span class="ident">RawMidiEvent</span>::<span class="ident">try_from</span>(<span class="ident">event</span>.<span class="ident">kind</span>).<span class="ident">ok</span>()<span class="question-mark">?</span>;
                 <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">DeltaEvent</span> {
                     <span class="ident">microseconds_since_previous_event</span>: <span class="ident">microseconds_since_previous_event</span> <span class="kw">as</span> <span class="ident">u64</span>,
                     <span class="ident">event</span>: <span class="ident">raw_midi_event</span>,
@@ -326,15 +332,15 @@
     <span class="comment">// One second corresponds to two beats, so to 64 ticks.</span>
     <span class="kw">let</span> <span class="ident">event_time_in_ticks</span> <span class="op">=</span> <span class="number">64</span>;
     <span class="kw">let</span> <span class="ident">events</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[
-        <span class="ident">Event</span> {
+        <span class="ident">TrackEvent</span> {
             <span class="ident">delta</span>: <span class="ident">u28</span>::<span class="ident">from</span>(<span class="number">0</span>),
-            <span class="ident">kind</span>: <span class="ident">EventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">u24</span>::<span class="ident">from</span>(
+            <span class="ident">kind</span>: <span class="ident">TrackEventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">u24</span>::<span class="ident">from</span>(
                 <span class="ident">tempo_in_microseconds_per_beat</span>,
             ))),
         },
-        <span class="ident">Event</span> {
+        <span class="ident">TrackEvent</span> {
             <span class="ident">delta</span>: <span class="ident">u28</span>::<span class="ident">from</span>(<span class="ident">event_time_in_ticks</span>),
-            <span class="ident">kind</span>: <span class="ident">EventKind</span>::<span class="ident">Midi</span> {
+            <span class="ident">kind</span>: <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> {
                 <span class="ident">channel</span>: <span class="ident">u4</span>::<span class="ident">from</span>(<span class="number">0</span>),
                 <span class="ident">message</span>: <span class="ident">MidiMessage</span>::<span class="ident">NoteOn</span> {
                     <span class="ident">key</span>: <span class="ident">u7</span>::<span class="ident">from</span>(<span class="number">60</span>),
@@ -368,15 +374,15 @@
     <span class="comment">// One second corresponds to two beats, so to 64 ticks.</span>
     <span class="kw">let</span> <span class="ident">event_delta_time_in_ticks</span> <span class="op">=</span> <span class="number">64</span>;
     <span class="kw">let</span> <span class="ident">events</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[
-        <span class="ident">Event</span> {
+        <span class="ident">TrackEvent</span> {
             <span class="ident">delta</span>: <span class="ident">u28</span>::<span class="ident">from</span>(<span class="number">0</span>),
-            <span class="ident">kind</span>: <span class="ident">EventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">u24</span>::<span class="ident">from</span>(
+            <span class="ident">kind</span>: <span class="ident">TrackEventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">u24</span>::<span class="ident">from</span>(
                 <span class="ident">tempo_in_microseconds_per_beat</span>,
             ))),
         },
-        <span class="ident">Event</span> {
+        <span class="ident">TrackEvent</span> {
             <span class="ident">delta</span>: <span class="ident">u28</span>::<span class="ident">from</span>(<span class="ident">event_delta_time_in_ticks</span>),
-            <span class="ident">kind</span>: <span class="ident">EventKind</span>::<span class="ident">Midi</span> {
+            <span class="ident">kind</span>: <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> {
                 <span class="ident">channel</span>: <span class="ident">u4</span>::<span class="ident">from</span>(<span class="number">0</span>),
                 <span class="ident">message</span>: <span class="ident">MidiMessage</span>::<span class="ident">NoteOn</span> {
                     <span class="ident">key</span>: <span class="ident">u7</span>::<span class="ident">from</span>(<span class="number">60</span>),
@@ -384,9 +390,9 @@
                 },
             },
         },
-        <span class="ident">Event</span> {
+        <span class="ident">TrackEvent</span> {
             <span class="ident">delta</span>: <span class="ident">u28</span>::<span class="ident">from</span>(<span class="ident">event_delta_time_in_ticks</span>),
-            <span class="ident">kind</span>: <span class="ident">EventKind</span>::<span class="ident">Midi</span> {
+            <span class="ident">kind</span>: <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> {
                 <span class="ident">channel</span>: <span class="ident">u4</span>::<span class="ident">from</span>(<span class="number">0</span>),
                 <span class="ident">message</span>: <span class="ident">MidiMessage</span>::<span class="ident">NoteOn</span> {
                     <span class="ident">key</span>: <span class="ident">u7</span>::<span class="ident">from</span>(<span class="number">60</span>),
