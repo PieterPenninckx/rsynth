@@ -204,7 +204,17 @@ impl HostInterface for HostCallback {
 
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
-/// that creates your plugin.
+/// that creates your plugin. The plugin is typically a custom data type and should implement
+/// the following traits:
+///
+/// * `CommonAudioPortMeta`,
+/// * `VstPluginMeta`,
+/// * `AudioHandler`,
+/// * `ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>`,
+/// * `ContextualAudioRenderer<f32, HostCallback>`,
+/// * `ContextualAudioRenderer<f64, HostCallback>`,
+/// * `ContextualEventHandler<Timed<SysExEvent<'a>>, HostCallback>`
+///
 /// This function may also do some setup (e.g. initialize logging).
 ///
 /// # Example using generic code

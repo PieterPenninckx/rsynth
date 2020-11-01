@@ -24,7 +24,7 @@
 //! so that we can link to it in the documentation of rsynth.
 //!
 //! [`jack`]: ./jack_backend/index.html
-//! [`vst`]: ./bvst_backend/index.html
+//! [`vst`]: ./vst_backend/index.html
 //! [`combined`]: ./combined/index.html
 #[cfg(feature = "backend-combined")]
 pub mod combined;

@@ -349,10 +349,10 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P) -> Result<P, jack::Error>
 where
-    P: CommonAudioPortMeta
+    P: CommonPluginMeta
         + AudioHandler
+        + CommonAudioPortMeta
         + CommonMidiPortMeta
-        + CommonPluginMeta
         + Send
         + Sync
         + 'static,

@@ -28,7 +28,31 @@
 //! * Offline : [`run()`](backend/combined/fn.run.html)
 //! * VST 2.4:  [`vst_init!`]
 //!
-//! ## Rendering audio
+//! ### Meta-data
+//! There are a number of traits that an application or plugin needs to implement in order to define
+//! meta-data. Every plugin or application should implement these, but it can be tedious, so you can
+//! implement these traits in a more straightforward way by implementing the [`Meta`] trait.
+//! However, you can also implement these trait "by hand".
+//!
+//! #### Meta-data for Jack
+//! Applications need to implement
+//! * [`CommonPluginMeta`] (name of the plugin etc)
+//! * [`AudioHandlerMeta`] (number of audio ports)
+//! * [`CommonAudioPortMeta`] (names of the audio in and out ports)
+//! * [`MidiHandlerMeta`] (number of midi ports)
+//! * [`CommonMidiPortMeta`] (names of the audio in and out ports)
+//!
+//! #### No meta-data for offline rendering
+//! Applications do not need to implement special traits describing meta-data.
+//!
+//! #### Meta-data for VST 2.4
+//! Plugins need to implement
+//! * [`CommonPluginMeta`] (name of the plugin etc)
+//! * [`AudioHandlerMeta`] (number of audio ports)
+//! * [`CommonAudioPortMeta`] (names of the audio in and out ports)
+//! * [`VstPluginMeta`] (vst-specific meta-data)
+//!
+//! ### Rendering audio
 //! All backends require the plugin/application to implement the [`ContextualAudioRenderer`] trait.
 //! [`ContextualAudioRenderer`] has two type parameters and the type parameter depends on the
 //! backends to use.
@@ -39,17 +63,17 @@
 //! The application or plugin can have either a generic implementation of the [`ContextualAudioRenderer`]
 //! or choose to use different, specialized implementations if different behaviour is needed.
 //!
-//! ### Jack
+//! #### Rendering audio with Jack
 //!
 //! Applications need to implement
 //! * [`AudioHandler`]
 //! * [`ContextualAudioRenderer`]`<f32,`[`JackHost`]`>`
 //!
-//! ### Offline rendering
+//! #### Rendering audio offline
 //! Applications need to implement
 //! * [`ContextualAudioRenderer`]`<S, `[`MidiWriterWrapper`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>>` Note: the type parameter `S`, which represents the sample data type, is free.
 //!
-//! ### VST 2.4
+//! #### Rendering audio with VST 2.4
 //! Plugins need to implement
 //! * [`AudioHandler`]
 //! * [`ContextualAudioRenderer`]`<f32,`[`HostCallback`]`>`
@@ -58,45 +82,36 @@
 //! _Note_: [`HostCallback`] is re-exported from the VST crate, but implements `rsynth`'s
 //! [`HostInterface`], which defines functionality shared by all backends.
 //!
+//! ### Handling (midi) events
+//! A plugin or application can handle events (typically midi events) by implementing the
+//! [`ContextualEventHandler`] trait. This trait is generic over the event type. It also has
+//! a second type parameter, the context, which typically corresponds to the host, so that
+//! plugins or applications can have access to the host while handling events.
 //!
-//! ## Meta-data
-//! There are a number of traits that an application or plugin needs to implement in order to define meta-data.
-//! Every plugin should implement these, but it can be tedious, so you can implement these
-//! traits in a more straightforward way by implementing the [`Meta`] trait.
-//! However, you can also implement these trait "by hand":
+//! #### Handling events with Jack
+//! Applications need to implement
+//! * [`ContextualEventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>, `[`JackHost`]`>`,
+//! * [`ContextualEventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`SysExEvent`]`>>, `[`JackHost`]`>`
 //!
-//! * [`CommonPluginMeta`]
-//!     * Name of the plugin etc
-//! * [`AudioHandlerMeta`]
-//!     * Number of audio ports
-//! * [`MidiHandlerMeta`]
-//!     * Number of midi ports
-//! * [`CommonAudioPortMeta`]
-//!     * Names of the audio in and out ports
-//! * [`CommonPluginMeta`]
-//!     * Name of the plugin or application
+//! ### Handling events with the "offline" backend
+//! Applications need to implement
+//! * [`EventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>`
 //!
-//! Additionally, back-ends can require extra trait related to meta-data.
+//! _Note_: [`EventHandler`] is similar to [`ContextualEventHandler`], but without the context.
+//! We would like to make this more uniform in a future version and also require
+//! [`ContextualEventHandler`] here.
 //!
-//! ## Handling events
-//! Plugins or application can handle events by implementing a number of traits:
+//! ### Handling events with VST 2.4
+//! Plugins need to implement
 //!
-//! * [`EventHandler`]
-//! * [`ContextualEventHandler`]
+//! * [`ContextualEventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>, `[`HostCallback`]`>` and
+//! * [`ContextualEventHandler`]`<`[`Timed`]`<`[`SysExEvent`]`>, `[`HostCallback`]`>`.
 //!
-//! Both traits are generic over the event type.
-//! These traits are very similar, the [`ContextualEventHandler`] trait adds one extra parameter
-//! that defines a "context" that can be passed to the implementor of the trait, so that the
-//! implementor of the trait does not need to own all data that is needed for handling the event;
-//! it can also borrow some data with additional the `context` parameter.
+//! _Note_: VST 2.4 does not support sample-accurate events; a dummy timestamp of `0` is always added.
 //!
-//! ### Events
-//! `rsynth` defines a number of event types:
+//! _Note_: [`HostCallback`] is re-exported from the VST crate, but implements `rsynth`'s
+//! [`HostInterface`], which defines functionality shared by all backends.
 //!
-//! * [`RawMidiEvent`]: a raw MIDI event
-//! * [`SysExEvent`]: a system exclusive event
-//! * [`Timed<T>`]: a generic event that associates a timestamp with the event
-//! * [`Indexed<T>`]: a generic event that associates an index with the event
 //!
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
@@ -107,6 +122,7 @@
 //! [`Timed<T>`]: ./event/struct.Timed.html
 //! [`Timed`]: ./event/struct.Timed.html
 //! [`Indexed<T>`]: ./event/struct.Indexed.html
+//! [`Indexed`]: ./event/struct.Indexed.html
 //! [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html
 //! [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
 //! [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html
@@ -124,6 +140,8 @@
 //! [`JackHost`]: ./backend/jack_backend/struct.JackHost.html
 //! [`AudioHandler`]: ./trait.AudioHandler.html
 //! [`MidiWriterWrapper`]: ./backend/combined/struct.MidiWriterWrapper.html
+//! [`CommonMidiPortMeta`]: ./trait.CommonMidiPortMeta.html
+//! [`VstPluginMeta`]: ./backend/vst_backend/trait.VstPluginMeta.html
 
 #[macro_use]
 extern crate log;
