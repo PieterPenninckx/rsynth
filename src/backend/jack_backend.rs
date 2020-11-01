@@ -349,15 +349,16 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard.
 pub fn run<P>(mut plugin: P) -> Result<P, jack::Error>
 where
-    P: CommonAudioPortMeta
+    P: CommonPluginMeta
         + AudioHandler
+        + CommonAudioPortMeta
         + CommonMidiPortMeta
-        + CommonPluginMeta
         + Send
         + Sync
         + 'static,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
-        + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>,
+    for<'c, 'mp, 'mw> P:
+        ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {

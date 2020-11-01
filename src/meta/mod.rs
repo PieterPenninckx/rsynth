@@ -63,8 +63,6 @@
 /// See the [module level documentation] for more details.
 ///
 /// [module level documentation]: ./index.html
-/// [`MetaData`]: ./struct.MetaData.html
-/// [`Meta`]: ./trait.Meta.html
 pub trait Meta {
     /// The data-type that represents the meta-data.
     ///
