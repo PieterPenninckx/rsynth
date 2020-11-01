@@ -498,6 +498,16 @@
 <span id="497">497</span>
 <span id="498">498</span>
 <span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the VST backend (behind the `backend-vst` feature).</span>
 <span class="doccomment">//!</span>
@@ -705,7 +715,17 @@
 
 <span class="doccomment">/// A wrapper around the `plugin_main!` macro from the `vst` crate.</span>
 <span class="doccomment">/// You call this with one parameter, which is the function declaration of a function</span>
-<span class="doccomment">/// that creates your plugin.</span>
+<span class="doccomment">/// that creates your plugin. The plugin is typically a custom data type and should implement</span>
+<span class="doccomment">/// the following traits:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// * `CommonAudioPortMeta`,</span>
+<span class="doccomment">/// * `VstPluginMeta`,</span>
+<span class="doccomment">/// * `AudioHandler`,</span>
+<span class="doccomment">/// * `ContextualEventHandler&lt;Timed&lt;RawMidiEvent&gt;, HostCallback&gt;`,</span>
+<span class="doccomment">/// * `ContextualAudioRenderer&lt;f32, HostCallback&gt;`,</span>
+<span class="doccomment">/// * `ContextualAudioRenderer&lt;f64, HostCallback&gt;`,</span>
+<span class="doccomment">/// * `ContextualEventHandler&lt;Timed&lt;SysExEvent&lt;&#39;a&gt;&gt;, HostCallback&gt;`</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// This function may also do some setup (e.g. initialize logging).</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example using generic code</span>

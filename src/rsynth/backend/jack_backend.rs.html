@@ -379,6 +379,7 @@
 <span id="378">378</span>
 <span id="379">379</span>
 <span id="380">380</span>
+<span id="381">381</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the [JACK] backend (behind the `backend-jack` feature).</span>
 <span class="doccomment">//!</span>
@@ -731,15 +732,16 @@
 <span class="doccomment">/// Run the plugin until the user presses a key on the computer keyboard.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">plugin</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">jack</span>::<span class="ident">Error</span><span class="op">&gt;</span>
 <span class="kw">where</span>
-    <span class="ident">P</span>: <span class="ident">CommonAudioPortMeta</span>
+    <span class="ident">P</span>: <span class="ident">CommonPluginMeta</span>
         <span class="op">+</span> <span class="ident">AudioHandler</span>
+        <span class="op">+</span> <span class="ident">CommonAudioPortMeta</span>
         <span class="op">+</span> <span class="ident">CommonMidiPortMeta</span>
-        <span class="op">+</span> <span class="ident">CommonPluginMeta</span>
         <span class="op">+</span> <span class="ident">Send</span>
         <span class="op">+</span> <span class="ident">Sync</span>
         <span class="op">+</span> <span class="lifetime">&#39;static</span>,
-    <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;</span> <span class="ident">P</span>: <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">f32</span>, <span class="ident">JackHost</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;&gt;</span>
-        <span class="op">+</span> <span class="ident">ContextualEventHandler</span><span class="op">&lt;</span><span class="ident">Indexed</span><span class="op">&lt;</span><span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;&gt;</span>, <span class="ident">JackHost</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;&gt;</span>,
+    <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;</span> <span class="ident">P</span>: <span class="ident">ContextualAudioRenderer</span><span class="op">&lt;</span><span class="ident">f32</span>, <span class="ident">JackHost</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;&gt;</span>,
+    <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;</span> <span class="ident">P</span>:
+        <span class="ident">ContextualEventHandler</span><span class="op">&lt;</span><span class="ident">Indexed</span><span class="op">&lt;</span><span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;&gt;</span>, <span class="ident">JackHost</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;&gt;</span>,
     <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">P</span>:
         <span class="ident">ContextualEventHandler</span><span class="op">&lt;</span><span class="ident">Indexed</span><span class="op">&lt;</span><span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">SysExEvent</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>, <span class="ident">JackHost</span><span class="op">&lt;</span><span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;mp</span>, <span class="lifetime">&#39;mw</span><span class="op">&gt;&gt;</span>,
 {

@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `vst_init` macro in crate `rsynth`."><meta name="keywords" content="rust, rustlang, rust-lang, vst_init"><title>rsynth::vst_init - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc macro"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><div class="sidebar-elems"><p class='location'><a href='index.html'>rsynth</a></p><script>window.sidebarCurrent = {name: 'vst_init', ty: 'macro', relpath: ''};</script><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
-                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/backend/vst_backend.rs.html#414-499' title='goto source code'>[src]</a></span><span class='in-band'>Macro <a href='index.html'>rsynth</a>::<wbr><a class="macro" href=''>vst_init</a></span></h1><div class="docblock type-decl hidden-by-usual-hider"><div class="example-wrap"><pre class="rust macro">
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/backend/vst_backend.rs.html#424-509' title='goto source code'>[src]</a></span><span class='in-band'>Macro <a href='index.html'>rsynth</a>::<wbr><a class="macro" href=''>vst_init</a></span></h1><div class="docblock type-decl hidden-by-usual-hider"><div class="example-wrap"><pre class="rust macro">
 <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">vst_init</span> {
     (<span class="kw">fn</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">function_name</span>:<span class="ident">ident</span>() <span class="op">-&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">return_type</span>:<span class="ident">ty</span>
         <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span>
@@ -7,8 +7,18 @@
 }</pre></div>
 </div><div class='docblock'><p>A wrapper around the <code>plugin_main!</code> macro from the <code>vst</code> crate.
 You call this with one parameter, which is the function declaration of a function
-that creates your plugin.
-This function may also do some setup (e.g. initialize logging).</p>
+that creates your plugin. The plugin is typically a custom data type and should implement
+the following traits:</p>
+<ul>
+<li><code>CommonAudioPortMeta</code>,</li>
+<li><code>VstPluginMeta</code>,</li>
+<li><code>AudioHandler</code>,</li>
+<li><code>ContextualEventHandler&lt;Timed&lt;RawMidiEvent&gt;, HostCallback&gt;</code>,</li>
+<li><code>ContextualAudioRenderer&lt;f32, HostCallback&gt;</code>,</li>
+<li><code>ContextualAudioRenderer&lt;f64, HostCallback&gt;</code>,</li>
+<li><code>ContextualEventHandler&lt;Timed&lt;SysExEvent&lt;'a&gt;&gt;, HostCallback&gt;</code></li>
+</ul>
+<p>This function may also do some setup (e.g. initialize logging).</p>
 <h1 id="example-using-generic-code" class="section-header"><a href="#example-using-generic-code">Example using generic code</a></h1>
 <div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="kw">use</span> <span class="ident">rsynth</span>::{

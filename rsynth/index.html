@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `rsynth` crate."><meta name="keywords" content="rust, rustlang, rust-lang, rsynth"><title>rsynth - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><p class='location'>Crate rsynth</p><div class='block version'><p>Version 0.1.1</p></div><div class="sidebar-elems"><a id='all-types' href='all.html'><p>See all rsynth's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'rsynth', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
-                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/lib.rs.html#1-333' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>rsynth</a></span></h1><div class='docblock'><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/rsynth/lib.rs.html#1-438' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>rsynth</a></span></h1><div class='docblock'><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
 <p>An API abstraction for API's for audio plugins and applications.
 Use it to write real-time audio effects, software synthesizers, ... and target different platforms
 (vst, jack, offline audio rendering, ...).
@@ -14,72 +14,129 @@ E.g. you cannot use it to reverse audio in time.</p>
 midi output, mostly for offline rendering and testing (behind various features)</li>
 </ul>
 <p>See the documentation of each back-end for more information.</p>
-<h2 id="rendering-audio" class="section-header"><a href="#rendering-audio">Rendering audio</a></h2>
-<p>Audio can be rendered by using a number of traits:</p>
+<h2 id="features-and-how-to-use-them" class="section-header"><a href="#features-and-how-to-use-them">Features and how to use them</a></h2>
+<p><code>rsynth</code> puts common functionality of the different backends behind common traits.
+Conversely, a plugin can be used for different backends by implementing common traits.
+A mix-and-match approach is used: if a backend doesn't require a certain functionality,
+you don't need the corresponding trait.</p>
+<h3 id="starting-the-backendentry-point-for-the-host" class="section-header"><a href="#starting-the-backendentry-point-for-the-host">Starting the backend/entry point for the host</a></h3>
 <ul>
-<li>the <a href="./trait.AudioRenderer.html"><code>AudioRenderer</code></a> trait</li>
-<li>the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> trait</li>
+<li>Jack: <a href="./backend/jack_backend/fn.run.html"><code>run()</code></a></li>
+<li>Offline : <a href="backend/combined/fn.run.html"><code>run()</code></a></li>
+<li>VST 2.4:  <a href="./macro.vst_init.html"><code>vst_init!</code></a></li>
 </ul>
-<p>The difference between these traits is that the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> trait adds one extra
-parameter that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that
-the implementor of the trait does not need to own all data that is needed for rendering the
-audio; it can also borrow some data with additional the <code>context</code> parameter.</p>
-<p>Both traits are generic over the data type that represents the sample.
-For which specific data-type an application or plugin needs to implement the trait, depends on
-the back-end. Because the trait is generic, the application or plugin can have a generic implementation
-as well that can be used by different back-ends.</p>
-<h2 id="meta-data" class="section-header"><a href="#meta-data">Meta-data</a></h2>
-<p>There are a number of traits that an application or plugin needs to implement in order to define meta-data.
-Every plugin should implement these, but it can be tedious, so you can implement these
-traits in a more straightforward way by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.
-However, you can also implement these trait &quot;by hand&quot;:</p>
+<h3 id="meta-data" class="section-header"><a href="#meta-data">Meta-data</a></h3>
+<p>There are a number of traits that an application or plugin needs to implement in order to define
+meta-data. Every plugin or application should implement these, but it can be tedious, so you can
+implement these traits in a more straightforward way by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.
+However, you can also implement these trait &quot;by hand&quot;.</p>
+<p><strong>Meta-data for Jack</strong></p>
+<p>Applications need to implement</p>
 <ul>
-<li><a href="./trait.CommonPluginMeta.html"><code>CommonPluginMeta</code></a>
+<li><a href="./trait.CommonPluginMeta.html"><code>CommonPluginMeta</code></a> (name of the plugin etc)</li>
+<li><a href="./trait.AudioHandlerMeta.html"><code>AudioHandlerMeta</code></a> (number of audio ports)</li>
+<li><a href="./trait.CommonAudioPortMeta.html"><code>CommonAudioPortMeta</code></a> (names of the audio in and out ports)</li>
+<li><a href="./trait.MidiHandlerMeta.html"><code>MidiHandlerMeta</code></a> (number of midi ports)</li>
+<li><a href="./trait.CommonMidiPortMeta.html"><code>CommonMidiPortMeta</code></a> (names of the audio in and out ports)</li>
+</ul>
+<p><strong>No meta-data for offline rendering</strong></p>
+<p>Applications do not need to implement special traits describing meta-data.</p>
+<p><strong>Meta-data for VST 2.4</strong></p>
+<p>Plugins need to implement</p>
 <ul>
-<li>Name of the plugin etc</li>
+<li><a href="./trait.CommonPluginMeta.html"><code>CommonPluginMeta</code></a> (name of the plugin etc)</li>
+<li><a href="./trait.AudioHandlerMeta.html"><code>AudioHandlerMeta</code></a> (number of audio ports)</li>
+<li><a href="./trait.CommonAudioPortMeta.html"><code>CommonAudioPortMeta</code></a> (names of the audio in and out ports)</li>
+<li><a href="./backend/vst_backend/trait.VstPluginMeta.html"><code>VstPluginMeta</code></a> (vst-specific meta-data)</li>
 </ul>
-</li>
-<li><a href="./trait.AudioHandlerMeta.html"><code>AudioHandlerMeta</code></a>
+<h3 id="rendering-audio" class="section-header"><a href="#rendering-audio">Rendering audio</a></h3>
+<p>All backends require the plugin/application to implement the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> trait.
+<a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> has two type parameters and the type parameter depends on the
+backends to use.
+One type parameter is the data type used to represent a sample.
+The other type parameter is called the &quot;context&quot; and can be used to access functionality of
+the backend in the audio rendering itself.
+Common functionality of the context is defined in the <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a> trait.
+The application or plugin can have either a generic implementation of the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a>
+or choose to use different, specialized implementations if different behaviour is needed.</p>
+<p><strong>Rendering audio with Jack</strong></p>
+<p>Applications need to implement</p>
 <ul>
-<li>Number of audio ports</li>
+<li><a href="./trait.AudioHandler.html"><code>AudioHandler</code></a></li>
+<li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;f32,</code><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a><code>&gt;</code></li>
 </ul>
-</li>
-<li><a href="./trait.MidiHandlerMeta.html"><code>MidiHandlerMeta</code></a>
+<p><strong>Rendering audio offline</strong></p>
+<p>Applications need to implement</p>
 <ul>
-<li>Number of midi ports</li>
+<li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;S, </code><a href="./backend/combined/struct.MidiWriterWrapper.html"><code>MidiWriterWrapper</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;&gt;</code> Note: the type parameter <code>S</code>, which represents the sample data type, is free.</li>
 </ul>
-</li>
-<li><a href="./trait.CommonAudioPortMeta.html"><code>CommonAudioPortMeta</code></a>
+<p><strong>Rendering audio with VST 2.4</strong></p>
+<p>Plugins need to implement</p>
 <ul>
-<li>Names of the audio in and out ports</li>
+<li><a href="./trait.AudioHandler.html"><code>AudioHandler</code></a></li>
+<li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;f32,</code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code></li>
+<li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;f64,</code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code></li>
 </ul>
-</li>
-<li><a href="./trait.CommonPluginMeta.html"><code>CommonPluginMeta</code></a>
+<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>'s
+<a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a>, which defines functionality shared by all backends.</p>
+<h3 id="handling-midi-events" class="section-header"><a href="#handling-midi-events">Handling (midi) events</a></h3>
+<p>A plugin or application can handle events (typically midi events) by implementing the
+<a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> trait. This trait is generic over the event type. It also has
+a second type parameter, the context, which typically corresponds to the host, so that
+plugins or applications can have access to the host while handling events.</p>
+<p><strong>Handling events with Jack</strong></p>
+<p>Applications need to implement</p>
 <ul>
-<li>Name of the plugin or application</li>
+<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;, </code><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a><code>&gt;</code>,</li>
+<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a><code>&gt;&gt;, </code><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a><code>&gt;</code></li>
 </ul>
-</li>
-</ul>
-<p>Additionally, back-ends can require extra trait related to meta-data.</p>
-<h2 id="handling-events" class="section-header"><a href="#handling-events">Handling events</a></h2>
-<p>Plugins or application can handle events by implementing a number of traits:</p>
+<p><strong>Handling events with the &quot;offline&quot; backend</strong></p>
+<p>Applications need to implement</p>
 <ul>
-<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a></li>
-<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a></li>
+<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;</code></li>
 </ul>
-<p>Both traits are generic over the event type.
-These traits are very similar, the <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> trait adds one extra parameter
-that defines a &quot;context&quot; that can be passed to the implementor of the trait, so that the
-implementor of the trait does not need to own all data that is needed for handling the event;
-it can also borrow some data with additional the <code>context</code> parameter.</p>
-<h3 id="events" class="section-header"><a href="#events">Events</a></h3>
-<p><code>rsynth</code> defines a number of event types:</p>
+<p><em>Note</em>: <a href="./event/trait.EventHandler.html"><code>EventHandler</code></a> is similar to <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a>, but without the context.
+We would like to make this more uniform in a future version and also require
+<a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> here.</p>
+<p><strong>Handling events with VST 2.4</strong>
+Plugins need to implement</p>
 <ul>
-<li><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a>: a raw MIDI event</li>
-<li><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a>: a system exclusive event</li>
-<li><a href="./event/struct.Timed.html"><code>Timed&lt;T&gt;</code></a>: a generic event that associates a timestamp with the event</li>
-<li><a href="./event/struct.Indexed.html"><code>Indexed&lt;T&gt;</code></a>: a generic event that associates an index with the event</li>
+<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;, </code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code> and</li>
+<li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a><code>&gt;, </code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code>.</li>
 </ul>
+<p><em>Note</em>: VST 2.4 does not support sample-accurate events; a dummy timestamp of <code>0</code> is always added.</p>
+<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>'s
+<a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a>, which defines functionality shared by all backends.</p>
+<h3 id="generating-midi-events" class="section-header"><a href="#generating-midi-events">Generating midi events</a></h3>
+<p>The &quot;context&quot; parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
+<a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> traits allows to access features from the host/backend, such as
+generating midi events.</p>
+<p><strong>Generating midi events with Jack</strong></p>
+<p><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a> implements the following traits:</p>
+<ul>
+<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;&gt;</code></li>
+<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a><code>&gt;&gt;&gt;</code></li>
+</ul>
+<p><strong>Generating midi events with offline rendering</strong></p>
+<p><a href="./backend/combined/struct.MidiWriterWrapper.html"><code>MidiWriterWrapper</code></a> implements</p>
+<ul>
+<li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;</code></li>
+</ul>
+<p><strong>Generating midi events with VST 2.4 is not possible</strong></p>
+<h3 id="stopping-the-backend" class="section-header"><a href="#stopping-the-backend">Stopping the backend</a></h3>
+<p>The &quot;context&quot; parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
+<a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> traits allows to access features from the host/backend, such as
+stopping the backend.
+All &quot;backends&quot; implement the <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a> trait, which defines a <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method.
+The <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method only actually does something if the backend additionally implements
+the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait.</p>
+<p><strong>Stopping Jack</strong></p>
+<p>Stopping Jack is possible: <a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a> implements the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait</p>
+<p><strong>Stopping offline rendering</strong></p>
+<p>Stopping offline rendering is unfortunately currently not possible.
+Offline rendering automatically stops when the <a href="./backend/combined/trait.AudioReader.html#tymethod.fill_buffer"><code>fill_buffer</code></a> method of the
+<a href="./backend/combined/trait.AudioReader.html"><code>AudioReader</code></a> indicates that no frames are to be expected anymore.</p>
+<p><strong>Stopping VST 2.4 is not possible</strong></p>
 </div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
 <table><tr class='module-item'><td><a class="mod" href="backend/index.html" title='rsynth::backend mod'>backend</a></td><td class='docblock-short'><p>Backends.</p>
 </td></tr><tr class='module-item'><td><a class="mod" href="buffer/index.html" title='rsynth::buffer mod'>buffer</a></td><td class='docblock-short'><p>Audio buffers.</p>
@@ -92,8 +149,8 @@ it can also borrow some data with additional the <code>context</code> parameter.
 <table><tr class='module-item'><td><a class="macro" href="macro.audio_chunk.html" title='rsynth::audio_chunk macro'>audio_chunk</a></td><td class='docblock-short'><p>Create an audio chunk.</p>
 </td></tr><tr class='module-item'><td><a class="macro" href="macro.vst_init.html" title='rsynth::vst_init macro'>vst_init</a></td><td class='docblock-short'><p>A wrapper around the <code>plugin_main!</code> macro from the <code>vst</code> crate.
 You call this with one parameter, which is the function declaration of a function
-that creates your plugin.
-This function may also do some setup (e.g. initialize logging).</p>
+that creates your plugin. The plugin is typically a custom data type and should implement
+the following traits:</p>
 </td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
 <table><tr class='module-item'><td><a class="trait" href="trait.AudioHandler.html" title='rsynth::AudioHandler trait'>AudioHandler</a></td><td class='docblock-short'><p>Define how sample-rate changes are handled.</p>
 </td></tr><tr class='module-item'><td><a class="trait" href="trait.AudioHandlerMeta.html" title='rsynth::AudioHandlerMeta trait'>AudioHandlerMeta</a></td><td class='docblock-short'><p>Define the maximum number of audio inputs and the maximum number of audio outputs.</p>

@@ -324,6 +324,10 @@
 <span id="323">323</span>
 <span id="324">324</span>
 <span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Event handling</span>
 <span class="doccomment">//!</span>
@@ -458,10 +462,14 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-midly&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">combined</span>::<span class="ident">midly</span>::<span class="ident">midly</span>::<span class="ident">io</span>::<span class="ident">CursorError</span>;
+
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-midly&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
+<span class="doccomment">/// The error type when converting from `midly`&#39;s `TrackEventKind` to a `RawMidiEvent`.</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MidlyConversionError</span> {
+    <span class="doccomment">/// Not a live event.</span>
     <span class="ident">NotALiveEvent</span>,
+    <span class="doccomment">/// Cursor error (technical error).</span>
     <span class="ident">CursorError</span>(<span class="ident">CursorError</span>),
 }
 
