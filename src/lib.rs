@@ -22,7 +22,7 @@
 //! A mix-and-match approach is used: if a backend doesn't require a certain functionality,
 //! you don't need the corresponding trait.
 //!
-//! ### Using the backend
+//! ### Starting the backend/entry point for the host
 //!
 //! * Jack: [`run()`](./backend/jack_backend/fn.run.html)
 //! * Offline : [`run()`](backend/combined/fn.run.html)
@@ -34,7 +34,8 @@
 //! implement these traits in a more straightforward way by implementing the [`Meta`] trait.
 //! However, you can also implement these trait "by hand".
 //!
-//! #### Meta-data for Jack
+//! **Meta-data for Jack**
+//!
 //! Applications need to implement
 //! * [`CommonPluginMeta`] (name of the plugin etc)
 //! * [`AudioHandlerMeta`] (number of audio ports)
@@ -42,10 +43,12 @@
 //! * [`MidiHandlerMeta`] (number of midi ports)
 //! * [`CommonMidiPortMeta`] (names of the audio in and out ports)
 //!
-//! #### No meta-data for offline rendering
+//! **No meta-data for offline rendering**
+//!
 //! Applications do not need to implement special traits describing meta-data.
 //!
-//! #### Meta-data for VST 2.4
+//! **Meta-data for VST 2.4**
+//!
 //! Plugins need to implement
 //! * [`CommonPluginMeta`] (name of the plugin etc)
 //! * [`AudioHandlerMeta`] (number of audio ports)
@@ -63,23 +66,25 @@
 //! The application or plugin can have either a generic implementation of the [`ContextualAudioRenderer`]
 //! or choose to use different, specialized implementations if different behaviour is needed.
 //!
-//! #### Rendering audio with Jack
+//! **Rendering audio with Jack**
 //!
 //! Applications need to implement
 //! * [`AudioHandler`]
 //! * [`ContextualAudioRenderer`]`<f32,`[`JackHost`]`>`
 //!
-//! #### Rendering audio offline
+//! **Rendering audio offline**
+//!
 //! Applications need to implement
 //! * [`ContextualAudioRenderer`]`<S, `[`MidiWriterWrapper`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>>` Note: the type parameter `S`, which represents the sample data type, is free.
 //!
-//! #### Rendering audio with VST 2.4
+//! **Rendering audio with VST 2.4**
+//!
 //! Plugins need to implement
 //! * [`AudioHandler`]
 //! * [`ContextualAudioRenderer`]`<f32,`[`HostCallback`]`>`
 //! * [`ContextualAudioRenderer`]`<f64,`[`HostCallback`]`>`
 //!
-//! _Note_: [`HostCallback`] is re-exported from the VST crate, but implements `rsynth`'s
+//! _Note_: [`HostCallback`] is re-exported from the vst crate, but implements `rsynth`'s
 //! [`HostInterface`], which defines functionality shared by all backends.
 //!
 //! ### Handling (midi) events
@@ -88,12 +93,14 @@
 //! a second type parameter, the context, which typically corresponds to the host, so that
 //! plugins or applications can have access to the host while handling events.
 //!
-//! #### Handling events with Jack
+//! **Handling events with Jack**
+//!
 //! Applications need to implement
 //! * [`ContextualEventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>, `[`JackHost`]`>`,
 //! * [`ContextualEventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`SysExEvent`]`>>, `[`JackHost`]`>`
 //!
-//! ### Handling events with the "offline" backend
+//! **Handling events with the "offline" backend**
+//!
 //! Applications need to implement
 //! * [`EventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>`
 //!
@@ -101,7 +108,7 @@
 //! We would like to make this more uniform in a future version and also require
 //! [`ContextualEventHandler`] here.
 //!
-//! ### Handling events with VST 2.4
+//! **Handling events with VST 2.4**
 //! Plugins need to implement
 //!
 //! * [`ContextualEventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>, `[`HostCallback`]`>` and
@@ -109,9 +116,47 @@
 //!
 //! _Note_: VST 2.4 does not support sample-accurate events; a dummy timestamp of `0` is always added.
 //!
-//! _Note_: [`HostCallback`] is re-exported from the VST crate, but implements `rsynth`'s
+//! _Note_: [`HostCallback`] is re-exported from the vst crate, but implements `rsynth`'s
 //! [`HostInterface`], which defines functionality shared by all backends.
 //!
+//! ### Generating midi events
+//! The "context" parameter passed in the methods from the [`ContextualAudioRenderer`] and
+//! [`ContextualEventHandler`] traits allows to access features from the host/backend, such as
+//! generating midi events.
+//!
+//! **Generating midi events with Jack**
+//!
+//! [`JackHost`] implements the following traits:
+//!
+//! * [`EventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>>`
+//! * [`EventHandler`]`<`[`Indexed`]`<`[`Timed`]`<`[`SysExEvent`]`>>>`
+//!
+//! **Generating midi events with offline rendering**
+//!
+//! [`MidiWriterWrapper`] implements
+//! * [`EventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>>`
+//!
+//! **Generating midi events with VST 2.4 is not possible**
+//!
+//! ### Stopping the backend
+//! The "context" parameter passed in the methods from the [`ContextualAudioRenderer`] and
+//! [`ContextualEventHandler`] traits allows to access features from the host/backend, such as
+//! stopping the backend.
+//! All "backends" implement the [`HostInterface`] trait, which defines a [`stop`] method.
+//! The [`stop`] method only actually does something if the backend additionally implements
+//! the [`Stop`] trait.
+//!
+//! **Stopping Jack**
+//!
+//! Stopping Jack is possible: [`JackHost`] implements the [`Stop`] trait
+//!
+//! **Stopping offline rendering**
+//!
+//! Stopping offline rendering is unfortunately currently not possible.
+//! Offline rendering automatically stops when the [`fill_buffer`] method of the
+//! [`AudioReader`] indicates that no frames are to be expected anymore.
+//!
+//! **Stopping VST 2.4 is not possible**
 //!
 //! [`jack`]: ./backend/jack_backend/index.html
 //! [`vst`]: ./backend/vst_backend/index.html
@@ -142,6 +187,11 @@
 //! [`MidiWriterWrapper`]: ./backend/combined/struct.MidiWriterWrapper.html
 //! [`CommonMidiPortMeta`]: ./trait.CommonMidiPortMeta.html
 //! [`VstPluginMeta`]: ./backend/vst_backend/trait.VstPluginMeta.html
+//! [`MidiWriterWrapper`]: ./backend/combined/struct.MidiWriterWrapper.html
+//! [`stop`]: ./backend/trait.HostInterface.html#method.stop
+//! [`Stop`]: ./backend/trait.Stop.html
+//! [`fill_buffer`]: ./backend/combined/trait.AudioReader.html#tymethod.fill_buffer
+//! [`AudioReader`]: ./backend/combined/trait.AudioReader.html
 
 #[macro_use]
 extern crate log;
