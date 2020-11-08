@@ -114,7 +114,12 @@ where
 {
     let mut in_ports = Vec::with_capacity(plugin.max_number_of_audio_inputs());
     for index in 0..plugin.max_number_of_audio_inputs() {
-        let name = plugin.audio_input_name(index);
+        let mut name = String::new();
+        if let Err(e) = plugin.input_name(&mut name, index) {
+            error!("Failed to get the name of audio input port with index {}: {}.", index, e);
+            // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio input port?
+            continue;
+        }
         info!("Registering audio input port with name {}", name);
         let port = client.register_port(&name, AudioIn::default());
         match port {
@@ -137,7 +142,12 @@ where
 {
     let mut out_ports = Vec::with_capacity(plugin.max_number_of_audio_outputs());
     for index in 0..plugin.max_number_of_audio_outputs() {
-        let name = plugin.audio_output_name(index);
+        let mut name = String::new();
+        if let Err(e) = plugin.output_name(&mut name, index) {
+            error!("Failed to get the name of audio output port with index {}: {}.", index, e);
+            // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio output port?
+            continue;
+        }
         info!("Registering audio output port with name {}", name);
         let port = client.register_port(&name, AudioOut::default());
         match port {
@@ -160,7 +170,12 @@ where
 {
     let mut in_ports = Vec::with_capacity(plugin.max_number_of_midi_inputs());
     for index in 0..plugin.max_number_of_midi_inputs() {
-        let name = plugin.midi_input_name(index);
+        let mut name = String::new();
+        if let Err(e) = plugin.input_name(&mut name, index) {
+            error!("Failed to get the name of midi input port with index {}: {}.", index, e);
+            // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi input port?
+            continue;
+        }
         info!("Registering midi input port with name {}", name);
         let port = client.register_port(&name, MidiIn::default());
         match port {
@@ -182,8 +197,12 @@ where
 {
     let mut out_ports = Vec::with_capacity(plugin.max_number_of_midi_outputs());
     for index in 0..plugin.max_number_of_midi_outputs() {
-        let name = plugin.midi_output_name(index);
-        info!("Registering midi output port with name {}", name);
+        let mut name = String::new();
+        if let Err(e) = plugin.output_name(&mut name, index) {
+            error!("Failed to get the name of midi output port with index {}: {}.", index, e);
+            // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi output port?
+            continue;
+        }
         let port = client.register_port(&name, MidiOut::default());
         match port {
             Ok(p) => {
