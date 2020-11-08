@@ -142,28 +142,24 @@ where
         trace!("get_input_info({})", input_index);
         let mut name = String::new();
         if let Err(e) = self.plugin.input_name(&mut name, input_index as usize) {
-            error!("Failed to get the name of input with index {}: {}.", input_index, e);
+            error!(
+                "Failed to get the name of input with index {}: {}.",
+                input_index, e
+            );
         }
-        ChannelInfo::new(
-            name,
-            None,
-            true,
-            None,
-        )
+        ChannelInfo::new(name, None, true, None)
     }
 
     pub fn get_output_info(&self, output_index: i32) -> ChannelInfo {
         trace!("get_output_info({})", output_index);
         let mut name = String::new();
         if let Err(e) = self.plugin.output_name(&mut name, output_index as usize) {
-            error!("Failed to get the name of output with index {}: {}.", output_index, e);
+            error!(
+                "Failed to get the name of output with index {}: {}.",
+                output_index, e
+            );
         }
-        ChannelInfo::new(
-            name,
-            None,
-            true,
-            None,
-        )
+        ChannelInfo::new(name, None, true, None)
     }
 
     pub fn process_events(&mut self, events: &Events) {

@@ -328,7 +328,7 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
         let mut result = String::new();
         match self.input_name(&mut result, index) {
             Ok(_) => result,
-            Err(_) => format!("audio in {}", index)
+            Err(_) => format!("audio in {}", index),
         }
     }
 
@@ -339,7 +339,11 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// When using the Jack backend, the name should not be an empty string.
     ///
     /// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs
-    fn input_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), std::fmt::Error> {
+    fn input_name<W: std::fmt::Write>(
+        &self,
+        buffer: &mut W,
+        index: usize,
+    ) -> Result<(), std::fmt::Error> {
         write!(buffer, "audio in {}", index)
     }
 
@@ -355,7 +359,7 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
         let mut result = String::new();
         match self.output_name(&mut result, index) {
             Ok(_) => result,
-            Err(_) => format!("audio out {}", index)
+            Err(_) => format!("audio out {}", index),
         }
     }
 
@@ -366,7 +370,11 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// When using the Jack backend, the name should not be an empty string.
     ///
     /// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs
-    fn output_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), std::fmt::Error> {
+    fn output_name<W: std::fmt::Write>(
+        &self,
+        buffer: &mut W,
+        index: usize,
+    ) -> Result<(), std::fmt::Error> {
         write!(buffer, "audio out {}", index)
     }
 }
@@ -391,7 +399,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
         let mut result = String::new();
         match self.input_name(&mut result, index) {
             Ok(_) => result,
-            Err(_) => format!("midi in {}", index)
+            Err(_) => format!("midi in {}", index),
         }
     }
 
@@ -402,10 +410,13 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// When using the Jack backend, the name should not be an empty string.
     ///
     /// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs
-    fn input_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), std::fmt::Error> {
+    fn input_name<W: std::fmt::Write>(
+        &self,
+        buffer: &mut W,
+        index: usize,
+    ) -> Result<(), std::fmt::Error> {
         write!(buffer, "midi in {}", index)
     }
-
 
     /// The name of the midi output with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_outputs()`]
@@ -419,7 +430,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
         let mut result = String::new();
         match self.output_name(&mut result, index) {
             Ok(_) => result,
-            Err(_) => format!("midi out {}", index)
+            Err(_) => format!("midi out {}", index),
         }
     }
 
@@ -430,7 +441,11 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// When using the Jack backend, the name should not be an empty string.
     ///
     /// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs
-    fn output_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), std::fmt::Error> {
+    fn output_name<W: std::fmt::Write>(
+        &self,
+        buffer: &mut W,
+        index: usize,
+    ) -> Result<(), std::fmt::Error> {
         write!(buffer, "midi out {}", index)
     }
 }

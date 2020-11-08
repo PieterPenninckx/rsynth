@@ -116,7 +116,10 @@ where
     for index in 0..plugin.max_number_of_audio_inputs() {
         let mut name = String::new();
         if let Err(e) = plugin.input_name(&mut name, index) {
-            error!("Failed to get the name of audio input port with index {}: {}.", index, e);
+            error!(
+                "Failed to get the name of audio input port with index {}: {}.",
+                index, e
+            );
             // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio input port?
             continue;
         }
@@ -144,7 +147,10 @@ where
     for index in 0..plugin.max_number_of_audio_outputs() {
         let mut name = String::new();
         if let Err(e) = plugin.output_name(&mut name, index) {
-            error!("Failed to get the name of audio output port with index {}: {}.", index, e);
+            error!(
+                "Failed to get the name of audio output port with index {}: {}.",
+                index, e
+            );
             // TODO: Maybe instead of skipping, it is better to provide a "dummy" audio output port?
             continue;
         }
@@ -172,7 +178,10 @@ where
     for index in 0..plugin.max_number_of_midi_inputs() {
         let mut name = String::new();
         if let Err(e) = plugin.input_name(&mut name, index) {
-            error!("Failed to get the name of midi input port with index {}: {}.", index, e);
+            error!(
+                "Failed to get the name of midi input port with index {}: {}.",
+                index, e
+            );
             // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi input port?
             continue;
         }
@@ -199,7 +208,10 @@ where
     for index in 0..plugin.max_number_of_midi_outputs() {
         let mut name = String::new();
         if let Err(e) = plugin.output_name(&mut name, index) {
-            error!("Failed to get the name of midi output port with index {}: {}.", index, e);
+            error!(
+                "Failed to get the name of midi output port with index {}: {}.",
+                index, e
+            );
             // TODO: Maybe instead of skipping, it is better to provide a "dummy" midi output port?
             continue;
         }
