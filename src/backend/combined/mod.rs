@@ -32,7 +32,7 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 //! [`AudioChunkReader`]: ./memory/struct.AudioChunkReader.html
 
-use crate::backend::HostInterface;
+use crate::backend::{HostInterface, Stop};
 use crate::buffer::{
     buffers_as_mut_slice, buffers_as_slice, AudioBufferIn, AudioBufferInOut, AudioBufferOut,
     AudioChunk,
@@ -139,6 +139,7 @@ where
     previous_time_in_microseconds: u64,
     micro_seconds_per_frame: f64,
     event_queue: EventQueue<RawMidiEvent>,
+    must_stop: bool,
 }
 
 impl<W> HostInterface for MidiWriterWrapper<W>
@@ -150,9 +151,11 @@ where
     }
 
     fn stop(&mut self) {
-        // TODO: this should really do something.
+        self.must_stop = true;
     }
 }
+
+impl<W> Stop for MidiWriterWrapper<W> where W: MidiWriter {}
 
 impl<W> MidiWriterWrapper<W>
 where
@@ -165,6 +168,7 @@ where
             current_time_in_frames: 0,
             micro_seconds_per_frame,
             event_queue: EventQueue::new(1024),
+            must_stop: false,
         }
     }
 
@@ -341,6 +345,9 @@ where
         writer.step_frames(frames_read as u64);
 
         if frames_read < buffer_size_in_frames {
+            break;
+        }
+        if writer.must_stop {
             break;
         }
 

@@ -148,12 +148,12 @@
 //!
 //! **Stopping Jack**
 //!
-//! Stopping Jack is possible: [`JackHost`] implements the [`Stop`] trait
+//! Stopping Jack is possible: [`JackHost`] implements the [`Stop`] trait.
 //!
 //! **Stopping offline rendering**
 //!
-//! Stopping offline rendering is unfortunately currently not possible.
-//! Offline rendering automatically stops when the [`fill_buffer`] method of the
+//! Stopping offline rendering is possible: [`MidiWriterWrapper`] implements the [`Stop`] trait.
+//! Additionally, offline rendering automatically stops when the [`fill_buffer`] method of the
 //! [`AudioReader`] indicates that no frames are to be expected anymore.
 //!
 //! **Stopping VST 2.4 is not possible**
