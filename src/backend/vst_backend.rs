@@ -8,7 +8,7 @@
 //! `examples/vst_synth.rs` contains the jack-specific code.
 //!
 //! # Usage
-//! See also the documentation of the [`vst_init`] macro.
+//! See the documentation of the [`vst_init`] macro.
 //!
 //! [`vst_init`]: ../../macro.vst_init.html
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
@@ -36,8 +36,7 @@ use self::vst::{
     plugin::{Category, HostCallback, Info},
 };
 
-/// A VST plugin should implement this trait in addition to some other traits.
-// TODO: document which other traits.
+/// Define some VST-specific meta-data for a VST plugin.
 pub trait VstPluginMeta: CommonPluginMeta + AudioHandlerMeta {
     fn plugin_id(&self) -> i32;
     fn category(&self) -> Category;
@@ -204,18 +203,27 @@ impl HostInterface for HostCallback {
 
 /// A wrapper around the `plugin_main!` macro from the `vst` crate.
 /// You call this with one parameter, which is the function declaration of a function
-/// that creates your plugin. The plugin is typically a custom data type and should implement
+/// that creates your plugin.
+/// This function may also do some setup (e.g. initialize logging).
+/// The plugin is typically a custom data type and should implement
 /// the following traits:
 ///
-/// * `CommonAudioPortMeta`,
-/// * `VstPluginMeta`,
-/// * `AudioHandler`,
-/// * `ContextualEventHandler<Timed<RawMidiEvent>, HostCallback>`,
-/// * `ContextualAudioRenderer<f32, HostCallback>`,
-/// * `ContextualAudioRenderer<f64, HostCallback>`,
-/// * `ContextualEventHandler<Timed<SysExEvent<'a>>, HostCallback>`
+/// **Traits for meta-data** (Note: you can use the [`Meta`] trait for this.
+/// * [`CommonPluginMeta`] (name of the plugin etc),
+/// * [`AudioHandlerMeta`] (number of audio ports),
+/// * [`CommonAudioPortMeta`] (names of the audio in and out ports) and
+/// * [`VstPluginMeta`], (VST-specific meta-data)
 ///
-/// This function may also do some setup (e.g. initialize logging).
+/// **Traits for rendering audio**
+/// * [`AudioHandler`],
+/// * [`ContextualAudioRenderer`]`<f32,`[`HostCallback`]`>` and
+/// * [`ContextualAudioRenderer`]`<f64,`[`HostCallback`]`>`
+///
+/// **Traits for handling midi events**
+/// * [`ContextualEventHandler`]`<`[`Timed`]`<`[`RawMidiEvent`]`>, `[`HostCallback`]`>` and
+/// * [`ContextualEventHandler`]`<`[`Timed`]`<`[`SysExEvent`]`>, `[`HostCallback`]`>`.
+///
+///
 ///
 /// # Example using generic code
 /// ```
@@ -412,6 +420,24 @@ impl HostInterface for HostCallback {
 ///    }
 /// );
 /// ```
+/// [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html
+/// [`SysExEvent`]: ./event/struct.SysExEvent.html
+/// [`Timed<T>`]: ./event/struct.Timed.html
+/// [`Timed`]: ./event/struct.Timed.html
+/// [`Indexed<T>`]: ./event/struct.Indexed.html
+/// [`Indexed`]: ./event/struct.Indexed.html
+/// [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html
+/// [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html
+/// [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html
+/// [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html
+/// [`Meta`]: ./meta/trait.Meta.html
+/// [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html
+/// [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html
+/// [`HostCallback`]: ./backend/vst_backend/vst/plugin/struct.HostCallback.html
+/// [`HostInterface`]: ./backend/trait.HostInterface.html
+/// [`CommonMidiPortMeta`]: ./trait.CommonMidiPortMeta.html
+/// [`VstPluginMeta`]: ./backend/vst_backend/trait.VstPluginMeta.html
+/// [`AudioHandler`]: ./trait.AudioHandler.html
 //
 // We define this macro so that plugins do not have to implement th `Default` trait.
 //

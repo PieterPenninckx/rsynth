@@ -20,7 +20,7 @@ be better suited for you.
 | Sample accurate midi               | N/A |        ✓          |           ✓             |
 | Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
 | Sampling frequency change          |  ✓  |        ✘          |          N/A            |
-| Signal stopping the application    | N/A |        ✓          |           ✘             |
+| Signal stopping the application    | N/A |        ✓          |           ✓             |
 | Jack-specific events               | N/A |        ✘          |          N/A            |
 | Basic meta-data                    |  ✓  |        ✓          |          N/A            |
 | Access to the underlying host      |  ✓  |        ✓          |          N/A            |

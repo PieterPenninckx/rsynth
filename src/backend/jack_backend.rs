@@ -7,8 +7,12 @@
 //! `examples/example_synth` contains the code that is shared for all backends and
 //! `examples/jack_synth.rs` contains the jack-specific code.
 //!
+//! # Usage
+//! See the documentation of the [`run`] function.
+//!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
+//! [`run`]: ./fn.run.html
 use crate::backend::{HostInterface, Stop};
 use crate::buffer::AudioBufferInOut;
 use crate::event::{
@@ -346,7 +350,8 @@ where
     }
 }
 
-/// Run the plugin until the user presses a key on the computer keyboard.
+/// Run the plugin until the user presses a key on the computer keyboard or the plugin
+/// requests the `JackHost` to stop.
 pub fn run<P>(mut plugin: P) -> Result<P, jack::Error>
 where
     P: CommonPluginMeta
