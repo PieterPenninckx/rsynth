@@ -131,10 +131,10 @@ All &quot;backends&quot; implement the <a href="./backend/trait.HostInterface.ht
 The <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method only actually does something if the backend additionally implements
 the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait.</p>
 <p><strong>Stopping Jack</strong></p>
-<p>Stopping Jack is possible: <a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a> implements the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait</p>
+<p>Stopping Jack is possible: <a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a> implements the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait.</p>
 <p><strong>Stopping offline rendering</strong></p>
-<p>Stopping offline rendering is unfortunately currently not possible.
-Offline rendering automatically stops when the <a href="./backend/combined/trait.AudioReader.html#tymethod.fill_buffer"><code>fill_buffer</code></a> method of the
+<p>Stopping offline rendering is possible: <a href="./backend/combined/struct.MidiWriterWrapper.html"><code>MidiWriterWrapper</code></a> implements the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait.
+Additionally, offline rendering automatically stops when the <a href="./backend/combined/trait.AudioReader.html#tymethod.fill_buffer"><code>fill_buffer</code></a> method of the
 <a href="./backend/combined/trait.AudioReader.html"><code>AudioReader</code></a> indicates that no frames are to be expected anymore.</p>
 <p><strong>Stopping VST 2.4 is not possible</strong></p>
 </div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>

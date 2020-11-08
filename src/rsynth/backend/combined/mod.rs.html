@@ -893,6 +893,13 @@
 <span id="892">892</span>
 <span id="893">893</span>
 <span id="894">894</span>
+<span id="895">895</span>
+<span id="896">896</span>
+<span id="897">897</span>
+<span id="898">898</span>
+<span id="899">899</span>
+<span id="900">900</span>
+<span id="901">901</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Combine different back-ends for audio input, audio output and midi input,</span>
 <span class="doccomment">//! mostly for offline rendering and testing.</span>
@@ -928,7 +935,7 @@
 <span class="doccomment">//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section</span>
 <span class="doccomment">//! [`AudioChunkReader`]: ./memory/struct.AudioChunkReader.html</span>
 
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">HostInterface</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::{<span class="ident">HostInterface</span>, <span class="ident">Stop</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">buffer</span>::{
     <span class="ident">buffers_as_mut_slice</span>, <span class="ident">buffers_as_slice</span>, <span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferInOut</span>, <span class="ident">AudioBufferOut</span>,
     <span class="ident">AudioChunk</span>,
@@ -1035,6 +1042,7 @@
     <span class="ident">previous_time_in_microseconds</span>: <span class="ident">u64</span>,
     <span class="ident">micro_seconds_per_frame</span>: <span class="ident">f64</span>,
     <span class="ident">event_queue</span>: <span class="ident">EventQueue</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>,
+    <span class="ident">must_stop</span>: <span class="ident">bool</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="ident">HostInterface</span> <span class="kw">for</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>
@@ -1046,9 +1054,11 @@
     }
 
     <span class="kw">fn</span> <span class="ident">stop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
-        <span class="comment">// TODO: this should really do something.</span>
+        <span class="self">self</span>.<span class="ident">must_stop</span> <span class="op">=</span> <span class="bool-val">true</span>;
     }
 }
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="ident">Stop</span> <span class="kw">for</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">W</span>: <span class="ident">MidiWriter</span> {}
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> <span class="ident">MidiWriterWrapper</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>
 <span class="kw">where</span>
@@ -1061,6 +1071,7 @@
             <span class="ident">current_time_in_frames</span>: <span class="number">0</span>,
             <span class="ident">micro_seconds_per_frame</span>,
             <span class="ident">event_queue</span>: <span class="ident">EventQueue</span>::<span class="ident">new</span>(<span class="number">1024</span>),
+            <span class="ident">must_stop</span>: <span class="bool-val">false</span>,
         }
     }
 
@@ -1237,6 +1248,9 @@
         <span class="ident">writer</span>.<span class="ident">step_frames</span>(<span class="ident">frames_read</span> <span class="kw">as</span> <span class="ident">u64</span>);
 
         <span class="kw">if</span> <span class="ident">frames_read</span> <span class="op">&lt;</span> <span class="ident">buffer_size_in_frames</span> {
+            <span class="kw">break</span>;
+        }
+        <span class="kw">if</span> <span class="ident">writer</span>.<span class="ident">must_stop</span> {
             <span class="kw">break</span>;
         }
 

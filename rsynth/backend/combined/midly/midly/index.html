@@ -11,7 +11,11 @@ with &quot;dead&quot; MIDI messages as stored in a <code>.mid</code> file.</p>
 </td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table><tr class='module-item'><td><a class="struct" href="struct.Arena.html" title='rsynth::backend::combined::midly::midly::Arena struct'>Arena</a></td><td class='docblock-short'><p>Helps overcome limitations of the lifetime system when constructing MIDI events and files.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.Error.html" title='rsynth::backend::combined::midly::midly::Error struct'>Error</a></td><td class='docblock-short'><p>Represents an error while parsing an SMF file or MIDI stream.</p>
-</td></tr><tr class='module-item'><td><a class="struct" href="struct.EventIter.html" title='rsynth::backend::combined::midly::midly::EventIter struct'>EventIter</a></td><td class='docblock-short'><p>An iterator over the events of a single track.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.EventBytemapIter.html" title='rsynth::backend::combined::midly::midly::EventBytemapIter struct'>EventBytemapIter</a></td><td class='docblock-short'><p>An iterator over the events of a single track that keeps track of the raw bytes that make up
+each event.
+Created by the <a href="struct.EventIter.html#method.bytemapped"><code>EventIter::bytemapped</code></a> method.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.EventIter.html" title='rsynth::backend::combined::midly::midly::EventIter struct'>EventIter</a></td><td class='docblock-short'><p>An iterator over the events of a single track.
+Yielded by the <a href="struct.TrackIter.html"><code>TrackIter</code></a> iterator.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.Header.html" title='rsynth::backend::combined::midly::midly::Header struct'>Header</a></td><td class='docblock-short'><p>A MIDI file header, indicating metadata about the file.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.PitchBend.html" title='rsynth::backend::combined::midly::midly::PitchBend struct'>PitchBend</a></td><td class='docblock-short'><p>The value of a pitch bend, represented as 14 bits.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.Smf.html" title='rsynth::backend::combined::midly::midly::Smf struct'>Smf</a></td><td class='docblock-short'><p>Represents a single <code>.mid</code> Standard Midi File.
@@ -19,7 +23,8 @@ If you're casually looking to parse a <code>.mid</code> file, this is the type y
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.SmfBytemap.html" title='rsynth::backend::combined::midly::midly::SmfBytemap struct'>SmfBytemap</a></td><td class='docblock-short'><p>A <code>.mid</code> Standard Midi File, but keeps a mapping to the raw bytes that make up each event.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.SmpteTime.html" title='rsynth::backend::combined::midly::midly::SmpteTime struct'>SmpteTime</a></td><td class='docblock-short'><p>Encodes an SMPTE time of the day.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.TrackEvent.html" title='rsynth::backend::combined::midly::midly::TrackEvent struct'>TrackEvent</a></td><td class='docblock-short'><p>Represents a parsed SMF track event.</p>
-</td></tr><tr class='module-item'><td><a class="struct" href="struct.TrackIter.html" title='rsynth::backend::combined::midly::midly::TrackIter struct'>TrackIter</a></td><td class='docblock-short'><p>An iterator over all <em>tracks</em> in a Standard Midi File.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.TrackIter.html" title='rsynth::backend::combined::midly::midly::TrackIter struct'>TrackIter</a></td><td class='docblock-short'><p>An iterator over all <em>tracks</em> in a Standard Midi File.
+Created by the <a href="fn.parse.html"><code>parse</code></a> function.</p>
 </td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
 <table><tr class='module-item'><td><a class="enum" href="enum.ErrorKind.html" title='rsynth::backend::combined::midly::midly::ErrorKind enum'>ErrorKind</a></td><td class='docblock-short'><p>The type of error that occurred while parsing.</p>
 </td></tr><tr class='module-item'><td><a class="enum" href="enum.Format.html" title='rsynth::backend::combined::midly::midly::Format enum'>Format</a></td><td class='docblock-short'><p>The order in which tracks should be laid out when playing back this SMF file.</p>
