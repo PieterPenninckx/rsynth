@@ -149,7 +149,9 @@ Additionally, offline rendering automatically stops when the <a href="./backend/
 <table><tr class='module-item'><td><a class="macro" href="macro.audio_chunk.html" title='rsynth::audio_chunk macro'>audio_chunk</a></td><td class='docblock-short'><p>Create an audio chunk.</p>
 </td></tr><tr class='module-item'><td><a class="macro" href="macro.vst_init.html" title='rsynth::vst_init macro'>vst_init</a></td><td class='docblock-short'><p>A wrapper around the <code>plugin_main!</code> macro from the <code>vst</code> crate.
 You call this with one parameter, which is the function declaration of a function
-that creates your plugin. The plugin is typically a custom data type and should implement
+that creates your plugin.
+This function may also do some setup (e.g. initialize logging).
+The plugin is typically a custom data type and should implement
 the following traits:</p>
 </td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
 <table><tr class='module-item'><td><a class="trait" href="trait.AudioHandler.html" title='rsynth::AudioHandler trait'>AudioHandler</a></td><td class='docblock-short'><p>Define how sample-rate changes are handled.</p>

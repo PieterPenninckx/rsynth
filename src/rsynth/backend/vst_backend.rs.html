@@ -508,6 +508,32 @@
 <span id="507">507</span>
 <span id="508">508</span>
 <span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the VST backend (behind the `backend-vst` feature).</span>
 <span class="doccomment">//!</span>
@@ -519,7 +545,7 @@
 <span class="doccomment">//! `examples/vst_synth.rs` contains the jack-specific code.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # Usage</span>
-<span class="doccomment">//! See also the documentation of the [`vst_init`] macro.</span>
+<span class="doccomment">//! See the documentation of the [`vst_init`] macro.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`vst_init`]: ../../macro.vst_init.html</span>
 <span class="doccomment">//! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section</span>
@@ -547,8 +573,7 @@
     <span class="ident">plugin</span>::{<span class="ident">Category</span>, <span class="ident">HostCallback</span>, <span class="ident">Info</span>},
 };
 
-<span class="doccomment">/// A VST plugin should implement this trait in addition to some other traits.</span>
-<span class="comment">// TODO: document which other traits.</span>
+<span class="doccomment">/// Define some VST-specific meta-data for a VST plugin.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">VstPluginMeta</span>: <span class="ident">CommonPluginMeta</span> <span class="op">+</span> <span class="ident">AudioHandlerMeta</span> {
     <span class="kw">fn</span> <span class="ident">plugin_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">i32</span>;
     <span class="kw">fn</span> <span class="ident">category</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Category</span>;
@@ -715,18 +740,27 @@
 
 <span class="doccomment">/// A wrapper around the `plugin_main!` macro from the `vst` crate.</span>
 <span class="doccomment">/// You call this with one parameter, which is the function declaration of a function</span>
-<span class="doccomment">/// that creates your plugin. The plugin is typically a custom data type and should implement</span>
+<span class="doccomment">/// that creates your plugin.</span>
+<span class="doccomment">/// This function may also do some setup (e.g. initialize logging).</span>
+<span class="doccomment">/// The plugin is typically a custom data type and should implement</span>
 <span class="doccomment">/// the following traits:</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// * `CommonAudioPortMeta`,</span>
-<span class="doccomment">/// * `VstPluginMeta`,</span>
-<span class="doccomment">/// * `AudioHandler`,</span>
-<span class="doccomment">/// * `ContextualEventHandler&lt;Timed&lt;RawMidiEvent&gt;, HostCallback&gt;`,</span>
-<span class="doccomment">/// * `ContextualAudioRenderer&lt;f32, HostCallback&gt;`,</span>
-<span class="doccomment">/// * `ContextualAudioRenderer&lt;f64, HostCallback&gt;`,</span>
-<span class="doccomment">/// * `ContextualEventHandler&lt;Timed&lt;SysExEvent&lt;&#39;a&gt;&gt;, HostCallback&gt;`</span>
+<span class="doccomment">/// **Traits for meta-data** (Note: you can use the [`Meta`] trait for this.</span>
+<span class="doccomment">/// * [`CommonPluginMeta`] (name of the plugin etc),</span>
+<span class="doccomment">/// * [`AudioHandlerMeta`] (number of audio ports),</span>
+<span class="doccomment">/// * [`CommonAudioPortMeta`] (names of the audio in and out ports) and</span>
+<span class="doccomment">/// * [`VstPluginMeta`], (VST-specific meta-data)</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// This function may also do some setup (e.g. initialize logging).</span>
+<span class="doccomment">/// **Traits for rendering audio**</span>
+<span class="doccomment">/// * [`AudioHandler`],</span>
+<span class="doccomment">/// * [`ContextualAudioRenderer`]`&lt;f32,`[`HostCallback`]`&gt;` and</span>
+<span class="doccomment">/// * [`ContextualAudioRenderer`]`&lt;f64,`[`HostCallback`]`&gt;`</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// **Traits for handling midi events**</span>
+<span class="doccomment">/// * [`ContextualEventHandler`]`&lt;`[`Timed`]`&lt;`[`RawMidiEvent`]`&gt;, `[`HostCallback`]`&gt;` and</span>
+<span class="doccomment">/// * [`ContextualEventHandler`]`&lt;`[`Timed`]`&lt;`[`SysExEvent`]`&gt;, `[`HostCallback`]`&gt;`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">///</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example using generic code</span>
 <span class="doccomment">/// ```</span>
@@ -923,6 +957,24 @@
 <span class="doccomment">///    }</span>
 <span class="doccomment">/// );</span>
 <span class="doccomment">/// ```</span>
+<span class="doccomment">/// [`RawMidiEvent`]: ./event/struct.RawMidiEvent.html</span>
+<span class="doccomment">/// [`SysExEvent`]: ./event/struct.SysExEvent.html</span>
+<span class="doccomment">/// [`Timed&lt;T&gt;`]: ./event/struct.Timed.html</span>
+<span class="doccomment">/// [`Timed`]: ./event/struct.Timed.html</span>
+<span class="doccomment">/// [`Indexed&lt;T&gt;`]: ./event/struct.Indexed.html</span>
+<span class="doccomment">/// [`Indexed`]: ./event/struct.Indexed.html</span>
+<span class="doccomment">/// [`CommonPluginMeta`]: ./trait.CommonPluginMeta.html</span>
+<span class="doccomment">/// [`AudioHandlerMeta`]: ./trait.AudioHandlerMeta.html</span>
+<span class="doccomment">/// [`MidiHandlerMeta`]: ./trait.MidiHandlerMeta.html</span>
+<span class="doccomment">/// [`CommonAudioPortMeta`]: ./trait.CommonAudioPortMeta.html</span>
+<span class="doccomment">/// [`Meta`]: ./meta/trait.Meta.html</span>
+<span class="doccomment">/// [`ContextualAudioRenderer`]: trait.ContextualAudioRenderer.html</span>
+<span class="doccomment">/// [`ContextualEventHandler`]: ./event/trait.ContextualEventHandler.html</span>
+<span class="doccomment">/// [`HostCallback`]: ./backend/vst_backend/vst/plugin/struct.HostCallback.html</span>
+<span class="doccomment">/// [`HostInterface`]: ./backend/trait.HostInterface.html</span>
+<span class="doccomment">/// [`CommonMidiPortMeta`]: ./trait.CommonMidiPortMeta.html</span>
+<span class="doccomment">/// [`VstPluginMeta`]: ./backend/vst_backend/trait.VstPluginMeta.html</span>
+<span class="doccomment">/// [`AudioHandler`]: ./trait.AudioHandler.html</span>
 <span class="comment">//</span>
 <span class="comment">// We define this macro so that plugins do not have to implement th `Default` trait.</span>
 <span class="comment">//</span>
