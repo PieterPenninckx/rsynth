@@ -16,7 +16,7 @@ be better suited for you.
 |---------|:------------------------------:|:-----------------:|:-----------------------:|
 | Full duplex audio input and output |  ✓  |        ✓          |           ✓             |
 | Midi input                         |  ✓  |        ✓          |           ✓             |
-| Midi output                        | N/A |        ✓          |           ✓             |
+| Midi output                        | N/A |        ✓          |           ✘             |
 | Sample accurate midi               | N/A |        ✓          |           ✓             |
 | Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
 | Sampling frequency change          |  ✓  |        ✘          |          N/A            |
