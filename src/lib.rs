@@ -323,7 +323,7 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// When using the Jack backend, this function should not return an empty string.
     ///
     /// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs
-    #[deprecated(since = "0.1.3", note = "Use or implement `input_name` instead.")]
+    #[deprecated(since = "0.1.2", note = "Use or implement `input_name` instead.")]
     fn audio_input_name(&self, index: usize) -> String {
         let mut result = String::new();
         match self.input_name(&mut result, index) {
@@ -350,7 +350,7 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
     /// When using the Jack backend, this function should not return an empty string.
     ///
     /// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs
-    #[deprecated(since = "0.1.3", note = "Use or implement `output_name` instead.")]
+    #[deprecated(since = "0.1.2", note = "Use or implement `output_name` instead.")]
     fn audio_output_name(&self, index: usize) -> String {
         let mut result = String::new();
         match self.output_name(&mut result, index) {
@@ -386,7 +386,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// The default implementation of this method uses `input_name`.
     ///
     /// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs
-    #[deprecated(since = "0.1.3", note = "Use or implement `input_name` instead.")]
+    #[deprecated(since = "0.1.2", note = "Use or implement `input_name` instead.")]
     fn midi_input_name(&self, index: usize) -> String {
         let mut result = String::new();
         match self.input_name(&mut result, index) {
@@ -414,7 +414,7 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// When using the Jack backend, this function should not return an empty string.
     ///
     /// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs
-    #[deprecated(since = "0.1.3", note = "Use or implement `output_name` instead.")]
+    #[deprecated(since = "0.1.2", note = "Use or implement `output_name` instead.")]
     fn midi_output_name(&self, index: usize) -> String {
         let mut result = String::new();
         match self.output_name(&mut result, index) {
