@@ -353,22 +353,13 @@ where
         );
 
         let mut inputs = self.inputs.vec_guard();
-        for i in 0..cmp::min(self.audio_in_ports.len(), inputs.capacity()) {
-            inputs.push(self.audio_in_ports[i].as_slice(process_scope));
+        for port in self.audio_in_ports.iter().take(inputs.capacity()) {
+            inputs.push(port.as_slice(process_scope));
         }
 
         let mut outputs = self.outputs.vec_guard();
-        let number_of_frames = process_scope.n_frames();
-        for i in 0..cmp::min(self.audio_out_ports.len(), outputs.capacity()) {
-            // We use some unsafe here because otherwise, the compiler believes we are borrowing
-            // `self.audio_out_ports` multiple times.
-            let buffer = unsafe {
-                slice::from_raw_parts_mut(
-                    self.audio_out_ports[i].buffer(number_of_frames) as *mut f32,
-                    number_of_frames as usize,
-                )
-            };
-            outputs.push(buffer);
+        for port in self.audio_out_ports.iter_mut().take(outputs.capacity()) {
+            outputs.push(port.as_mut_slice(process_scope));
         }
 
         let mut buffer = AudioBufferInOut::new(
