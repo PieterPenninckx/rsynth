@@ -101,15 +101,13 @@ where
         let (input_buffers, mut output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f32.vec_guard();
-        for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
-            inputs.push(input_buffers.get(i));
+        for input_buffer in input_buffers.into_iter().take(inputs.capacity()) {
+            inputs.push(input_buffer);
         }
 
         let mut outputs = self.outputs_f32.vec_guard();
-        for i in 0..cmp::min(outputs.capacity(), output_buffers.len()) {
-            // We will need another way to do this
-            // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
-            outputs.push(output_buffers.get_mut(i));
+        for output_buffer in output_buffers.into_iter().take(outputs.capacity()) {
+            outputs.push(output_buffer);
         }
 
         let mut audio_buffer =
@@ -122,15 +120,13 @@ where
         let (input_buffers, mut output_buffers) = buffer.split();
 
         let mut inputs = self.inputs_f64.vec_guard();
-        for i in 0..cmp::min(inputs.capacity(), input_buffers.len()) {
-            inputs.push(input_buffers.get(i));
+        for input_buffer in input_buffers.into_iter().take(inputs.capacity()) {
+            inputs.push(input_buffer);
         }
 
         let mut outputs = self.outputs_f64.vec_guard();
-        for i in 0..cmp::min(outputs.capacity(), output_buffers.len()) {
-            // We will need another way to do this
-            // when https://github.com/rust-dsp/rust-vst/issues/73 is closed.
-            outputs.push(output_buffers.get_mut(i));
+        for output_buffer in output_buffers.into_iter().take(outputs.capacity()) {
+            outputs.push(output_buffer);
         }
 
         let mut audio_buffer =
