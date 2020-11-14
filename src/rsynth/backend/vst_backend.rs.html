@@ -534,10 +534,6 @@
 <span id="533">533</span>
 <span id="534">534</span>
 <span id="535">535</span>
-<span id="536">536</span>
-<span id="537">537</span>
-<span id="538">538</span>
-<span id="539">539</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the VST backend (behind the `backend-vst` feature).</span>
 <span class="doccomment">//!</span>
@@ -642,15 +638,13 @@
         <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="kw-2">mut</span> <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs_f32</span>.<span class="ident">vec_guard</span>();
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>(), <span class="ident">input_buffers</span>.<span class="ident">len</span>()) {
-            <span class="ident">inputs</span>.<span class="ident">push</span>(<span class="ident">input_buffers</span>.<span class="ident">get</span>(<span class="ident">i</span>));
+        <span class="kw">for</span> <span class="ident">input_buffer</span> <span class="kw">in</span> <span class="ident">input_buffers</span>.<span class="ident">into_iter</span>().<span class="ident">take</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>()) {
+            <span class="ident">inputs</span>.<span class="ident">push</span>(<span class="ident">input_buffer</span>);
         }
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">outputs_f32</span>.<span class="ident">vec_guard</span>();
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">outputs</span>.<span class="ident">capacity</span>(), <span class="ident">output_buffers</span>.<span class="ident">len</span>()) {
-            <span class="comment">// We will need another way to do this</span>
-            <span class="comment">// when https://github.com/rust-dsp/rust-vst/issues/73 is closed.</span>
-            <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffers</span>.<span class="ident">get_mut</span>(<span class="ident">i</span>));
+        <span class="kw">for</span> <span class="ident">output_buffer</span> <span class="kw">in</span> <span class="ident">output_buffers</span>.<span class="ident">into_iter</span>().<span class="ident">take</span>(<span class="ident">outputs</span>.<span class="ident">capacity</span>()) {
+            <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffer</span>);
         }
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">audio_buffer</span> <span class="op">=</span>
@@ -663,15 +657,13 @@
         <span class="kw">let</span> (<span class="ident">input_buffers</span>, <span class="kw-2">mut</span> <span class="ident">output_buffers</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs_f64</span>.<span class="ident">vec_guard</span>();
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>(), <span class="ident">input_buffers</span>.<span class="ident">len</span>()) {
-            <span class="ident">inputs</span>.<span class="ident">push</span>(<span class="ident">input_buffers</span>.<span class="ident">get</span>(<span class="ident">i</span>));
+        <span class="kw">for</span> <span class="ident">input_buffer</span> <span class="kw">in</span> <span class="ident">input_buffers</span>.<span class="ident">into_iter</span>().<span class="ident">take</span>(<span class="ident">inputs</span>.<span class="ident">capacity</span>()) {
+            <span class="ident">inputs</span>.<span class="ident">push</span>(<span class="ident">input_buffer</span>);
         }
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">outputs_f64</span>.<span class="ident">vec_guard</span>();
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">outputs</span>.<span class="ident">capacity</span>(), <span class="ident">output_buffers</span>.<span class="ident">len</span>()) {
-            <span class="comment">// We will need another way to do this</span>
-            <span class="comment">// when https://github.com/rust-dsp/rust-vst/issues/73 is closed.</span>
-            <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffers</span>.<span class="ident">get_mut</span>(<span class="ident">i</span>));
+        <span class="kw">for</span> <span class="ident">output_buffer</span> <span class="kw">in</span> <span class="ident">output_buffers</span>.<span class="ident">into_iter</span>().<span class="ident">take</span>(<span class="ident">outputs</span>.<span class="ident">capacity</span>()) {
+            <span class="ident">outputs</span>.<span class="ident">push</span>(<span class="ident">output_buffer</span>);
         }
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">audio_buffer</span> <span class="op">=</span>
