@@ -30,6 +30,62 @@ pub trait EventHandler<E> {
     fn handle_event(&mut self, event: E);
 }
 
+/// An extension trait for [`EventHandler`] providing some convenient combinator functions.
+pub trait EventHandlerExt<E> {
+    /// Create a new event handler that first applies the given function to the event
+    /// and then lets the "self" event handler handle the event.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::event::EventHandler;
+    /// use rsynth::event::EventHandlerExt;
+    ///
+    /// struct Printer;
+    /// impl EventHandler<u32> for Printer {
+    ///     fn handle_event(&mut self,event: u32) {
+    ///         println!("{}", event)
+    ///     }
+    /// }
+    ///
+    /// fn main() {
+    ///     let mut printer = Printer;
+    ///     printer.handle_event(3); // Prints "3"
+    ///     let mut increased_printer = printer.map(|i| i+1);
+    ///     increased_printer.handle_event(3); // Prints "4"
+    /// }
+    /// ```
+    fn map<EE, F>(&mut self, function: F) -> Map<Self, F>
+    where
+        F: Fn(E) -> EE,
+    {
+        Map {
+            inner: self,
+            function,
+        }
+    }
+}
+
+impl<T, E> EventHandlerExt<E> for T where T: EventHandler<E> + ?Sized {}
+
+/// An [`EventHandler`] from the [`EventHandlerExt::map`] method.
+pub struct Map<'a, H, F>
+where
+    H: ?Sized,
+{
+    inner: &'a mut H,
+    function: F,
+}
+
+impl<'a, E, EE, F, H> EventHandler<EE> for Map<'a, H, F>
+where
+    H: EventHandler<E>,
+    F: Fn(EE) -> E,
+{
+    fn handle_event(&mut self, event: EE) {
+        self.inner.handle_event((self.function)(event))
+    }
+}
+
 /// The trait that plugins should implement in order to handle the given type of events.
 ///
 /// The type parameter `E` corresponds to the type of the event.
