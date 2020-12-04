@@ -56,7 +56,7 @@ pub trait EventHandlerExt<E> {
     /// ```
     fn map<EE, F>(&mut self, function: F) -> Map<Self, F>
     where
-        F: Fn(E) -> EE,
+        F: FnMut(EE) -> E,
     {
         Map {
             inner: self,
@@ -79,7 +79,7 @@ where
 impl<'a, E, EE, F, H> EventHandler<EE> for Map<'a, H, F>
 where
     H: EventHandler<E>,
-    F: Fn(EE) -> E,
+    F: FnMut(EE) -> E,
 {
     fn handle_event(&mut self, event: EE) {
         self.inner.handle_event((self.function)(event))
