@@ -50,7 +50,7 @@ pub trait EventHandlerExt<E> {
     /// fn main() {
     ///     let mut printer = Printer;
     ///     printer.handle_event(3); // Prints "3"
-    ///     let mut increased_printer = printer.map(|i| i+1);
+    ///     let mut increased_printer = printer.map(|i| i+1_u32);
     ///     increased_printer.handle_event(3); // Prints "4"
     /// }
     /// ```
