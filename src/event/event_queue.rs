@@ -7,8 +7,10 @@ use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
+use std::collections::vec_deque::Drain;
 use std::collections::VecDeque;
-use std::ops::{Deref, Index, IndexMut};
+use std::iter::FusedIterator;
+use std::ops::{Deref, Index, IndexMut, RangeBounds};
 
 /// A queue for timed events.
 pub struct EventQueue<T> {
@@ -270,6 +272,16 @@ impl<T> EventQueue<T> {
             );
             renderer.render_buffer(&mut sub_buffer, context);
         };
+    }
+
+    /// Create a draining iterator.
+    pub fn drain<R>(&mut self, range: R) -> DrainingIter<T>
+    where
+        R: RangeBounds<usize>,
+    {
+        DrainingIter {
+            inner: self.queue.drain(range),
+        }
     }
 }
 
@@ -536,3 +548,29 @@ fn eventqueue_forget_everything() {
     queue.forget_before(9);
     assert_eq!(queue.queue, Vec::new());
 }
+
+/// Draining iterator created by the [`EventQueue::drain`] method.
+pub struct DrainingIter<'a, T> {
+    inner: Drain<'a, Timed<T>>,
+}
+
+impl<'a, T> Iterator for DrainingIter<'a, T> {
+    type Item = Timed<T>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for DrainingIter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back()
+    }
+}
+
+impl<'a, T> ExactSizeIterator for DrainingIter<'a, T> {}
+
+impl<'a, T> FusedIterator for DrainingIter<'a, T> {}
