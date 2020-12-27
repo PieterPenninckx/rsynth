@@ -20,7 +20,7 @@ use crate::backend::combined::midly::midly::{
 };
 use std::convert::{AsMut, AsRef, TryFrom};
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -151,7 +151,22 @@ impl RawMidiEvent {
     /// Panics when `data` does not have length 1, 2 or 3.
     #[inline]
     pub fn new(bytes: &[u8]) -> Self {
-        Self::try_new(bytes).expect("Raw midi event is expected to have length 1, 2 or 3.")
+        match Self::try_new(bytes) {
+            Some(s) => s,
+            None => {
+                let mut event_as_string = String::new();
+                write!(event_as_string, "data : &[");
+                for byte in bytes {
+                    write!(event_as_string, "{:X} ", byte);
+                }
+                write!(event_as_string, "]");
+                panic!(
+                    "Raw midi event is expected to have length 1, 2 or 3. Actual length: {}, data: {}",
+                    bytes.len(),
+                    event_as_string
+                );
+            }
+        }
     }
 
     /// Try to create a new `RawMidiEvent` with the given raw data.
