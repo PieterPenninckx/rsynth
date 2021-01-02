@@ -198,7 +198,7 @@ extern crate log;
 
 use crate::buffer::AudioBufferInOut;
 use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
-use std::fmt::Error;
+use std::fmt::{Error, Write};
 
 #[macro_use]
 pub mod buffer;
@@ -308,7 +308,19 @@ where
 /// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    fn name(&self) -> &str;
+    ///
+    /// #[deprecated(since = "0.1.2", note = "Use or implement [`plugin_name`] instead.")]
+    fn name(&self) -> &str {
+        "plugin_or_application"
+    }
+
+    /// The name of the plugin or application.
+    ///
+    /// # Compatibility note
+    /// The default implementation of this method will likely be removed in a future release.
+    fn plugin_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error> {
+        buffer.write_str(self.name())
+    }
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
@@ -459,6 +471,10 @@ where
     fn name(&self) -> &str {
         self.meta().general().name()
     }
+
+    fn plugin_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
+        self.meta().general().write_name(buffer)
+    }
 }
 
 impl<T> AudioHandlerMeta for T
@@ -482,11 +498,11 @@ where
     <<T as Meta>::MetaData as Port<AudioPort>>::PortData: Name,
 {
     fn input_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), Error> {
-        buffer.write_str(self.meta().in_ports()[index].name())
+        self.meta().in_ports()[index].write_name(buffer)
     }
 
     fn output_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), Error> {
-        buffer.write_str(self.meta().out_ports()[index].name())
+        self.meta().out_ports()[index].write_name(buffer)
     }
 }
 
@@ -511,10 +527,10 @@ where
     <<T as Meta>::MetaData as Port<MidiPort>>::PortData: Name,
 {
     fn input_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), Error> {
-        buffer.write_str(self.meta().in_ports()[index].name())
+        self.meta().in_ports()[index].write_name(buffer)
     }
 
     fn output_name<W: std::fmt::Write>(&self, buffer: &mut W, index: usize) -> Result<(), Error> {
-        buffer.write_str(self.meta().out_ports()[index].name())
+        self.meta().out_ports()[index].write_name(buffer)
     }
 }

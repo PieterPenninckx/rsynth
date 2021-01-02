@@ -58,6 +58,8 @@
 //! So if a plugin implements `Meta` with the associated type `Meta::MetaData` equal to the struct
 //! `MetaData<&'static str, _, _>`, then it automatically implements `CommonPluginMeta`.
 
+use std::fmt::Error;
+
 /// Define the meta-data for an application or plug-in.
 ///
 /// See the [module level documentation] for more details.
@@ -89,18 +91,37 @@ pub trait General {
 /// meta-data that contains a name.
 pub trait Name {
     /// Get the name.
-    fn name(&self) -> &str;
+    #[deprecated(since = "0.1.2", note = "Use or implement `write_name` instead.")]
+    fn name(&self) -> &str {
+        ""
+    }
+
+    /// Write the name to the given buffer.
+    ///
+    /// # Compatibility note
+    /// The default implementation of this method will likely be removed in a future release.
+    fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error> {
+        buffer.write_str(self.name())
+    }
 }
 
 impl Name for String {
     fn name(&self) -> &str {
         self
     }
+
+    fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
+        buffer.write_str(&self)
+    }
 }
 
 impl Name for &'static str {
     fn name(&self) -> &str {
         self
+    }
+
+    fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
+        buffer.write_str(self)
     }
 }
 
