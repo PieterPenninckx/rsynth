@@ -154,19 +154,27 @@ impl RawMidiEvent {
         match Self::try_new(bytes) {
             Some(s) => s,
             None => {
-                let mut event_as_string = String::new();
-                write!(event_as_string, "data : &[");
-                for byte in bytes {
-                    write!(event_as_string, "{:X} ", byte);
-                }
-                write!(event_as_string, "]");
-                panic!(
-                    "Raw midi event is expected to have length 1, 2 or 3. Actual length: {}, data: {}",
-                    bytes.len(),
-                    event_as_string
-                );
+                Self::panic_data_too_long(bytes);
             }
         }
+    }
+
+    fn panic_data_too_long(bytes: &[u8]) -> ! {
+        let mut event_as_string = String::new();
+        write!(event_as_string, "data : &[");
+        for (index, byte) in bytes.iter().enumerate() {
+            write!(event_as_string, "{:X} ", byte);
+            if index > 64 {
+                write!(event_as_string, "... ");
+                break;
+            }
+        }
+        write!(event_as_string, "]");
+        panic!(
+            "Raw midi event is expected to have length 1, 2 or 3. Actual length: {}, data: {}",
+            bytes.len(),
+            event_as_string
+        );
     }
 
     /// Try to create a new `RawMidiEvent` with the given raw data.
