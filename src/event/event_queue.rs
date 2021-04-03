@@ -7,8 +7,7 @@ use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
-use std::collections::vec_deque::Drain;
-use std::collections::VecDeque;
+use std::collections::vec_deque::{Drain, VecDeque};
 use std::iter::FusedIterator;
 use std::ops::{Deref, Index, IndexMut, RangeBounds};
 
@@ -274,13 +273,16 @@ impl<T> EventQueue<T> {
         };
     }
 
-    /// Create a draining iterator.
-    pub fn drain<R>(&mut self, range: R) -> DrainingIter<T>
-    where
-        R: RangeBounds<usize>,
-    {
-        DrainingIter {
-            inner: self.queue.drain(range),
+    /// Create an iterator that drains all elements before but not on the given time.
+    pub fn drain(&mut self, time: u32) -> DrainingIter<T> {
+        if let Some(index) = self.queue.iter().rposition(|e| e.time_in_frames < time) {
+            DrainingIter {
+                inner: self.queue.drain(0..=index)
+            }
+        } else {
+            DrainingIter {
+                inner: self.queue.drain(0..0)
+            }
         }
     }
 }
