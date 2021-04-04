@@ -220,6 +220,7 @@ impl<T> EventQueue<T> {
     /// input channels.
     /// There will be as many elements pushed to `output_storage` as there are
     /// output channels.
+    #[deprecated(since="0.1.2", note="Use the `interleave` method on `AudioBufferInOut` instead.")]
     pub fn split<'in_storage, 'out_storage, 'in_channels, 's, 'chunk, S, R, C>(
         &mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
@@ -283,6 +284,13 @@ impl<T> EventQueue<T> {
             DrainingIter {
                 inner: self.queue.drain(0..0)
             }
+        }
+    }
+
+    /// Create an iterator that drains all elements.
+    pub fn drain_all(&mut self) -> DrainingIter<T> {
+        DrainingIter {
+            inner: self.queue.drain(0..)
         }
     }
 }

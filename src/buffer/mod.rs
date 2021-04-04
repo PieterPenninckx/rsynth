@@ -726,23 +726,26 @@ where
         &mut self.outputs
     }
 
-    pub fn alternate<'s, 'in_storage, 'out_storage, I, E, R, C>(
+
+    pub fn interleave<'s, 'in_storage, 'out_storage, I, E, C, FR, FE>(
         &'s mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
         output_storage: &'out_storage mut VecStorage<&'static mut [S]>,
         iterator: I,
-        renderer: &mut R,
-        context: &mut C
+        context: &mut C,
+        render: FR,
+        handle_event: FE
     ) where
         S: Copy + 'static,
         I: Iterator<Item=(usize, E)>,
-        R: ContextualAudioRenderer<S, C> + EventHandler<E>,
+        FR: Fn(&mut C, &mut AudioBufferInOut<'_, '_, '_, '_, S>),
+        FE: Fn(&mut C, E)
     {
         let mut last_event_time = 0;
         for (event_time, event) in iterator {
             let event_time = event_time as usize;
             if event_time == last_event_time {
-                renderer.handle_event(event);
+                handle_event(context, event);
                 continue;
             }
             if event_time < self.number_of_frames() {
@@ -753,10 +756,10 @@ where
                     &mut input_guard,
                     &mut output_guard,
                 );
-                renderer.render_buffer(&mut sub_buffer, context);
+                render(context, &mut sub_buffer);
             }
             last_event_time = event_time;
-            renderer.handle_event(event);
+            handle_event(context, event);
         }
         if (last_event_time as usize) < self.number_of_frames() {
             let mut input_guard = input_storage.vec_guard();
@@ -766,7 +769,7 @@ where
                 &mut input_guard,
                 &mut output_guard,
             );
-            renderer.render_buffer(&mut sub_buffer, context);
+            render(context, &mut sub_buffer);
         }
     }
 }
