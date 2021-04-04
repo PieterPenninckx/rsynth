@@ -7,8 +7,7 @@ use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
-use std::collections::vec_deque::Drain;
-use std::collections::VecDeque;
+use std::collections::vec_deque::{Drain, VecDeque};
 use std::iter::FusedIterator;
 use std::ops::{Deref, Index, IndexMut, RangeBounds};
 
@@ -221,6 +220,10 @@ impl<T> EventQueue<T> {
     /// input channels.
     /// There will be as many elements pushed to `output_storage` as there are
     /// output channels.
+    #[deprecated(
+        since = "0.1.2",
+        note = "Use the `interleave` method on `AudioBufferInOut` instead."
+    )]
     pub fn split<'in_storage, 'out_storage, 'in_channels, 's, 'chunk, S, R, C>(
         &mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
@@ -274,97 +277,25 @@ impl<T> EventQueue<T> {
         };
     }
 
-    /// Create a draining iterator.
-    pub fn drain<R>(&mut self, range: R) -> DrainingIter<T>
-    where
-        R: RangeBounds<usize>,
-    {
-        DrainingIter {
-            inner: self.queue.drain(range),
+    /// Create an iterator that drains all elements before but not on the given time.
+    pub fn drain(&mut self, time: u32) -> DrainingIter<T> {
+        if let Some(index) = self.queue.iter().rposition(|e| e.time_in_frames < time) {
+            DrainingIter {
+                inner: self.queue.drain(0..=index),
+            }
+        } else {
+            DrainingIter {
+                inner: self.queue.drain(0..0),
+            }
         }
     }
-}
 
-#[test]
-fn split_works() {
-    let mut test_plugin = TestPlugin::new(
-        vec![
-            audio_chunk![[11, 12], [21, 22]],
-            audio_chunk![[13, 14], [23, 24]],
-        ],
-        vec![
-            audio_chunk![[110, 120], [210, 220]],
-            audio_chunk![[130, 140], [230, 240]],
-        ],
-        vec![vec![1, 2], vec![3, 4]],
-        vec![vec![], vec![]],
-        (),
-    );
-    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
-    let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let events = vec![
-        Timed {
-            time_in_frames: 0,
-            event: 1,
-        },
-        Timed {
-            time_in_frames: 0,
-            event: 2,
-        },
-        Timed {
-            time_in_frames: 2,
-            event: 3,
-        },
-        Timed {
-            time_in_frames: 2,
-            event: 4,
-        },
-        Timed {
-            time_in_frames: 4,
-            event: 5,
-        },
-    ];
-    let mut queue = EventQueue::from_vec(events);
-    let mut input_storage = VecStorage::with_capacity(2);
-    let mut output_storage = VecStorage::with_capacity(2);
-    let mut result_event_handler = DummyEventHandler;
-    let input = input.as_slices();
-    let mut output = output.as_mut_slices();
-    let mut buffer = AudioBufferInOut::new(&input, &mut output, 4);
-    queue.split(
-        &mut input_storage,
-        &mut output_storage,
-        &mut buffer,
-        &mut test_plugin,
-        &mut result_event_handler,
-    )
-}
-
-#[test]
-fn split_works_with_empty_event_queue() {
-    let mut test_plugin = TestPlugin::<_, (), _>::new(
-        vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
-        vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
-        vec![vec![]],
-        vec![vec![]],
-        (),
-    );
-    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
-    let mut output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let mut queue = EventQueue::new(1);
-    let mut input_storage = VecStorage::with_capacity(2);
-    let mut output_storage = VecStorage::with_capacity(2);
-    let mut result_event_handler = DummyEventHandler;
-    let input = input.as_slices();
-    let mut output = output.as_mut_slices();
-    let mut buffer = AudioBufferInOut::new(&input, &mut output, 4);
-    queue.split(
-        &mut input_storage,
-        &mut output_storage,
-        &mut buffer,
-        &mut test_plugin,
-        &mut result_event_handler,
-    )
+    /// Create an iterator that drains all elements.
+    pub fn drain_all(&mut self) -> DrainingIter<T> {
+        DrainingIter {
+            inner: self.queue.drain(0..),
+        }
+    }
 }
 
 impl<T> Deref for EventQueue<T> {

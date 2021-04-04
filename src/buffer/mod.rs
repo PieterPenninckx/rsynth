@@ -31,6 +31,12 @@
 //!                                            ↑
 //!                                            └ buffer
 //! ```
+use crate::audio_chunk;
+#[cfg(test)]
+use crate::event::EventHandler;
+use crate::test_utilities::{DummyEventHandler, TestPlugin};
+use crate::vecstorage::VecStorage;
+use crate::ContextualAudioRenderer;
 use num_traits::Zero;
 use std::mem;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
@@ -722,6 +728,129 @@ where
     pub fn outputs(&mut self) -> &mut AudioBufferOut<'out_channels, 'out_samples, S> {
         &mut self.outputs
     }
+
+    /// # Note
+    /// If the iterator yields items for which the time is > `self.number_of_frames`,
+    /// all these items will be handled after the audio.
+    pub fn interleave<'s, 'in_storage, 'out_storage, I, E, C, FR, FE>(
+        &'s mut self,
+        input_storage: &'in_storage mut VecStorage<&'static [S]>,
+        output_storage: &'out_storage mut VecStorage<&'static mut [S]>,
+        iterator: I,
+        context: &mut C,
+        render: FR,
+        handle_event: FE,
+    ) where
+        S: Copy + 'static,
+        I: Iterator<Item = (usize, E)>,
+        FR: Fn(&mut C, &mut AudioBufferInOut<'_, '_, '_, '_, S>),
+        FE: Fn(&mut C, E),
+    {
+        let mut last_event_time = 0;
+        for (event_time, event) in iterator {
+            let event_time = event_time as usize;
+            if event_time == last_event_time {
+                handle_event(context, event);
+                continue;
+            }
+            if last_event_time < self.number_of_frames() {
+                let mut input_guard = input_storage.vec_guard();
+                let mut output_guard = output_storage.vec_guard();
+                let mut sub_buffer = self.index_frames(
+                    last_event_time..event_time,
+                    &mut input_guard,
+                    &mut output_guard,
+                );
+                render(context, &mut sub_buffer);
+            }
+            last_event_time = event_time;
+            handle_event(context, event);
+        }
+        if (last_event_time as usize) < self.number_of_frames() {
+            let mut input_guard = input_storage.vec_guard();
+            let mut output_guard = output_storage.vec_guard();
+            let mut sub_buffer = self.index_frames(
+                last_event_time..self.number_of_frames(),
+                &mut input_guard,
+                &mut output_guard,
+            );
+            render(context, &mut sub_buffer);
+        }
+    }
+}
+
+#[test]
+fn interleave_works() {
+    let mut test_plugin = TestPlugin::new(
+        vec![
+            audio_chunk![[11, 12], [21, 22]],
+            audio_chunk![[13, 14], [23, 24]],
+        ],
+        vec![
+            audio_chunk![[110, 120], [210, 220]],
+            audio_chunk![[130, 140], [230, 240]],
+        ],
+        vec![vec![1, 2], vec![3, 4], vec![5]],
+        vec![vec![], vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut events = vec![(0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    let mut dummy_event_handler = DummyEventHandler;
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, ref mut de), e| {
+            tp.handle_event(e);
+        },
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
+}
+
+#[test]
+fn interleave_works_with_empty_event_iterator() {
+    let mut test_plugin = TestPlugin::<_, (), _>::new(
+        vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
+        vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
+        vec![vec![]],
+        vec![vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let mut dummy_event_handler = DummyEventHandler;
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut events = Vec::new();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, ref mut de), e| {
+            tp.handle_event(e);
+        },
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
 }
 
 // Alternative name: "packet"?
