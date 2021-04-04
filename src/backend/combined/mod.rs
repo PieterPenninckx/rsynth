@@ -246,7 +246,6 @@ where
 /// Panics
 /// ======
 /// Panics if `buffer_size_in_frames` is `0` or `> u32::MAX`.
-// TODO: support different number of input and output channels.
 pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
     plugin: &mut R,
     buffer_size_in_frames: usize,

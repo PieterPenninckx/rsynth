@@ -360,10 +360,11 @@ impl<E> AsMut<E> for Timed<E> {
     }
 }
 
-/// `Indexed<E>` adds an index to an event.
+/// `Indexed<E>` adds an index to an event of type `E`.
+/// The index typically corresponds to the index of the channel.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Indexed<E> {
-    /// The index of the event
+    /// The index of the event.
     pub index: usize,
     /// The underlying event.
     pub event: E,
@@ -406,3 +407,97 @@ pub struct DeltaEvent<E> {
     pub microseconds_since_previous_event: u64,
     pub event: E,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AbsoluteEvent<E> {
+    pub offset: u64,
+    pub event: E,
+}
+
+pub struct AbsoluteEventIter<I> {
+    inner: I,
+    pub offset: u64,
+}
+
+impl<I> AbsoluteEventIter<I> {
+    /// Create a new `AbsoluteEventIter` from the given iterator,
+    /// starting at 0.
+    fn new(inner: I) -> Self {
+        Self { inner, offset: 0 }
+    }
+}
+
+impl<E, I> Iterator for AbsoluteEventIter<I>
+where
+    I: Iterator<Item = DeltaEvent<E>>,
+{
+    type Item = AbsoluteEvent<E>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.inner.next()?;
+        self.offset += next.microseconds_since_previous_event as u64;
+        Some(AbsoluteEvent {
+            offset: self.offset,
+            event: next.event,
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+pub struct TimeZip<A, B>
+where
+    A: Iterator,
+    B: Iterator,
+{
+    a: A,
+    buffer_a: Option<<A as Iterator>::Item>,
+    b: B,
+    buffer_b: Option<<B as Iterator>::Item>,
+}
+
+impl<A, B> TimeZip<A, B>
+where
+    A: Iterator,
+    B: Iterator,
+{
+    pub fn new(a: A, b: B) -> Self {
+        Self {
+            a,
+            buffer_a: None,
+            b,
+            buffer_b: None,
+        }
+    }
+}
+
+impl<A, B, T> Iterator for TimeZip<A, B>
+where
+    A: Iterator<Item = AbsoluteEvent<T>>,
+    B: Iterator<Item = <A as Iterator>::Item>,
+{
+    type Item = AbsoluteEvent<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let a_value = self.buffer_a.take().or(self.a.next());
+        if let Some(b) = self.buffer_b.take().or(self.b.next()) {
+            if let Some(a) = a_value {
+                if a.offset < b.offset {
+                    self.buffer_b = Some(b);
+                    Some(a)
+                } else {
+                    self.buffer_a = Some(a);
+                    Some(b)
+                }
+            } else {
+                Some(b)
+            }
+        } else {
+            a_value
+        }
+    }
+}
+
+// TODO: also create an iterator that takes into account "speed changes"
