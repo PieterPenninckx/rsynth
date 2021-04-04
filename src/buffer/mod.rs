@@ -36,8 +36,11 @@ use std::mem;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
 use crate::vecstorage::VecStorage;
-use crate::event::{Timed, EventHandler};
+use crate::test_utilities::{TestPlugin, DummyEventHandler};
 use crate::ContextualAudioRenderer;
+use crate::audio_chunk;
+#[cfg(test)]
+use crate::event::EventHandler;
 
 fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
     // start: inclusive
@@ -726,7 +729,9 @@ where
         &mut self.outputs
     }
 
-
+    /// # Note
+    /// If the iterator yields items for which the time is > `self.number_of_frames`,
+    /// all these items will be handled after the audio.
     pub fn interleave<'s, 'in_storage, 'out_storage, I, E, C, FR, FE>(
         &'s mut self,
         input_storage: &'in_storage mut VecStorage<&'static [S]>,
@@ -748,7 +753,7 @@ where
                 handle_event(context, event);
                 continue;
             }
-            if event_time < self.number_of_frames() {
+            if last_event_time < self.number_of_frames() {
                 let mut input_guard = input_storage.vec_guard();
                 let mut output_guard = output_storage.vec_guard();
                 let mut sub_buffer = self.index_frames(
@@ -772,6 +777,75 @@ where
             render(context, &mut sub_buffer);
         }
     }
+}
+
+
+#[test]
+fn interleave_works() {
+    let mut test_plugin = TestPlugin::new(
+        vec![
+            audio_chunk![[11, 12], [21, 22]],
+            audio_chunk![[13, 14], [23, 24]],
+        ],
+        vec![
+            audio_chunk![[110, 120], [210, 220]],
+            audio_chunk![[130, 140], [230, 240]],
+        ],
+        vec![vec![1, 2], vec![3, 4], vec![5]],
+        vec![vec![], vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut events = vec![
+        (0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)
+    ];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    let mut dummy_event_handler = DummyEventHandler;
+    buffer.interleave(&mut input_storage, &mut output_storage, events.drain(..), &mut (test_plugin, dummy_event_handler),
+    |&mut (ref mut tp, ref mut de), ref mut buf| {
+        tp.render_buffer(buf, de);
+    },
+        |&mut (ref mut tp, ref mut de), e | {
+            tp.handle_event(e);
+        }
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
+}
+
+#[test]
+fn interleave_works_with_empty_event_iterator() {
+    let mut test_plugin = TestPlugin::<_, (), _>::new(
+        vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
+        vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
+        vec![vec![]],
+        vec![vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let mut dummy_event_handler = DummyEventHandler;
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut events = Vec::new();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    buffer.interleave(&mut input_storage, &mut output_storage, events.drain(..), &mut (test_plugin, dummy_event_handler),
+                      |&mut (ref mut tp, ref mut de), ref mut buf| {
+                          tp.render_buffer(buf, de);
+                      },
+                      |&mut (ref mut tp, ref mut de), e | {
+                          tp.handle_event(e);
+                      }
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
 }
 
 // Alternative name: "packet"?

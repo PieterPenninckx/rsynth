@@ -35,9 +35,10 @@ impl<S, E, M> TestPlugin<S, E, M> {
         provided_events: Vec<Vec<E>>,
         meta: M,
     ) -> Self {
-        assert_eq!(expected_inputs.len(), provided_outputs.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
-        assert_eq!(expected_inputs.len(), expected_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
-        assert_eq!(expected_inputs.len(), provided_events.len(), "When constructing test plugin, `expected_inputs`, `provided_outputs`, `expected_events` and `provided_events` should all have the same length.");
+        assert_eq!(expected_inputs.len(), provided_outputs.len(), "When constructing a test plugin, `expected_inputs` and `provided_outputs should have the same length.");
+        assert!(expected_inputs.len() <= expected_events.len(), "When constructing a test plugin, `expected_inputs` and `provided_outputs` should be smaller in length than `expected_events`.");
+        assert!(expected_inputs.len() + 1 >= expected_events.len(), "When constructing a test plugin, `expected_events` can have only one element more than `expected_inputs` and `provided_outputs`.");
+        assert_eq!(expected_inputs.len(), provided_events.len(), "When constructing a test plugin, `expected_inputs`, `provided_outputs` and `provided_events` should all have the same length.");
         TestPlugin {
             expected_inputs,
             provided_outputs,
