@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["rsynth"] = [{"text":"impl&lt;'a&gt; TryFrom&lt;TrackEventKind&lt;'a&gt;&gt; for RawMidiEvent","synthetic":false,"types":[]}];
+implementors["rsynth"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/convert/trait.TryFrom.html\" title=\"trait core::convert::TryFrom\">TryFrom</a>&lt;<a class=\"enum\" href=\"rsynth/backend/combined/midly/midly/enum.TrackEventKind.html\" title=\"enum rsynth::backend::combined::midly::midly::TrackEventKind\">TrackEventKind</a>&lt;'a&gt;&gt; for <a class=\"struct\" href=\"rsynth/event/struct.RawMidiEvent.html\" title=\"struct rsynth::event::RawMidiEvent\">RawMidiEvent</a>","synthetic":false,"types":["rsynth::event::RawMidiEvent"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
