@@ -31,16 +31,16 @@
 //!                                            ↑
 //!                                            └ buffer
 //! ```
+use crate::audio_chunk;
+#[cfg(test)]
+use crate::event::EventHandler;
+use crate::test_utilities::{DummyEventHandler, TestPlugin};
+use crate::vecstorage::VecStorage;
+use crate::ContextualAudioRenderer;
 use num_traits::Zero;
 use std::mem;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
-use crate::vecstorage::VecStorage;
-use crate::test_utilities::{TestPlugin, DummyEventHandler};
-use crate::ContextualAudioRenderer;
-use crate::audio_chunk;
-#[cfg(test)]
-use crate::event::EventHandler;
 
 fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
     // start: inclusive
@@ -739,12 +739,12 @@ where
         iterator: I,
         context: &mut C,
         render: FR,
-        handle_event: FE
+        handle_event: FE,
     ) where
         S: Copy + 'static,
-        I: Iterator<Item=(usize, E)>,
+        I: Iterator<Item = (usize, E)>,
         FR: Fn(&mut C, &mut AudioBufferInOut<'_, '_, '_, '_, S>),
-        FE: Fn(&mut C, E)
+        FE: Fn(&mut C, E),
     {
         let mut last_event_time = 0;
         for (event_time, event) in iterator {
@@ -779,7 +779,6 @@ where
     }
 }
 
-
 #[test]
 fn interleave_works() {
     let mut test_plugin = TestPlugin::new(
@@ -797,22 +796,24 @@ fn interleave_works() {
     );
     let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
     let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
-    let mut events = vec![
-        (0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)
-    ];
+    let mut events = vec![(0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)];
     let mut input_storage = VecStorage::with_capacity(2);
     let mut output_storage = VecStorage::with_capacity(2);
     let input = input.as_slices();
     let mut output_as_slices = provided_output.as_mut_slices();
     let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
     let mut dummy_event_handler = DummyEventHandler;
-    buffer.interleave(&mut input_storage, &mut output_storage, events.drain(..), &mut (test_plugin, dummy_event_handler),
-    |&mut (ref mut tp, ref mut de), ref mut buf| {
-        tp.render_buffer(buf, de);
-    },
-        |&mut (ref mut tp, ref mut de), e | {
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, ref mut de), e| {
             tp.handle_event(e);
-        }
+        },
     );
     let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
     assert_eq!(provided_output, expected_output);
@@ -836,13 +837,17 @@ fn interleave_works_with_empty_event_iterator() {
     let mut output_as_slices = provided_output.as_mut_slices();
     let mut events = Vec::new();
     let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
-    buffer.interleave(&mut input_storage, &mut output_storage, events.drain(..), &mut (test_plugin, dummy_event_handler),
-                      |&mut (ref mut tp, ref mut de), ref mut buf| {
-                          tp.render_buffer(buf, de);
-                      },
-                      |&mut (ref mut tp, ref mut de), e | {
-                          tp.handle_event(e);
-                      }
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, ref mut de), e| {
+            tp.handle_event(e);
+        },
     );
     let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
     assert_eq!(provided_output, expected_output);
