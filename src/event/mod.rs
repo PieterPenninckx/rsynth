@@ -18,9 +18,12 @@ use crate::backend::combined::midly::midly::{
     num::{u4, u7},
     MidiMessage,
 };
+use core::num::NonZeroU64;
+use gcd::Gcd;
 use std::convert::{AsMut, AsRef, TryFrom};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
+
 pub mod event_queue;
 
 /// The trait that plugins should implement in order to handle the given type of events.
@@ -422,7 +425,7 @@ pub struct AbsoluteEventIter<I> {
 impl<I> AbsoluteEventIter<I> {
     /// Create a new `AbsoluteEventIter` from the given iterator,
     /// starting at 0.
-    fn new(inner: I) -> Self {
+    pub fn new(inner: I) -> Self {
         Self { inner, offset: 0 }
     }
 }
@@ -481,10 +484,10 @@ where
     type Item = AbsoluteEvent<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let a_value = self.buffer_a.take().or(self.a.next());
-        if let Some(b) = self.buffer_b.take().or(self.b.next()) {
+        let a_value = self.buffer_a.take().or_else(|| self.a.next());
+        if let Some(b) = self.buffer_b.take().or_else(|| self.b.next()) {
             if let Some(a) = a_value {
-                if a.offset < b.offset {
+                if a.offset <= b.offset {
                     self.buffer_b = Some(b);
                     Some(a)
                 } else {
@@ -500,4 +503,200 @@ where
     }
 }
 
-// TODO: also create an iterator that takes into account "speed changes"
+#[test]
+pub fn time_zip_works() {
+    let a = vec![(0, 1), (0, 2), (2, 5), (4, 7)];
+    let b = vec![(0, 3), (1, 4), (3, 6), (4, 8)];
+    let a_iter = a.iter().map(|(t, v)| AbsoluteEvent {
+        offset: *t,
+        event: v,
+    });
+    let b_iter = b.iter().map(|(t, v)| AbsoluteEvent {
+        offset: *t,
+        event: v,
+    });
+    let timezip = TimeZip::new(a_iter, b_iter);
+    let c: Vec<(u64, u8)> = timezip
+        .map(|AbsoluteEvent { offset, event }| (offset, *event))
+        .collect();
+    assert_eq!(
+        c,
+        vec![
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (1, 4),
+            (2, 5),
+            (3, 6),
+            (4, 7),
+            (4, 8)
+        ]
+    );
+}
+
+/// An iterator over `AbsoluteEvent`s with a varying speed.
+///
+/// `EventTimeStretcher` iterates over events of type `AbsoluteEvent<E>`.
+/// It contains a closure of type `Fn(&E) -> Option<(u64, u64)>`.
+/// This closure is applied to all events that flow though it and when the closure returns
+/// `Some((a, b))`, the speed factor becomes `a/b`.  
+pub struct EventTimeStretcher<F, I> {
+    speed_change_detector: F,
+    inner: I,
+    nominator: u64,
+    denominator: NonZeroU64,
+    input_offset: u64,
+    output_offset: u64,
+    drifting_correction: f64,
+}
+
+impl<F, I> EventTimeStretcher<F, I> {
+    pub fn new(inner: I, mapper: F) -> Self {
+        EventTimeStretcher {
+            speed_change_detector: mapper,
+            inner,
+            nominator: 1,
+            denominator: NonZeroU64::new(1).expect("1 != 0"),
+            input_offset: 0,
+            output_offset: 0,
+            drifting_correction: 0.0,
+        }
+    }
+}
+
+impl<F, I, E> Iterator for EventTimeStretcher<F, I>
+where
+    I: Iterator<Item = AbsoluteEvent<E>>,
+    F: Fn(&E) -> Option<(u64, NonZeroU64)>,
+{
+    type Item = AbsoluteEvent<E>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let event = self.inner.next()?;
+        let self_denominator: u64 = self.denominator.into(); // Avoid some cumbersome type annotations.
+
+        // Adapt offset in order to avoid integer overflow when multiplying.
+        let input_offset_delta: u64 = (event.offset - self.input_offset) / self_denominator;
+        self.input_offset += input_offset_delta * self_denominator;
+        self.output_offset += input_offset_delta * self.nominator;
+
+        let new_time = (event.offset - self.input_offset) * self.nominator / self_denominator
+            + self.output_offset;
+
+        if let Some((mut new_nominator, mut new_denominator)) =
+            (self.speed_change_detector)(&event.event)
+        {
+            let gcd = new_nominator.gcd(new_denominator.into());
+            new_nominator = new_nominator / gcd;
+            // Safety: because new_denominator != 0, gcd != 0.
+            // Safety: gcd <= new_denominator, new_denominator / gcd >= 1 > 0.
+            new_denominator =
+                unsafe { NonZeroU64::new_unchecked(<_ as Into<u64>>::into(new_denominator) / gcd) };
+            if new_nominator != self.nominator || new_denominator != self.denominator {
+                // Update the drifting correction
+                let error = ((event.offset - self.input_offset) * self.nominator) as f64
+                    / (self_denominator as f64)
+                    - ((new_time - self.output_offset) as f64);
+                self.drifting_correction += error;
+                let correction = self.drifting_correction as u64;
+                self.drifting_correction -= correction as f64;
+
+                // Set the new offsets, taking into account the correction.
+                self.input_offset = event.offset;
+                self.output_offset = new_time + correction;
+
+                // Set the new nominators and denominators
+                self.nominator = new_nominator;
+                self.denominator = new_denominator;
+            }
+        }
+        Some(AbsoluteEvent {
+            offset: new_time,
+            event: event.event,
+        })
+    }
+}
+
+#[test]
+pub fn event_time_stretcher_works_when_no_drifting_correction_needed() {
+    // Input events and the line below: output events
+    // 0 . . 1 . . 2 . . . . 3 . . . . 4
+    // 0 . 1 . 2 . . . . . . 3 . . . . . . 4
+    let input = vec![
+        (0, Some((2, 3))),
+        (3, None),
+        (6, Some((7, 5))),
+        (11, None),
+        (16, None),
+    ];
+    let expected_output = vec![(0, 0), (2, 1), (4, 2), (11, 3), (18, 4)];
+    let iter = input.iter().enumerate().map(|(i, (t, v))| AbsoluteEvent {
+        offset: *t,
+        event: (i, *v),
+    });
+    fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
+        a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
+    };
+    let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
+        .map(
+            |AbsoluteEvent {
+                 offset: t,
+                 event: (i, _),
+             }| (t, i),
+        )
+        .collect();
+    assert_eq!(expected_output, observed_output);
+}
+
+#[test]
+pub fn event_time_stretcher_works_when_drifting_correction_needed() {
+    // Underscore: factor 1/2, dash: factor 1/3
+    // _______ ----- _______------
+    // 0 . 1 2 . . 3 4 . 5 6 . . 7
+    // Below: the output. We use two lines since there are sometimes two events at the same time.
+    // 0 => 0
+    // 1 => 1
+    // 2 => 1 + 1/2, after rounding: 1. Here we change the speed, so this error gets accumulated. Error: 1/2
+    // 3 => 2 + 1/2, after rounding: 2.
+    // 4 => 2 + 1/2 + 1/3, after rounding: 2. Here we change speed, so this error gets accumulated as well. Error: 5/6.
+    // 5 => 3 + 1/2 + 1/3, after rounding: 3.
+    // 6 => 3 + 1/2 + 1/3 + 1/2. Rounding: floor(floor(floor(1 + 1/2) + 1 + 1/3) + 1 + 1/2) = 3.
+    //                           We change speed, so this error gets accumulated. Error: 8/6.
+    // 7 => 3 + 1/2 + 1/3 + 1/2 + 1. Here we apply the correction and we get 5.
+    let input = vec![
+        (0, Some((1, 2))),  // 0
+        (2, None),          // 1
+        (3, Some((1, 3))),  // 2
+        (6, None),          // 3
+        (7, Some((1, 2))),  // 4
+        (9, None),          // 5
+        (10, Some((1, 3))), // 6
+        (13, None),         // 7
+    ];
+    let expected_output = vec![
+        (0, 0),
+        (1, 1),
+        (1, 2),
+        (2, 3),
+        (2, 4),
+        (3, 5),
+        (3, 6),
+        (5, 7),
+    ];
+    let iter = input.iter().enumerate().map(|(i, (t, v))| AbsoluteEvent {
+        offset: *t,
+        event: (i, *v),
+    });
+    fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
+        a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
+    };
+    let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
+        .map(
+            |AbsoluteEvent {
+                 offset: t,
+                 event: (i, _),
+             }| (t, i),
+        )
+        .collect();
+    assert_eq!(expected_output, observed_output);
+}
