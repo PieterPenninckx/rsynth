@@ -22,6 +22,28 @@ const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
 const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
+/// # Example
+/// ```
+/// extern crate itertools;
+/// use itertools::Itertools;
+/// use rsynth::backend::combined::midly::{midly::Smf, MidlyMidiReader};
+/// use rsynth::backend::combined::{run, AudioReader};
+/// use rsynth::buffer::AudioChunk;
+/// use std::fs::{File, OpenOptions};
+/// use std::{env, fs};
+///
+/// let input_midi_data =
+///         fs::read(&arguments.input_midi_filename).context("Failed to open midi input file.")?;
+/// let smf = Smf::parse(&input_midi_data)
+///         .map_err(|e| anyhow!("{}", e))
+///         .context("Failed to parse midi input file.")?;
+/// let mut track0_ticks = 0;
+/// let track1_iter = &smf.tracks[0].iter().map(|te| {track0_ticks += te.delta.as_int() as u64; (track0_ticks, te.kind)});
+/// let mut track1_ticks = 0;
+/// let track2_iter = &smf.tracks[1].iter().map(|te| {track1_ticks += te.delta.as_int() as u64; (track1_ticks, te.kind)});
+/// let zipped = track1_iter.merge_by(track2_iter, |(e1, e2) | e1.0 < e2.0);
+/// // TODO: continue the example.
+/// ```
 /// Read from midi events as parsed by the `midly` crate.
 pub struct MidlyMidiReader<'v, 'a> {
     events: &'v [TrackEvent<'a>],

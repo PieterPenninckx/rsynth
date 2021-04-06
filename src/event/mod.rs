@@ -411,127 +411,65 @@ pub struct DeltaEvent<E> {
     pub event: E,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AbsoluteEvent<E> {
-    pub offset: u64,
-    pub event: E,
+/// Stretch integer (`u64`) time stamps by a fractional factor that may change over time.
+pub struct TimeStretcher {
+    nominator: u64,
+    denominator: NonZeroU64,
+    input_offset: u64,
+    output_offset: u64,
+    drifting_correction: f64,
 }
 
-pub struct AbsoluteEventIter<I> {
-    inner: I,
-    pub offset: u64,
-}
-
-impl<I> AbsoluteEventIter<I> {
-    /// Create a new `AbsoluteEventIter` from the given iterator,
-    /// starting at 0.
-    pub fn new(inner: I) -> Self {
-        Self { inner, offset: 0 }
-    }
-}
-
-impl<E, I> Iterator for AbsoluteEventIter<I>
-where
-    I: Iterator<Item = DeltaEvent<E>>,
-{
-    type Item = AbsoluteEvent<E>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let next = self.inner.next()?;
-        self.offset += next.microseconds_since_previous_event as u64;
-        Some(AbsoluteEvent {
-            offset: self.offset,
-            event: next.event,
-        })
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.size_hint()
-    }
-}
-
-pub struct TimeZip<A, B>
-where
-    A: Iterator,
-    B: Iterator,
-{
-    a: A,
-    buffer_a: Option<<A as Iterator>::Item>,
-    b: B,
-    buffer_b: Option<<B as Iterator>::Item>,
-}
-
-impl<A, B> TimeZip<A, B>
-where
-    A: Iterator,
-    B: Iterator,
-{
-    pub fn new(a: A, b: B) -> Self {
+impl TimeStretcher {
+    /// Create a new `TimeStretcher`.
+    pub fn new(nominator: u64, denominator: NonZeroU64) -> Self {
         Self {
-            a,
-            buffer_a: None,
-            b,
-            buffer_b: None,
+            nominator,
+            denominator,
+            input_offset: 0,
+            output_offset: 0,
+            drifting_correction: 0.0,
         }
     }
-}
 
-impl<A, B, T> Iterator for TimeZip<A, B>
-where
-    A: Iterator<Item = AbsoluteEvent<T>>,
-    B: Iterator<Item = <A as Iterator>::Item>,
-{
-    type Item = AbsoluteEvent<T>;
+    pub fn stretch(&mut self, input_time: u64, new_speed: Option<(u64, NonZeroU64)>) -> u64 {
+        let self_denominator: u64 = self.denominator.into(); // Avoid some cumbersome type annotations.
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let a_value = self.buffer_a.take().or_else(|| self.a.next());
-        if let Some(b) = self.buffer_b.take().or_else(|| self.b.next()) {
-            if let Some(a) = a_value {
-                if a.offset <= b.offset {
-                    self.buffer_b = Some(b);
-                    Some(a)
-                } else {
-                    self.buffer_a = Some(a);
-                    Some(b)
-                }
-            } else {
-                Some(b)
+        // Adapt offset in order to avoid integer overflow when multiplying.
+        let input_offset_delta: u64 = (input_time - self.input_offset) / self_denominator;
+        self.input_offset += input_offset_delta * self_denominator;
+        self.output_offset += input_offset_delta * self.nominator;
+
+        let new_time = (input_time - self.input_offset) * self.nominator / self_denominator
+            + self.output_offset;
+
+        if let Some((mut new_nominator, mut new_denominator)) = new_speed {
+            let gcd = new_nominator.gcd(new_denominator.into());
+            new_nominator = new_nominator / gcd;
+            // Safety: because new_denominator != 0, gcd != 0.
+            // Safety: gcd <= new_denominator, new_denominator / gcd >= 1 > 0.
+            new_denominator =
+                unsafe { NonZeroU64::new_unchecked(<_ as Into<u64>>::into(new_denominator) / gcd) };
+            if new_nominator != self.nominator || new_denominator != self.denominator {
+                // Update the drifting correction
+                let error = ((input_time - self.input_offset) * self.nominator) as f64
+                    / (self_denominator as f64)
+                    - ((new_time - self.output_offset) as f64);
+                self.drifting_correction += error;
+                let correction = self.drifting_correction as u64;
+                self.drifting_correction -= correction as f64;
+
+                // Set the new offsets, taking into account the correction.
+                self.input_offset = input_time;
+                self.output_offset = new_time + correction;
+
+                // Set the new nominators and denominators
+                self.nominator = new_nominator;
+                self.denominator = new_denominator;
             }
-        } else {
-            a_value
         }
+        new_time
     }
-}
-
-#[test]
-pub fn time_zip_works() {
-    let a = vec![(0, 1), (0, 2), (2, 5), (4, 7)];
-    let b = vec![(0, 3), (1, 4), (3, 6), (4, 8)];
-    let a_iter = a.iter().map(|(t, v)| AbsoluteEvent {
-        offset: *t,
-        event: v,
-    });
-    let b_iter = b.iter().map(|(t, v)| AbsoluteEvent {
-        offset: *t,
-        event: v,
-    });
-    let timezip = TimeZip::new(a_iter, b_iter);
-    let c: Vec<(u64, u8)> = timezip
-        .map(|AbsoluteEvent { offset, event }| (offset, *event))
-        .collect();
-    assert_eq!(
-        c,
-        vec![
-            (0, 1),
-            (0, 2),
-            (0, 3),
-            (1, 4),
-            (2, 5),
-            (3, 6),
-            (4, 7),
-            (4, 8)
-        ]
-    );
 }
 
 /// An iterator over `AbsoluteEvent`s with a varying speed.
@@ -543,11 +481,7 @@ pub fn time_zip_works() {
 pub struct EventTimeStretcher<F, I> {
     speed_change_detector: F,
     inner: I,
-    nominator: u64,
-    denominator: NonZeroU64,
-    input_offset: u64,
-    output_offset: u64,
-    drifting_correction: f64,
+    stretcher: TimeStretcher,
 }
 
 impl<F, I> EventTimeStretcher<F, I> {
@@ -555,65 +489,56 @@ impl<F, I> EventTimeStretcher<F, I> {
         EventTimeStretcher {
             speed_change_detector: mapper,
             inner,
-            nominator: 1,
-            denominator: NonZeroU64::new(1).expect("1 != 0"),
-            input_offset: 0,
-            output_offset: 0,
-            drifting_correction: 0.0,
+            stretcher: TimeStretcher::new(1, NonZeroU64::new(1).expect("1 != 0")),
         }
     }
 }
 
 impl<F, I, E> Iterator for EventTimeStretcher<F, I>
 where
-    I: Iterator<Item = AbsoluteEvent<E>>,
+    I: Iterator<Item = (u64, E)>,
     F: Fn(&E) -> Option<(u64, NonZeroU64)>,
 {
-    type Item = AbsoluteEvent<E>;
+    type Item = (u64, E);
 
     fn next(&mut self) -> Option<Self::Item> {
         let event = self.inner.next()?;
-        let self_denominator: u64 = self.denominator.into(); // Avoid some cumbersome type annotations.
+        let new_time = self
+            .stretcher
+            .stretch(event.0, (self.speed_change_detector)(&event.1));
+        Some((new_time, event.1))
+    }
+}
 
-        // Adapt offset in order to avoid integer overflow when multiplying.
-        let input_offset_delta: u64 = (event.offset - self.input_offset) / self_denominator;
-        self.input_offset += input_offset_delta * self_denominator;
-        self.output_offset += input_offset_delta * self.nominator;
+#[derive(PartialEq, Eq, Debug)]
+pub struct TickedEvent<E> {
+    pub ticks: u64,
+    pub event: E,
+}
 
-        let new_time = (event.offset - self.input_offset) * self.nominator / self_denominator
-            + self.output_offset;
-
-        if let Some((mut new_nominator, mut new_denominator)) =
-            (self.speed_change_detector)(&event.event)
-        {
-            let gcd = new_nominator.gcd(new_denominator.into());
-            new_nominator = new_nominator / gcd;
-            // Safety: because new_denominator != 0, gcd != 0.
-            // Safety: gcd <= new_denominator, new_denominator / gcd >= 1 > 0.
-            new_denominator =
-                unsafe { NonZeroU64::new_unchecked(<_ as Into<u64>>::into(new_denominator) / gcd) };
-            if new_nominator != self.nominator || new_denominator != self.denominator {
-                // Update the drifting correction
-                let error = ((event.offset - self.input_offset) * self.nominator) as f64
-                    / (self_denominator as f64)
-                    - ((new_time - self.output_offset) as f64);
-                self.drifting_correction += error;
-                let correction = self.drifting_correction as u64;
-                self.drifting_correction -= correction as f64;
-
-                // Set the new offsets, taking into account the correction.
-                self.input_offset = event.offset;
-                self.output_offset = new_time + correction;
-
-                // Set the new nominators and denominators
-                self.nominator = new_nominator;
-                self.denominator = new_denominator;
-            }
+impl<E> Clone for TickedEvent<E>
+where
+    E: Clone,
+{
+    fn clone(&self) -> Self {
+        TickedEvent {
+            ticks: self.ticks,
+            event: self.event.clone(),
         }
-        Some(AbsoluteEvent {
-            offset: new_time,
-            event: event.event,
-        })
+    }
+}
+
+impl<E> Copy for TickedEvent<E> where E: Copy {}
+
+impl<E> AsRef<E> for TickedEvent<E> {
+    fn as_ref(&self) -> &E {
+        &self.event
+    }
+}
+
+impl<E> AsMut<E> for TickedEvent<E> {
+    fn as_mut(&mut self) -> &mut E {
+        &mut self.event
     }
 }
 
@@ -630,20 +555,12 @@ pub fn event_time_stretcher_works_when_no_drifting_correction_needed() {
         (16, None),
     ];
     let expected_output = vec![(0, 0), (2, 1), (4, 2), (11, 3), (18, 4)];
-    let iter = input.iter().enumerate().map(|(i, (t, v))| AbsoluteEvent {
-        offset: *t,
-        event: (i, *v),
-    });
+    let iter = input.iter().enumerate().map(|(i, (t, v))| (*t, (i, *v)));
     fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
         a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
     };
     let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
-        .map(
-            |AbsoluteEvent {
-                 offset: t,
-                 event: (i, _),
-             }| (t, i),
-        )
+        .map(|(t, (i, _))| (t, i))
         .collect();
     assert_eq!(expected_output, observed_output);
 }
@@ -683,20 +600,12 @@ pub fn event_time_stretcher_works_when_drifting_correction_needed() {
         (3, 6),
         (5, 7),
     ];
-    let iter = input.iter().enumerate().map(|(i, (t, v))| AbsoluteEvent {
-        offset: *t,
-        event: (i, *v),
-    });
+    let iter = input.iter().enumerate().map(|(i, (t, v))| (*t, (i, *v)));
     fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
         a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
     };
     let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
-        .map(
-            |AbsoluteEvent {
-                 offset: t,
-                 event: (i, _),
-             }| (t, i),
-        )
+        .map(|(t, (i, _))| (t, i))
         .collect();
     assert_eq!(expected_output, observed_output);
 }

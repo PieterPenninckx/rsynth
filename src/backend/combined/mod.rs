@@ -40,6 +40,7 @@ use crate::buffer::{
 use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
+use itertools::Itertools;
 use num_traits::Zero;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -281,14 +282,22 @@ where
         AudioChunk::zero(number_of_output_channels, buffer_size_in_frames).inner();
 
     let mut last_time_in_frames = 0;
-    let mut last_event_time_in_microseconds = 0;
 
     let mut writer = MidiWriterWrapper::new(
         midi_out,
         MICROSECONDS_PER_SECOND as f64 / frames_per_second as f64,
     );
 
-    let mut peekable_midi_reader = midi_in.peekable();
+    let mut last_event_time_in_microseconds = 0;
+    let mut input_midi_iterator_in_absolute_frames = midi_in
+        .map(|e| {
+            last_event_time_in_microseconds += e.microseconds_since_previous_event;
+            (
+                last_event_time_in_microseconds * frames_per_second / MICROSECONDS_PER_SECOND,
+                e.event,
+            )
+        })
+        .peekable();
 
     let mut conversion_storage: VecStorage<&'static [S]> =
         VecStorage::with_capacity(number_of_input_channels);
@@ -308,25 +317,13 @@ where
             break;
         }
 
-        // Handle events
-        while let Some(event) = peekable_midi_reader.peek() {
-            let time_in_frames = (last_event_time_in_microseconds
-                + event.microseconds_since_previous_event)
-                * frames_per_second
-                / MICROSECONDS_PER_SECOND
-                - last_time_in_frames;
-            if time_in_frames < buffer_size_in_frames as u64 {
-                let event = peekable_midi_reader
-                    .next()
-                    .expect("to see event that I just peeked at");
-                plugin.handle_event(Timed {
-                    time_in_frames: time_in_frames as u32,
-                    event: event.event,
-                });
-                last_event_time_in_microseconds += event.microseconds_since_previous_event;
-            } else {
-                break;
-            }
+        for (time_in_frames, event) in input_midi_iterator_in_absolute_frames
+            .peeking_take_while(|a| a.0 < last_time_in_frames + buffer_size_in_frames as u64)
+        {
+            plugin.handle_event(Timed {
+                time_in_frames: (time_in_frames - last_time_in_frames) as u32,
+                event,
+            });
         }
 
         let inputs = buffers_as_slice(&input_buffers, frames_read);
