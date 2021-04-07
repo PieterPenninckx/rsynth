@@ -63,7 +63,7 @@ fn main() {
             samplerate,
             number_of_seconds * samplerate as usize,
         );
-        let midi_event_reader = MidlyMidiReader::new(smf.header, &smf.tracks[1]);
+        let midi_event_reader = MidlyMidiReader::new(&smf).unwrap();
         let midi_out = MidiDummy::new();
         println!("Rendering {} tracks of audio.", number_of_seconds);
         run(
