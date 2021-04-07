@@ -432,15 +432,26 @@ impl TimeStretcher {
         }
     }
 
-    pub fn stretch(&mut self, input_time: u64, new_speed: Option<(u64, NonZeroU64)>) -> u64 {
+    /// Stretch the input time by the factor `nominator/denominator`.
+    ///
+    /// # Parameters
+    /// `input_time`: the time to be stretched
+    /// `new_speed`: if this contains `Some((nominator, denominator))`, future times will
+    /// be stretched by the new factor `nominator/denominator`.
+    pub fn stretch(
+        &mut self,
+        absolute_input_time: u64,
+        new_speed: Option<(u64, NonZeroU64)>,
+    ) -> u64 {
         let self_denominator: u64 = self.denominator.into(); // Avoid some cumbersome type annotations.
 
         // Adapt offset in order to avoid integer overflow when multiplying.
-        let input_offset_delta: u64 = (input_time - self.input_offset) / self_denominator;
+        let input_offset_delta: u64 = (absolute_input_time - self.input_offset) / self_denominator;
         self.input_offset += input_offset_delta * self_denominator;
         self.output_offset += input_offset_delta * self.nominator;
 
-        let new_time = (input_time - self.input_offset) * self.nominator / self_denominator
+        let new_time = (absolute_input_time - self.input_offset) * self.nominator
+            / self_denominator
             + self.output_offset;
 
         if let Some((mut new_nominator, mut new_denominator)) = new_speed {
@@ -452,7 +463,7 @@ impl TimeStretcher {
                 unsafe { NonZeroU64::new_unchecked(<_ as Into<u64>>::into(new_denominator) / gcd) };
             if new_nominator != self.nominator || new_denominator != self.denominator {
                 // Update the drifting correction
-                let error = ((input_time - self.input_offset) * self.nominator) as f64
+                let error = ((absolute_input_time - self.input_offset) * self.nominator) as f64
                     / (self_denominator as f64)
                     - ((new_time - self.output_offset) as f64);
                 self.drifting_correction += error;
@@ -460,7 +471,7 @@ impl TimeStretcher {
                 self.drifting_correction -= correction as f64;
 
                 // Set the new offsets, taking into account the correction.
-                self.input_offset = input_time;
+                self.input_offset = absolute_input_time;
                 self.output_offset = new_time + correction;
 
                 // Set the new nominators and denominators
@@ -472,101 +483,30 @@ impl TimeStretcher {
     }
 }
 
-/// An iterator over `AbsoluteEvent`s with a varying speed.
-///
-/// `EventTimeStretcher` iterates over events of type `AbsoluteEvent<E>`.
-/// It contains a closure of type `Fn(&E) -> Option<(u64, u64)>`.
-/// This closure is applied to all events that flow though it and when the closure returns
-/// `Some((a, b))`, the speed factor becomes `a/b`.  
-pub struct EventTimeStretcher<F, I> {
-    speed_change_detector: F,
-    inner: I,
-    stretcher: TimeStretcher,
-}
-
-impl<F, I> EventTimeStretcher<F, I> {
-    pub fn new(inner: I, mapper: F) -> Self {
-        EventTimeStretcher {
-            speed_change_detector: mapper,
-            inner,
-            stretcher: TimeStretcher::new(1, NonZeroU64::new(1).expect("1 != 0")),
-        }
-    }
-}
-
-impl<F, I, E> Iterator for EventTimeStretcher<F, I>
-where
-    I: Iterator<Item = (u64, E)>,
-    F: Fn(&E) -> Option<(u64, NonZeroU64)>,
-{
-    type Item = (u64, E);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let event = self.inner.next()?;
-        let new_time = self
-            .stretcher
-            .stretch(event.0, (self.speed_change_detector)(&event.1));
-        Some((new_time, event.1))
-    }
-}
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct TickedEvent<E> {
-    pub ticks: u64,
-    pub event: E,
-}
-
-impl<E> Clone for TickedEvent<E>
-where
-    E: Clone,
-{
-    fn clone(&self) -> Self {
-        TickedEvent {
-            ticks: self.ticks,
-            event: self.event.clone(),
-        }
-    }
-}
-
-impl<E> Copy for TickedEvent<E> where E: Copy {}
-
-impl<E> AsRef<E> for TickedEvent<E> {
-    fn as_ref(&self) -> &E {
-        &self.event
-    }
-}
-
-impl<E> AsMut<E> for TickedEvent<E> {
-    fn as_mut(&mut self) -> &mut E {
-        &mut self.event
-    }
-}
-
 #[test]
 pub fn event_time_stretcher_works_when_no_drifting_correction_needed() {
+    let mut stretcher = TimeStretcher::new(1, NonZeroU64::new(1).unwrap());
     // Input events and the line below: output events
     // 0 . . 1 . . 2 . . . . 3 . . . . 4
     // 0 . 1 . 2 . . . . . . 3 . . . . . . 4
     let input = vec![
-        (0, Some((2, 3))),
+        (0, Some((2, NonZeroU64::new(3).unwrap()))),
         (3, None),
-        (6, Some((7, 5))),
+        (6, Some((7, NonZeroU64::new(5).unwrap()))),
         (11, None),
         (16, None),
     ];
-    let expected_output = vec![(0, 0), (2, 1), (4, 2), (11, 3), (18, 4)];
-    let iter = input.iter().enumerate().map(|(i, (t, v))| (*t, (i, *v)));
-    fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
-        a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
-    };
-    let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
-        .map(|(t, (i, _))| (t, i))
-        .collect();
+    let mut observed_output = Vec::new();
+    for input in input.into_iter() {
+        observed_output.push(stretcher.stretch(input.0, input.1));
+    }
+    let expected_output = vec![0, 2, 4, 11, 18];
     assert_eq!(expected_output, observed_output);
 }
 
 #[test]
 pub fn event_time_stretcher_works_when_drifting_correction_needed() {
+    let mut stretcher = TimeStretcher::new(1, NonZeroU64::new(1).unwrap());
     // Underscore: factor 1/2, dash: factor 1/3
     // _______ ----- _______------
     // 0 . 1 2 . . 3 4 . 5 6 . . 7
@@ -581,31 +521,19 @@ pub fn event_time_stretcher_works_when_drifting_correction_needed() {
     //                           We change speed, so this error gets accumulated. Error: 8/6.
     // 7 => 3 + 1/2 + 1/3 + 1/2 + 1. Here we apply the correction and we get 5.
     let input = vec![
-        (0, Some((1, 2))),  // 0
-        (2, None),          // 1
-        (3, Some((1, 3))),  // 2
-        (6, None),          // 3
-        (7, Some((1, 2))),  // 4
-        (9, None),          // 5
-        (10, Some((1, 3))), // 6
-        (13, None),         // 7
+        (0, Some((1, NonZeroU64::new(2).unwrap()))),  // 0
+        (2, None),                                    // 1
+        (3, Some((1, NonZeroU64::new(3).unwrap()))),  // 2
+        (6, None),                                    // 3
+        (7, Some((1, NonZeroU64::new(2).unwrap()))),  // 4
+        (9, None),                                    // 5
+        (10, Some((1, NonZeroU64::new(3).unwrap()))), // 6
+        (13, None),                                   // 7
     ];
-    let expected_output = vec![
-        (0, 0),
-        (1, 1),
-        (1, 2),
-        (2, 3),
-        (2, 4),
-        (3, 5),
-        (3, 6),
-        (5, 7),
-    ];
-    let iter = input.iter().enumerate().map(|(i, (t, v))| (*t, (i, *v)));
-    fn f(a: &(usize, Option<(u64, u64)>)) -> Option<(u64, NonZeroU64)> {
-        a.1.map(|x| (x.0, NonZeroU64::new(x.1).unwrap()))
-    };
-    let observed_output: Vec<_> = EventTimeStretcher::new(iter, f)
-        .map(|(t, (i, _))| (t, i))
-        .collect();
+    let mut observed_output = Vec::new();
+    for input in input.into_iter() {
+        observed_output.push(stretcher.stretch(input.0, input.1));
+    }
+    let expected_output = vec![0, 1, 1, 2, 2, 3, 3, 5];
     assert_eq!(expected_output, observed_output);
 }

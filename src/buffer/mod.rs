@@ -811,7 +811,7 @@ fn interleave_works() {
         |&mut (ref mut tp, ref mut de), ref mut buf| {
             tp.render_buffer(buf, de);
         },
-        |&mut (ref mut tp, ref mut de), e| {
+        |&mut (ref mut tp, _), e| {
             tp.handle_event(e);
         },
     );

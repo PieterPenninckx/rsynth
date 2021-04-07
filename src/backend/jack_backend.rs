@@ -22,9 +22,7 @@ use crate::{
     AudioHandler, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
     ContextualAudioRenderer,
 };
-use core::cmp;
 use std::io;
-use std::slice;
 use vecstorage::VecStorage;
 
 /// Re-exports of the [`jack`](https://crates.io/crates/jack) crate.

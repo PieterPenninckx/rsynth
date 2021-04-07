@@ -9,7 +9,7 @@ use crate::ContextualAudioRenderer;
 use std::cmp::Ordering;
 use std::collections::vec_deque::{Drain, VecDeque};
 use std::iter::FusedIterator;
-use std::ops::{Deref, Index, IndexMut, RangeBounds};
+use std::ops::{Deref, Index, IndexMut};
 
 /// A queue for timed events.
 pub struct EventQueue<T> {

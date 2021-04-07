@@ -1,19 +1,17 @@
 //! Read midi files.
 use super::MICROSECONDS_PER_SECOND;
-use crate::event::{DeltaEvent, EventTimeStretcher, RawMidiEvent, TimeStretcher};
+use crate::event::{DeltaEvent, RawMidiEvent, TimeStretcher};
 
 /// Re-exports from the `midly` crate.
 pub mod midly {
     pub use midly::*;
 }
 
-use self::midly::Header;
 use self::midly::Timing;
-use self::midly::TrackEvent;
 #[cfg(test)]
 use self::midly::{
     num::{u15, u24, u28, u4, u7},
-    Format, MidiMessage, Track,
+    Format, Header, MidiMessage, Track, TrackEvent,
 };
 use self::midly::{MetaMessage, TrackEventKind};
 use crate::backend::combined::midly::midly::Smf;
@@ -25,6 +23,7 @@ const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
 const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
+/// Read from midi events as parsed by the `midly` crate.
 pub struct MidlyMidiReader<'a, 'b> {
     event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b>,
     timestretcher: TimeStretcher,
@@ -36,11 +35,17 @@ impl<'a, 'b> MidlyMidiReader<'a, 'b>
 where
     'b: 'a,
 {
+    /// Create a new `MidlyMidiReader` that will read all tracks together (interleaved).
     pub fn new(smf: &'b Smf<'a>) -> Result<Self, ()> {
-        let track_mask: Vec<_> = smf.tracks.iter().map(|t| true).collect();
+        let track_mask: Vec<_> = smf.tracks.iter().map(|_| true).collect();
         Self::new_with_track_mask(smf, &track_mask)
     }
 
+    /// Create a new `MidlyMidiReader` that will read only the masked tracks (interleaved).
+    ///
+    /// # Parameters
+    /// `smf`: the [`Smf`] for reading the midi file
+    /// `track_mask`: a slice of booleans, only the tracks that correspond to `true` will be read.
     pub fn new_with_track_mask(smf: &'b Smf<'a>, track_mask: &[bool]) -> Result<Self, ()> {
         let mut event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b> =
             Box::new(Vec::new().into_iter());
@@ -101,7 +106,7 @@ impl<'a, 'b> Iterator for MidlyMidiReader<'a, 'b> {
 }
 
 #[test]
-fn iterator_correctly_returns_one_event() {
+pub fn iterator_correctly_returns_one_event() {
     // 120 beats per minute
     // = 120 beats per 60 seconds
     // = 120 beats per 60 000 000 microseconds
@@ -145,7 +150,7 @@ fn iterator_correctly_returns_one_event() {
 }
 
 #[cfg(test)]
-fn iterator_correctly_returns_two_events() {
+pub fn iterator_correctly_returns_two_events() {
     // 120 beats per minute
     // = 120 beats per 60 seconds
     // = 120 beats per 60 000 000 microseconds
