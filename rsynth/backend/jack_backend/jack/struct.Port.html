@@ -46,6 +46,8 @@ error.</p>
 <p>After a successful call, <code>alias</code> can no longer be used as an alternate name for <code>self</code>.</p>
 </div><h4 id="method.from_raw" class="method"><code>pub unsafe fn <a href="#method.from_raw" class="fnname">from_raw</a>(<br>&nbsp;&nbsp;&nbsp;&nbsp;spec: PS, <br>&nbsp;&nbsp;&nbsp;&nbsp;client_ptr: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.pointer.html">*mut </a>Struct__jack_client, <br>&nbsp;&nbsp;&nbsp;&nbsp;port_ptr: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.pointer.html">*mut </a>Struct__jack_port, <br>&nbsp;&nbsp;&nbsp;&nbsp;client_life: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/sync/struct.Weak.html" title="struct alloc::sync::Weak">Weak</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.unit.html">()</a>&gt;<br>) -&gt; <a class="struct" href="../../../../rsynth/backend/jack_backend/jack/struct.Port.html" title="struct rsynth::backend::jack_backend::jack::Port">Port</a>&lt;PS&gt;</code></h4><div class="docblock"><p>Create a Port from raw JACK pointers.</p>
 <p>This is mostly for use within the jack crate itself.</p>
+<h1 id="safety" class="section-header"><a href="#safety">Safety</a></h1>
+<p>It is unsafe to create a <code>Port</code> from raw pointers.</p>
 </div><h4 id="method.client_ptr" class="method"><code>pub fn <a href="#method.client_ptr" class="fnname">client_ptr</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.pointer.html">*mut </a>Struct__jack_client</code></h4><div class="docblock"><p>Obtain the client pointer that spawned this port.</p>
 <p>This is mostly for use within the jack crate itself.</p>
 </div><h4 id="method.raw" class="method"><code>pub fn <a href="#method.raw" class="fnname">raw</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.pointer.html">*mut </a>Struct__jack_port</code></h4><div class="docblock"><p>Obtain the ffi port pointer.</p>
@@ -54,6 +56,9 @@ error.</p>
 using the <code>AudioInPort</code>, <code>AudioOutPort</code>, <code>MidiInPort</code>, or <code>MidiOutPort</code> adapter. For more
 custom data, consider implementing your own adapter that safely uses the <code>Port::buffer</code>
 method.</p>
+<h1 id="safety-1" class="section-header"><a href="#safety-1">Safety</a></h1>
+<p>It is unsafe to extract a buffer. Prefer to use one of the type specific wrappers such as
+<code>.as_mut_slice()</code> for audio and <code>.midi_iter</code> for midi.</p>
 </div><h4 id="method.set_latency_range" class="method"><code>pub fn <a href="#method.set_latency_range" class="fnname">set_latency_range</a>(&amp;self, mode: <a class="enum" href="../../../../rsynth/backend/jack_backend/jack/enum.LatencyType.html" title="enum rsynth::backend::jack_backend::jack::LatencyType">LatencyType</a>, range: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">(</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a>, <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">)</a>)</code></h4><div class="docblock"><p>Set the minimum and maximum latencies defined by mode for port, in frames.
 The <code>range</code> argument is a tuple of <code>(min, max)</code>.</p>
 <p>See <a href="https://jackaudio.org/api/group__LatencyFunctions.html">Managing and determining latency</a>
