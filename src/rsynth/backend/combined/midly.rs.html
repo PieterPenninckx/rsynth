@@ -208,119 +208,117 @@
 <span id="205">205</span>
 <span id="206">206</span>
 <span id="207">207</span>
+<span id="208">208</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Read midi files.</span>
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">MICROSECONDS_PER_SECOND</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">RawMidiEvent</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">RawMidiEvent</span>, <span class="ident">TimeStretcher</span>};
 
 <span class="doccomment">/// Re-exports from the `midly` crate.</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">midly</span> {
     <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">midly</span>::<span class="kw-2">*</span>;
 }
 
-<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Header</span>;
 <span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">Timing</span>;
-<span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::<span class="ident">TrackEvent</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::{
     <span class="ident">num</span>::{<span class="ident">u15</span>, <span class="ident">u24</span>, <span class="ident">u28</span>, <span class="ident">u4</span>, <span class="ident">u7</span>},
-    <span class="ident">Format</span>, <span class="ident">MidiMessage</span>,
+    <span class="ident">Format</span>, <span class="ident">Header</span>, <span class="ident">MidiMessage</span>, <span class="ident">Track</span>, <span class="ident">TrackEvent</span>,
 };
 <span class="kw">use</span> <span class="self">self</span>::<span class="ident">midly</span>::{<span class="ident">MetaMessage</span>, <span class="ident">TrackEventKind</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">backend</span>::<span class="ident">combined</span>::<span class="ident">midly</span>::<span class="ident">midly</span>::<span class="ident">Smf</span>;
+<span class="kw">use</span> <span class="ident">itertools</span>::<span class="ident">Itertools</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">convert</span>::<span class="ident">TryFrom</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">num</span>::<span class="ident">NonZeroU64</span>;
 
 <span class="kw">const</span> <span class="ident">SECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">60</span>;
 <span class="kw">const</span> <span class="ident">MICROSECONDS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="ident">SECONDS_PER_MINUTE</span> <span class="op">*</span> <span class="ident">MICROSECONDS_PER_SECOND</span>;
 <span class="kw">const</span> <span class="ident">DEFAULT_BEATS_PER_MINUTE</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="number">120</span>;
 
 <span class="doccomment">/// Read from midi events as parsed by the `midly` crate.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;v</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">TrackEvent</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>],
-    <span class="ident">event_index</span>: <span class="ident">usize</span>,
-    <span class="ident">current_tempo_in_micro_seconds_per_beat</span>: <span class="ident">f64</span>,
-    <span class="ident">ticks_per_beat</span>: <span class="ident">f64</span>,
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span><span class="op">&gt;</span> {
+    <span class="ident">event_iter</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> (<span class="ident">u64</span>, <span class="ident">TrackEventKind</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>)<span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;b</span><span class="op">&gt;</span>,
+    <span class="ident">timestretcher</span>: <span class="ident">TimeStretcher</span>,
+    <span class="ident">previous_time_in_microseconds</span>: <span class="ident">u64</span>,
+    <span class="ident">ticks_per_beat</span>: <span class="ident">NonZeroU64</span>,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;v</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;v</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">ticks_per_microsecond</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">f64</span> {
-        <span class="self">self</span>.<span class="ident">ticks_per_beat</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">current_tempo_in_micro_seconds_per_beat</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span><span class="op">&gt;</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="lifetime">&#39;b</span>: <span class="lifetime">&#39;a</span>,
+{
+    <span class="doccomment">/// Create a new `MidlyMidiReader` that will read all tracks together (interleaved).</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">smf</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">Smf</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, ()<span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">track_mask</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">smf</span>.<span class="ident">tracks</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="bool-val">true</span>).<span class="ident">collect</span>();
+        <span class="self">Self</span>::<span class="ident">new_with_track_mask</span>(<span class="ident">smf</span>, <span class="kw-2">&amp;</span><span class="ident">track_mask</span>)
     }
 
-    <span class="doccomment">/// Create a new `MidlyMidiReader`.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">header</span>: <span class="ident">Header</span>, <span class="ident">events</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;v</span> [<span class="ident">TrackEvent</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">events</span>,
-            <span class="ident">event_index</span>: <span class="number">0</span>,
-            <span class="ident">current_tempo_in_micro_seconds_per_beat</span>: (<span class="ident">MICROSECONDS_PER_MINUTE</span> <span class="kw">as</span> <span class="ident">f64</span>
-                <span class="op">/</span> <span class="ident">DEFAULT_BEATS_PER_MINUTE</span> <span class="kw">as</span> <span class="ident">f64</span>),
-            <span class="ident">ticks_per_beat</span>: <span class="kw">match</span> <span class="ident">header</span>.<span class="ident">timing</span> {
-                <span class="ident">Timing</span>::<span class="ident">Metrical</span>(<span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">t</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">f64</span>,
-                <span class="ident">Timing</span>::<span class="ident">Timecode</span>(<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unimplemented</span><span class="macro">!</span>(),
-            },
+    <span class="doccomment">/// Create a new `MidlyMidiReader` that will read only the masked tracks (interleaved).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">/// `smf`: the [`Smf`] for reading the midi file</span>
+    <span class="doccomment">/// `track_mask`: a slice of booleans, only the tracks that correspond to `true` will be read.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new_with_track_mask</span>(<span class="ident">smf</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">Smf</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>, <span class="ident">track_mask</span>: <span class="kw-2">&amp;</span>[<span class="ident">bool</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, ()<span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">event_iter</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> (<span class="ident">u64</span>, <span class="ident">TrackEventKind</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>)<span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;b</span><span class="op">&gt;</span> <span class="op">=</span>
+            <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>().<span class="ident">into_iter</span>());
+        <span class="kw">for</span> (<span class="ident">must_include</span>, <span class="ident">track</span>) <span class="kw">in</span> <span class="ident">track_mask</span>.<span class="ident">iter</span>().<span class="ident">zip</span>(<span class="ident">smf</span>.<span class="ident">tracks</span>.<span class="ident">iter</span>()) {
+            <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">must_include</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">offset</span> <span class="op">=</span> <span class="number">0</span>;
+                <span class="kw">let</span> <span class="ident">iter</span> <span class="op">=</span> <span class="ident">track</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
+                    <span class="ident">offset</span> <span class="op">+</span><span class="op">=</span> <span class="ident">e</span>.<span class="ident">delta</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">u64</span>;
+                    (<span class="ident">offset</span>, <span class="ident">e</span>.<span class="ident">kind</span>)
+                });
+                <span class="ident">event_iter</span> <span class="op">=</span> <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">event_iter</span>.<span class="ident">merge_by</span>(<span class="ident">iter</span>, <span class="op">|</span>(<span class="ident">t1</span>, <span class="kw">_</span>), (<span class="ident">t2</span>, <span class="kw">_</span>)<span class="op">|</span> <span class="ident">t1</span> <span class="op">&lt;</span> <span class="ident">t2</span>));
+            }
         }
+        <span class="kw">let</span> <span class="ident">ticks_per_beat</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">smf</span>.<span class="ident">header</span>.<span class="ident">timing</span> {
+            <span class="ident">Timing</span>::<span class="ident">Metrical</span>(<span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">NonZeroU64</span>::<span class="ident">new</span>(<span class="ident">t</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">u64</span>).<span class="ident">ok_or</span>(())<span class="question-mark">?</span>,
+            <span class="ident">Timing</span>::<span class="ident">Timecode</span>(<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(()),
+        };
+        <span class="comment">//                   ticks * microseconds_per_beat</span>
+        <span class="comment">// microseconds = -----------------------------------</span>
+        <span class="comment">//                   ticks_per_beat</span>
+        <span class="kw">let</span> <span class="ident">timestretcher</span> <span class="op">=</span> <span class="ident">TimeStretcher</span>::<span class="ident">new</span>(
+            <span class="ident">MICROSECONDS_PER_MINUTE</span> <span class="op">/</span> <span class="ident">DEFAULT_BEATS_PER_MINUTE</span>,
+            <span class="ident">ticks_per_beat</span>,
+        );
+        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
+            <span class="ident">ticks_per_beat</span>,
+            <span class="ident">event_iter</span>,
+            <span class="ident">previous_time_in_microseconds</span>: <span class="number">0</span>,
+            <span class="ident">timestretcher</span>,
+        })
     }
 }
 
-<span class="attribute">#[<span class="ident">test</span>]</span>
-<span class="kw">fn</span> <span class="ident">ticks_per_microsecond_works</span>() {
-    <span class="comment">// 1 beat per second</span>
-    <span class="kw">let</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span> {
-        <span class="ident">events</span>: <span class="kw-2">&amp;</span>[],
-        <span class="ident">event_index</span>: <span class="number">0</span>,
-        <span class="ident">current_tempo_in_micro_seconds_per_beat</span>: <span class="number">1000_000.0</span>,
-        <span class="ident">ticks_per_beat</span>: <span class="number">100.0</span> <span class="op">*</span> <span class="number">1000_000.0</span>,
-    };
-    <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">mr</span>.<span class="ident">ticks_per_microsecond</span>(), <span class="number">100.0</span>);
-}
-
-<span class="attribute">#[<span class="ident">test</span>]</span>
-<span class="kw">fn</span> <span class="ident">new_works</span>() {
-    <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> <span class="ident">Header</span> {
-        <span class="ident">format</span>: <span class="ident">Format</span>::<span class="ident">SingleTrack</span>,
-        <span class="ident">timing</span>: <span class="ident">Timing</span>::<span class="ident">Metrical</span>(<span class="ident">u15</span>::<span class="ident">from</span>(<span class="number">12345</span>)),
-    };
-    <span class="kw">let</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span>::<span class="ident">new</span>(<span class="ident">header</span>, <span class="kw-2">&amp;</span>[]);
-    <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">mr</span>.<span class="ident">event_index</span>, <span class="number">0</span>);
-    <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">mr</span>.<span class="ident">ticks_per_beat</span>, <span class="number">12345.0</span>);
-    <span class="comment">// 120 beats per minute</span>
-    <span class="comment">// = 120 beats per 60 seconds</span>
-    <span class="comment">// = 120 beats per 60 000 000 microseconds</span>
-    <span class="comment">// so the tempo is</span>
-    <span class="comment">//   60 000 000 / 120 beats per microsecond</span>
-    <span class="comment">//   = 10 000 000 / 20 beats per microsecond</span>
-    <span class="comment">//   =    500 000 beats per microsecond</span>
-    <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">mr</span>.<span class="ident">current_tempo_in_micro_seconds_per_beat</span>, <span class="number">500000.0</span>);
-}
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;e</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;e</span>, <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">MidlyMidiReader</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span><span class="op">&gt;</span> {
     <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">DeltaEvent</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>;
 
     <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">microseconds_since_previous_event</span> <span class="op">=</span> <span class="number">0.0</span>;
-        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">event</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">events</span>.<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">event_index</span>) {
-            <span class="self">self</span>.<span class="ident">event_index</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
-            <span class="ident">microseconds_since_previous_event</span> <span class="op">+</span><span class="op">=</span>
-                (<span class="ident">event</span>.<span class="ident">delta</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">f64</span>) <span class="op">/</span> <span class="self">self</span>.<span class="ident">ticks_per_microsecond</span>();
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">new_tempo_in_microseconds_per_beat</span>)) <span class="op">=</span>
-                <span class="ident">event</span>.<span class="ident">kind</span>
-            {
-                <span class="self">self</span>.<span class="ident">current_tempo_in_micro_seconds_per_beat</span> <span class="op">=</span>
-                    <span class="ident">new_tempo_in_microseconds_per_beat</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">f64</span>;
-            }
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> { .. } <span class="op">=</span> <span class="ident">event</span>.<span class="ident">kind</span> {
-                <span class="kw">let</span> <span class="ident">raw_midi_event</span> <span class="op">=</span> <span class="ident">RawMidiEvent</span>::<span class="ident">try_from</span>(<span class="ident">event</span>.<span class="ident">kind</span>).<span class="ident">ok</span>()<span class="question-mark">?</span>;
-                <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">DeltaEvent</span> {
-                    <span class="ident">microseconds_since_previous_event</span>: <span class="ident">microseconds_since_previous_event</span> <span class="kw">as</span> <span class="ident">u64</span>,
-                    <span class="ident">event</span>: <span class="ident">raw_midi_event</span>,
-                });
+        <span class="kw">loop</span> {
+            <span class="kw">let</span> (<span class="ident">t</span>, <span class="ident">event</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">event_iter</span>.<span class="ident">next</span>()<span class="question-mark">?</span>;
+            <span class="kw">let</span> <span class="ident">new_factor</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Meta</span>(<span class="ident">MetaMessage</span>::<span class="ident">Tempo</span>(<span class="ident">tempo</span>)) <span class="op">=</span> <span class="ident">event</span> {
+                <span class="prelude-val">Some</span>((<span class="ident">tempo</span>.<span class="ident">as_int</span>() <span class="kw">as</span> <span class="ident">u64</span>, <span class="self">self</span>.<span class="ident">ticks_per_beat</span>))
+            } <span class="kw">else</span> {
+                <span class="prelude-val">None</span>
+            };
+            <span class="kw">let</span> <span class="ident">time</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">timestretcher</span>.<span class="ident">stretch</span>(<span class="ident">t</span>, <span class="ident">new_factor</span>);
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">TrackEventKind</span>::<span class="ident">Midi</span> { .. } <span class="op">=</span> <span class="ident">event</span> {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">RawMidiEvent</span>::<span class="ident">try_from</span>(<span class="ident">event</span>) {
+                    <span class="kw">let</span> <span class="ident">difference</span> <span class="op">=</span> <span class="ident">time</span> <span class="op">-</span> <span class="self">self</span>.<span class="ident">previous_time_in_microseconds</span>;
+                    <span class="self">self</span>.<span class="ident">previous_time_in_microseconds</span> <span class="op">=</span> <span class="ident">time</span>;
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">DeltaEvent</span> {
+                        <span class="ident">microseconds_since_previous_event</span>: <span class="ident">difference</span>,
+                        <span class="ident">event</span>: <span class="ident">e</span>,
+                    });
+                }
             }
         }
-        <span class="kw">return</span> <span class="prelude-val">None</span>;
     }
 }
 
 <span class="attribute">#[<span class="ident">test</span>]</span>
-<span class="kw">fn</span> <span class="ident">iterator_correctly_returns_one_event</span>() {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">iterator_correctly_returns_one_event</span>() {
     <span class="comment">// 120 beats per minute</span>
     <span class="comment">// = 120 beats per 60 seconds</span>
     <span class="comment">// = 120 beats per 60 000 000 microseconds</span>
@@ -351,18 +349,20 @@
             },
         },
     ];
+    <span class="kw">let</span> <span class="ident">tracks</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">events</span>];
     <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> <span class="ident">Header</span> {
         <span class="ident">timing</span>: <span class="ident">Timing</span>::<span class="ident">Metrical</span>(<span class="ident">u15</span>::<span class="ident">from</span>(<span class="ident">ticks_per_beat</span>)),
         <span class="ident">format</span>: <span class="ident">Format</span>::<span class="ident">SingleTrack</span>,
     };
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span>::<span class="ident">new</span>(<span class="ident">header</span>, <span class="kw-2">&amp;</span><span class="ident">events</span>);
+    <span class="kw">let</span> <span class="ident">smf</span> <span class="op">=</span> <span class="ident">Smf</span> { <span class="ident">header</span>, <span class="ident">tracks</span> };
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">smf</span>).<span class="ident">expect</span>(<span class="string">&quot;No errors should occur now.&quot;</span>);
     <span class="kw">let</span> <span class="ident">observed</span> <span class="op">=</span> <span class="ident">mr</span>.<span class="ident">next</span>().<span class="ident">expect</span>(<span class="string">&quot;MidlyMidiReader should return one event.&quot;</span>);
     <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">observed</span>.<span class="ident">microseconds_since_previous_event</span>, <span class="number">1000000</span>);
     <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">mr</span>.<span class="ident">next</span>(), <span class="prelude-val">None</span>);
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">fn</span> <span class="ident">iterator_correctly_returns_two_events</span>() {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">iterator_correctly_returns_two_events</span>() {
     <span class="comment">// 120 beats per minute</span>
     <span class="comment">// = 120 beats per 60 seconds</span>
     <span class="comment">// = 120 beats per 60 000 000 microseconds</span>
@@ -407,7 +407,9 @@
         <span class="ident">timing</span>: <span class="ident">Timing</span>::<span class="ident">Metrical</span>(<span class="ident">u15</span>::<span class="ident">from</span>(<span class="ident">ticks_per_beat</span>)),
         <span class="ident">format</span>: <span class="ident">Format</span>::<span class="ident">SingleTrack</span>,
     };
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span>::<span class="ident">new</span>(<span class="ident">header</span>, <span class="kw-2">&amp;</span><span class="ident">events</span>);
+    <span class="kw">let</span> <span class="ident">tracks</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">events</span>];
+    <span class="kw">let</span> <span class="ident">smf</span> <span class="op">=</span> <span class="ident">Smf</span> { <span class="ident">header</span>, <span class="ident">tracks</span> };
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mr</span> <span class="op">=</span> <span class="ident">MidlyMidiReader</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">smf</span>).<span class="ident">expect</span>(<span class="string">&quot;No errors should occur now&quot;</span>);
     <span class="kw">let</span> <span class="ident">observed</span> <span class="op">=</span> <span class="ident">mr</span>.<span class="ident">next</span>().<span class="ident">expect</span>(<span class="string">&quot;MidlyMidiReader should return one event.&quot;</span>);
     <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">observed</span>.<span class="ident">microseconds_since_previous_event</span>, <span class="number">1000000</span>);
     <span class="kw">let</span> <span class="ident">observed</span> <span class="op">=</span> <span class="ident">mr</span>

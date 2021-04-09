@@ -1986,7 +1986,7 @@
 
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">interleave_works</span>() {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="ident">new</span>(
+    <span class="kw">let</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="ident">new</span>(
         <span class="macro">vec</span><span class="macro">!</span>[
             <span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">11</span>, <span class="number">12</span>], [<span class="number">21</span>, <span class="number">22</span>]],
             <span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">13</span>, <span class="number">14</span>], [<span class="number">23</span>, <span class="number">24</span>]],
@@ -2007,7 +2007,7 @@
     <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">input</span>.<span class="ident">as_slices</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_as_slices</span> <span class="op">=</span> <span class="ident">provided_output</span>.<span class="ident">as_mut_slices</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">AudioBufferInOut</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">input</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">output_as_slices</span>, <span class="number">4</span>);
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dummy_event_handler</span> <span class="op">=</span> <span class="ident">DummyEventHandler</span>;
+    <span class="kw">let</span> <span class="ident">dummy_event_handler</span> <span class="op">=</span> <span class="ident">DummyEventHandler</span>;
     <span class="ident">buffer</span>.<span class="ident">interleave</span>(
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">input_storage</span>,
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">output_storage</span>,
@@ -2016,7 +2016,7 @@
         <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">de</span>), <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">buf</span><span class="op">|</span> {
             <span class="ident">tp</span>.<span class="ident">render_buffer</span>(<span class="ident">buf</span>, <span class="ident">de</span>);
         },
-        <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">de</span>), <span class="ident">e</span><span class="op">|</span> {
+        <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw">_</span>), <span class="ident">e</span><span class="op">|</span> {
             <span class="ident">tp</span>.<span class="ident">handle_event</span>(<span class="ident">e</span>);
         },
     );
@@ -2026,7 +2026,7 @@
 
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">interleave_works_with_empty_event_iterator</span>() {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="op">&lt;</span><span class="kw">_</span>, (), <span class="kw">_</span><span class="op">&gt;</span>::<span class="ident">new</span>(
+    <span class="kw">let</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="op">&lt;</span><span class="kw">_</span>, (), <span class="kw">_</span><span class="op">&gt;</span>::<span class="ident">new</span>(
         <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">11</span>, <span class="number">12</span>, <span class="number">13</span>, <span class="number">14</span>], [<span class="number">21</span>, <span class="number">22</span>, <span class="number">23</span>, <span class="number">24</span>]]],
         <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">110</span>, <span class="number">120</span>, <span class="number">130</span>, <span class="number">140</span>], [<span class="number">210</span>, <span class="number">220</span>, <span class="number">230</span>, <span class="number">240</span>]]],
         <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">vec</span><span class="macro">!</span>[]],
@@ -2037,7 +2037,7 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">provided_output</span> <span class="op">=</span> <span class="macro">audio_chunk</span><span class="macro">!</span>[[<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>]];
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input_storage</span> <span class="op">=</span> <span class="ident">VecStorage</span>::<span class="ident">with_capacity</span>(<span class="number">2</span>);
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_storage</span> <span class="op">=</span> <span class="ident">VecStorage</span>::<span class="ident">with_capacity</span>(<span class="number">2</span>);
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dummy_event_handler</span> <span class="op">=</span> <span class="ident">DummyEventHandler</span>;
+    <span class="kw">let</span> <span class="ident">dummy_event_handler</span> <span class="op">=</span> <span class="ident">DummyEventHandler</span>;
     <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">input</span>.<span class="ident">as_slices</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_as_slices</span> <span class="op">=</span> <span class="ident">provided_output</span>.<span class="ident">as_mut_slices</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">events</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
@@ -2050,7 +2050,7 @@
         <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">de</span>), <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">buf</span><span class="op">|</span> {
             <span class="ident">tp</span>.<span class="ident">render_buffer</span>(<span class="ident">buf</span>, <span class="ident">de</span>);
         },
-        <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">de</span>), <span class="ident">e</span><span class="op">|</span> {
+        <span class="op">|</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">tp</span>, <span class="kw">_</span>), <span class="ident">e</span><span class="op">|</span> {
             <span class="ident">tp</span>.<span class="ident">handle_event</span>(<span class="ident">e</span>);
         },
     );
