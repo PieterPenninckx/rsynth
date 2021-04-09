@@ -20,7 +20,7 @@ backend-combined-all = ["backend-combined-hound", "backend-combined-wav", "backe
 backend-combined-hound = ["hound", "backend-combined", "dasp_sample"]
 backend-combined-wav = ["wav", "backend-combined", "dasp_sample"]
 backend-combined-midly = ["midly", "backend-combined"]
-backend-combined = []
+backend-combined = ["itertools"]
 
 [dependencies]
 num-traits = "0.2"
@@ -32,6 +32,8 @@ dasp_sample = {version = "0.11.0", optional = true}
 wav = {version = "0.4.0", optional = true}
 vecstorage = "0.1.0"
 midi-consts = "0.1.0"
+gcd = "2.0.1"
+itertools = {version = "0.10.0", optional = true}
 
 [dependencies.midly]
 version = "0.5.0"

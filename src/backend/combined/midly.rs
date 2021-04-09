@@ -1,115 +1,112 @@
 //! Read midi files.
 use super::MICROSECONDS_PER_SECOND;
-use crate::event::{DeltaEvent, RawMidiEvent};
+use crate::event::{DeltaEvent, RawMidiEvent, TimeStretcher};
 
 /// Re-exports from the `midly` crate.
 pub mod midly {
     pub use midly::*;
 }
 
-use self::midly::Header;
 use self::midly::Timing;
-use self::midly::TrackEvent;
 #[cfg(test)]
 use self::midly::{
     num::{u15, u24, u28, u4, u7},
-    Format, MidiMessage,
+    Format, Header, MidiMessage, Track, TrackEvent,
 };
 use self::midly::{MetaMessage, TrackEventKind};
+use crate::backend::combined::midly::midly::Smf;
+use itertools::Itertools;
 use std::convert::TryFrom;
+use std::num::NonZeroU64;
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
 const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
 /// Read from midi events as parsed by the `midly` crate.
-pub struct MidlyMidiReader<'v, 'a> {
-    events: &'v [TrackEvent<'a>],
-    event_index: usize,
-    current_tempo_in_micro_seconds_per_beat: f64,
-    ticks_per_beat: f64,
+pub struct MidlyMidiReader<'a, 'b> {
+    event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b>,
+    timestretcher: TimeStretcher,
+    previous_time_in_microseconds: u64,
+    ticks_per_beat: NonZeroU64,
 }
 
-impl<'v, 'a> MidlyMidiReader<'v, 'a> {
-    fn ticks_per_microsecond(&self) -> f64 {
-        self.ticks_per_beat / self.current_tempo_in_micro_seconds_per_beat
+impl<'a, 'b> MidlyMidiReader<'a, 'b>
+where
+    'b: 'a,
+{
+    /// Create a new `MidlyMidiReader` that will read all tracks together (interleaved).
+    pub fn new(smf: &'b Smf<'a>) -> Result<Self, ()> {
+        let track_mask: Vec<_> = smf.tracks.iter().map(|_| true).collect();
+        Self::new_with_track_mask(smf, &track_mask)
     }
 
-    /// Create a new `MidlyMidiReader`.
-    pub fn new(header: Header, events: &'v [TrackEvent<'a>]) -> Self {
-        Self {
-            events,
-            event_index: 0,
-            current_tempo_in_micro_seconds_per_beat: (MICROSECONDS_PER_MINUTE as f64
-                / DEFAULT_BEATS_PER_MINUTE as f64),
-            ticks_per_beat: match header.timing {
-                Timing::Metrical(t) => t.as_int() as f64,
-                Timing::Timecode(_, _) => unimplemented!(),
-            },
+    /// Create a new `MidlyMidiReader` that will read only the masked tracks (interleaved).
+    ///
+    /// # Parameters
+    /// `smf`: the [`Smf`] for reading the midi file
+    /// `track_mask`: a slice of booleans, only the tracks that correspond to `true` will be read.
+    pub fn new_with_track_mask(smf: &'b Smf<'a>, track_mask: &[bool]) -> Result<Self, ()> {
+        let mut event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b> =
+            Box::new(Vec::new().into_iter());
+        for (must_include, track) in track_mask.iter().zip(smf.tracks.iter()) {
+            if *must_include {
+                let mut offset = 0;
+                let iter = track.iter().map(move |e| {
+                    offset += e.delta.as_int() as u64;
+                    (offset, e.kind)
+                });
+                event_iter = Box::new(event_iter.merge_by(iter, |(t1, _), (t2, _)| t1 < t2));
+            }
         }
+        let ticks_per_beat = match smf.header.timing {
+            Timing::Metrical(t) => NonZeroU64::new(t.as_int() as u64).ok_or(())?,
+            Timing::Timecode(_, _) => return Err(()),
+        };
+        //                   ticks * microseconds_per_beat
+        // microseconds = -----------------------------------
+        //                   ticks_per_beat
+        let timestretcher = TimeStretcher::new(
+            MICROSECONDS_PER_MINUTE / DEFAULT_BEATS_PER_MINUTE,
+            ticks_per_beat,
+        );
+        Ok(Self {
+            ticks_per_beat,
+            event_iter,
+            previous_time_in_microseconds: 0,
+            timestretcher,
+        })
     }
 }
 
-#[test]
-fn ticks_per_microsecond_works() {
-    // 1 beat per second
-    let mr = MidlyMidiReader {
-        events: &[],
-        event_index: 0,
-        current_tempo_in_micro_seconds_per_beat: 1000_000.0,
-        ticks_per_beat: 100.0 * 1000_000.0,
-    };
-    assert_eq!(mr.ticks_per_microsecond(), 100.0);
-}
-
-#[test]
-fn new_works() {
-    let header = Header {
-        format: Format::SingleTrack,
-        timing: Timing::Metrical(u15::from(12345)),
-    };
-    let mr = MidlyMidiReader::new(header, &[]);
-    assert_eq!(mr.event_index, 0);
-    assert_eq!(mr.ticks_per_beat, 12345.0);
-    // 120 beats per minute
-    // = 120 beats per 60 seconds
-    // = 120 beats per 60 000 000 microseconds
-    // so the tempo is
-    //   60 000 000 / 120 beats per microsecond
-    //   = 10 000 000 / 20 beats per microsecond
-    //   =    500 000 beats per microsecond
-    assert_eq!(mr.current_tempo_in_micro_seconds_per_beat, 500000.0);
-}
-
-impl<'e, 'a> Iterator for MidlyMidiReader<'e, 'a> {
+impl<'a, 'b> Iterator for MidlyMidiReader<'a, 'b> {
     type Item = DeltaEvent<RawMidiEvent>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut microseconds_since_previous_event = 0.0;
-        while let Some(event) = self.events.get(self.event_index) {
-            self.event_index += 1;
-            microseconds_since_previous_event +=
-                (event.delta.as_int() as f64) / self.ticks_per_microsecond();
-            if let TrackEventKind::Meta(MetaMessage::Tempo(new_tempo_in_microseconds_per_beat)) =
-                event.kind
-            {
-                self.current_tempo_in_micro_seconds_per_beat =
-                    new_tempo_in_microseconds_per_beat.as_int() as f64;
-            }
-            if let TrackEventKind::Midi { .. } = event.kind {
-                let raw_midi_event = RawMidiEvent::try_from(event.kind).ok()?;
-                return Some(DeltaEvent {
-                    microseconds_since_previous_event: microseconds_since_previous_event as u64,
-                    event: raw_midi_event,
-                });
+        loop {
+            let (t, event) = self.event_iter.next()?;
+            let new_factor = if let TrackEventKind::Meta(MetaMessage::Tempo(tempo)) = event {
+                Some((tempo.as_int() as u64, self.ticks_per_beat))
+            } else {
+                None
+            };
+            let time = self.timestretcher.stretch(t, new_factor);
+            if let TrackEventKind::Midi { .. } = event {
+                if let Ok(e) = RawMidiEvent::try_from(event) {
+                    let difference = time - self.previous_time_in_microseconds;
+                    self.previous_time_in_microseconds = time;
+                    return Some(DeltaEvent {
+                        microseconds_since_previous_event: difference,
+                        event: e,
+                    });
+                }
             }
         }
-        return None;
     }
 }
 
 #[test]
-fn iterator_correctly_returns_one_event() {
+pub fn iterator_correctly_returns_one_event() {
     // 120 beats per minute
     // = 120 beats per 60 seconds
     // = 120 beats per 60 000 000 microseconds
@@ -140,18 +137,20 @@ fn iterator_correctly_returns_one_event() {
             },
         },
     ];
+    let tracks = vec![events];
     let header = Header {
         timing: Timing::Metrical(u15::from(ticks_per_beat)),
         format: Format::SingleTrack,
     };
-    let mut mr = MidlyMidiReader::new(header, &events);
+    let smf = Smf { header, tracks };
+    let mut mr = MidlyMidiReader::new(&smf).expect("No errors should occur now.");
     let observed = mr.next().expect("MidlyMidiReader should return one event.");
     assert_eq!(observed.microseconds_since_previous_event, 1000000);
     assert_eq!(mr.next(), None);
 }
 
 #[cfg(test)]
-fn iterator_correctly_returns_two_events() {
+pub fn iterator_correctly_returns_two_events() {
     // 120 beats per minute
     // = 120 beats per 60 seconds
     // = 120 beats per 60 000 000 microseconds
@@ -196,7 +195,9 @@ fn iterator_correctly_returns_two_events() {
         timing: Timing::Metrical(u15::from(ticks_per_beat)),
         format: Format::SingleTrack,
     };
-    let mut mr = MidlyMidiReader::new(header, &events);
+    let tracks = vec![events];
+    let smf = Smf { header, tracks };
+    let mut mr = MidlyMidiReader::new(&smf).expect("No errors should occur now");
     let observed = mr.next().expect("MidlyMidiReader should return one event.");
     assert_eq!(observed.microseconds_since_previous_event, 1000000);
     let observed = mr
