@@ -24,8 +24,10 @@ jobs:
       run: rustup component add rustfmt
     - name: Check formatting
       run: cargo fmt --all -- --check
-    - name: Check jack
-      run: cargo check --tests --examples --features backend-jack
+    - name: Check jack 0.6.2
+      run: cargo update -p jack --precise 0.6.2; cargo check --tests --examples --features backend-jack
+    - name: Check jack 0.7.0
+      run: cargo update -p jack --precise 0.7.0; cargo check --tests --examples --features backend-jack
     - name: Check vst
       run: cargo check --tests --examples --features backend-vst
     - name: Check hound
