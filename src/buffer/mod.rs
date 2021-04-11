@@ -38,6 +38,8 @@ use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use num_traits::Zero;
+#[cfg(feature = "rsor_0_1")]
+use rsor::Slice;
 use std::mem;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
@@ -129,6 +131,18 @@ where
         self.channels
     }
 
+    fn index_frames_inner<'s, 'v, R>(&'s self, range: R, vec: &'v mut Vec<&'s [S]>)
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        let mut remaining_chunk = &*self.channels;
+        vec.clear();
+        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
+            vec.push(first_channel.index(range.clone()));
+            remaining_chunk = remaining_channels;
+        }
+    }
+
     /// Get an `AudioBufferIn` with all channels and the given range of frames.
     ///
     /// The vector `vec` will be used to store the channels of the result.
@@ -172,16 +186,28 @@ where
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
         let length = number_of_frames_in_range(self.length, range.clone());
-        let mut remaining_chunk = &*self.channels;
-        vec.clear();
-        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first() {
-            vec.push(first_channel.index(range.clone()));
-            remaining_chunk = remaining_channels;
-        }
+        self.index_frames_inner(range, vec);
         AudioBufferIn {
             channels: vec.as_slice(),
             length,
         }
+    }
+
+    #[cfg(feature = "rsor_0_1")]
+    pub fn index_frames_from_slice<'s, 'v, R>(
+        &'s self,
+        range: R,
+        slice: &'v mut Slice<[S]>,
+    ) -> AudioBufferIn<'v, 's, S>
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        let channels = slice.fill(|mut v: Vec<&[S]>| {
+            self.index_frames(range, &mut v);
+            v
+        });
+        AudioBufferIn { channels, length }
     }
 
     /// Get the channel with the given index.
