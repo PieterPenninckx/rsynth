@@ -214,6 +214,11 @@ pub mod vecstorage {
     pub use vecstorage::VecStorage;
 }
 
+#[cfg(feature = "rsor_0_1")]
+pub mod rsor {
+    pub use rsor::Slice;
+}
+
 /// Define the maximum number of audio inputs and the maximum number of audio outputs.
 ///
 /// Backends that require the plugin to implement this trait ensure that when calling the

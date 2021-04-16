@@ -34,12 +34,12 @@
 use crate::audio_chunk;
 #[cfg(test)]
 use crate::event::EventHandler;
+#[cfg(feature = "rsor_0_1")]
+use crate::rsor::Slice;
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use num_traits::Zero;
-#[cfg(feature = "rsor_0_1")]
-use rsor::Slice;
 use std::mem;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
@@ -160,6 +160,9 @@ where
     /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
     /// different lifetimes.
     ///
+    /// # Remark
+    /// Alternatively, you can use the [`index_frames_from_slice`] method.
+    ///
     /// # Example
     /// ```
     /// use rsynth::buffer::AudioBufferIn;
@@ -193,6 +196,31 @@ where
         }
     }
 
+    /// Get an `AudioBufferIn` with all channels and the given range of frames.
+    ///
+    /// The `Slice` will be used to store the channels of the result.
+    ///
+    /// # Usage in a real-time thread
+    /// This method will append `number_of_channels` elements to the given `Slice`.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given `Slice`.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::rsor::Slice;
+    /// use rsynth::buffer::AudioBufferIn;
+    /// let mut slice = Slice::with_capacity(2);
+    /// let channel1 = vec![11, 12, 13, 14];
+    /// let channel2 = vec![21, 22, 23, 24];
+    /// let chunk = [channel1.as_slice(), channel2.as_slice()];
+    /// let chunk = AudioBufferIn::new(&chunk, 4);
+    /// let parts = chunk.index_frames_from_slice(1..2, &mut slice);
+    /// assert_eq!(parts.number_of_frames(), 1);
+    /// assert_eq!(parts.number_of_channels(), 2);
+    /// let channels = parts.channels();
+    /// assert_eq!(channels[0], &[12]);
+    /// assert_eq!(channels[1], &[22]);
+    /// ```
     #[cfg(feature = "rsor_0_1")]
     pub fn index_frames_from_slice<'s, 'v, R>(
         &'s self,
@@ -264,6 +292,48 @@ fn buffer_in_index_frames_works() {
     }
     {
         let sub_part = chunk.index_frames(1..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[12]);
+        assert_eq!(channels[1], &[22]);
+    }
+}
+
+#[cfg(feature = "rsor_0_1")]
+#[test]
+fn buffer_in_index_frames_from_slice_works() {
+    let mut slice = Slice::with_capacity(2);
+    let channel1 = vec![11, 12, 13, 14];
+    let channel2 = vec![21, 22, 23, 24];
+    let chunk = [channel1.as_slice(), channel2.as_slice()];
+    let chunk = AudioBufferIn::new(&chunk, 4);
+    {
+        let sub_part = chunk.index_frames_from_slice(0..0, &mut slice);
+        assert_eq!(sub_part.number_of_frames(), 0);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert!(channels[0].is_empty());
+        assert!(channels[1].is_empty());
+    }
+    {
+        let sub_part = chunk.index_frames_from_slice(0..1, &mut slice);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[11]);
+        assert_eq!(channels[1], &[21]);
+    }
+    {
+        let sub_part = chunk.index_frames_from_slice(0..2, &mut slice);
+        assert_eq!(sub_part.number_of_frames(), 2);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        let channels = sub_part.channels();
+        assert_eq!(channels[0], &[11, 12]);
+        assert_eq!(channels[1], &[21, 22]);
+    }
+    {
+        let sub_part = chunk.index_frames_from_slice(1..2, &mut slice);
         assert_eq!(sub_part.number_of_frames(), 1);
         assert_eq!(sub_part.number_of_channels(), 2);
         let channels = sub_part.channels();
@@ -367,7 +437,22 @@ where
         )
     }
 
-    /// Get an `AdioBufferOut` with all channels and the given range of frames.
+    fn index_frames_inner<'a, 's, 'v, R>(
+        mut remaining_chunk: &'a mut [&'s mut [S]],
+        range: R,
+        vec: &'v mut Vec<&'a mut [S]>,
+    ) where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        vec.clear();
+        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first_mut() {
+            vec.push(first_channel.index_mut(range.clone()));
+            remaining_chunk = remaining_channels;
+        }
+    }
+
+    /// Get an `AdioBufferOut` with all channels and the given range of frames,
+    /// using a vector to store the channels of the result.
     ///
     /// The vector `vec` will be used to store the channels of the result.
     ///
@@ -383,6 +468,10 @@ where
     /// # Suggestion
     /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
     /// different lifetimes.
+    ///
+    /// # Remark
+    ///
+    /// See also the method [`index_frames_from_slice`].
     ///
     /// # Example
     /// ```
@@ -411,16 +500,56 @@ where
         R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
     {
         let length = number_of_frames_in_range(self.length, range.clone());
-        let mut remaining_chunk = &mut *self.channels;
-        vec.clear();
-        while let Some((first_channel, remaining_channels)) = remaining_chunk.split_first_mut() {
-            vec.push(first_channel.index_mut(range.clone()));
-            remaining_chunk = remaining_channels;
-        }
+        Self::index_frames_inner(&mut *self.channels, range, vec);
         AudioBufferOut {
             channels: vec.as_mut_slice(),
             length,
         }
+    }
+
+    #[cfg(feature = "rsor_0_1")]
+    /// Get an `AdioBufferOut` with all channels and the given range of frames, using a [`Slice`]
+    /// to store the channels of the result.
+    ///
+    /// The parameter `slice` will be used to store the channels of the result.
+    ///
+    /// # Usage in a real-time threat
+    /// This method will append `number_of_channels` elements to the given slice.
+    /// This will cause memory to be allocated if this exceeds the capacity of the
+    /// given slice.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::buffer::AudioBufferOut;
+    /// use rsynth::rsor::Slice;
+    ///
+    /// let mut channel1 = vec![11, 12, 13, 14];
+    /// let mut channel2 = vec![21, 22, 23, 24];
+    /// let mut channels = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    /// let number_of_channels = channels.len();
+    /// let mut buffer = AudioBufferOut::new(&mut channels, 4);
+    /// let mut slice = Slice::with_capacity(number_of_channels);
+    /// let mut sub_part = buffer.index_frames_from_slice(1..2, &mut slice);
+    /// assert_eq!(sub_part.number_of_frames(), 1);
+    /// assert_eq!(sub_part.number_of_channels(), number_of_channels);
+    /// assert_eq!(sub_part.index_channel(0), &[12]);
+    /// assert_eq!(sub_part.index_channel(1), &[22]);
+    /// ```
+    pub fn index_frames_from_slice<'s, 'v, R>(
+        &'s mut self,
+        range: R,
+        slice: &'v mut Slice<[S]>,
+    ) -> AudioBufferOut<'v, 's, S>
+    where
+        R: SliceIndex<[S], Output = [S]> + RangeBounds<usize> + Clone,
+    {
+        let length = number_of_frames_in_range(self.length, range.clone());
+        let channels = &mut *self.channels;
+        let channels = slice.fill_mut(move |mut v: Vec<&mut [S]>| {
+            Self::index_frames_inner(channels, range, &mut v);
+            v
+        });
+        AudioBufferOut { channels, length }
     }
 
     /// Get the channel with the given index.
@@ -525,6 +654,47 @@ fn buffer_out_index_frames_works() {
     {
         let mut vec = Vec::with_capacity(2);
         let mut sub_part = chunk.index_frames(1..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[12]);
+        assert_eq!(sub_part.index_channel(1), &[22]);
+    }
+}
+
+#[cfg(feature = "rsor_0_1")]
+#[test]
+fn buffer_out_index_frames_from_slice_works() {
+    let mut channel1 = vec![11, 12, 13, 14];
+    let mut channel2 = vec![21, 22, 23, 24];
+    let mut chunk = [channel1.as_mut_slice(), channel2.as_mut_slice()];
+    let mut chunk = AudioBufferOut::new(&mut chunk, 4);
+    {
+        let mut slice = Slice::with_capacity(2);
+        let mut sub_part = chunk.index_frames_from_slice(0..0, &mut slice);
+        assert_eq!(sub_part.number_of_frames(), 0);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert!(sub_part.index_channel(0).is_empty());
+        assert!(sub_part.index_channel(1).is_empty());
+    }
+    {
+        let mut slice = Slice::with_capacity(2);
+        let mut sub_part = chunk.index_frames_from_slice(0..1, &mut slice);
+        assert_eq!(sub_part.number_of_frames(), 1);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[11]);
+        assert_eq!(sub_part.index_channel(1), &[21]);
+    }
+    {
+        let mut vec = Slice::with_capacity(2);
+        let mut sub_part = chunk.index_frames_from_slice(0..2, &mut vec);
+        assert_eq!(sub_part.number_of_frames(), 2);
+        assert_eq!(sub_part.number_of_channels(), 2);
+        assert_eq!(sub_part.index_channel(0), &[11, 12]);
+        assert_eq!(sub_part.index_channel(1), &[21, 22]);
+    }
+    {
+        let mut slice = Slice::with_capacity(2);
+        let mut sub_part = chunk.index_frames_from_slice(1..2, &mut slice);
         assert_eq!(sub_part.number_of_frames(), 1);
         assert_eq!(sub_part.number_of_channels(), 2);
         assert_eq!(sub_part.index_channel(0), &[12]);

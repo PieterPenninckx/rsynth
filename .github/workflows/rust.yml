@@ -24,6 +24,8 @@ jobs:
       run: rustup component add rustfmt
     - name: Check formatting
       run: cargo fmt --all -- --check
+    - name: Check no default features
+      run: cargo check --tests --examples --no-default-features
     - name: Check jack 0.6.2
       run: cargo update -p jack --precise 0.6.2; cargo check --tests --examples --features backend-jack
     - name: Check jack 0.7.0
