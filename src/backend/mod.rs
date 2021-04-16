@@ -43,7 +43,7 @@ pub trait HostInterface {
     ///
     /// The following example illustrates how `output_initialized()` can be used in
     /// combination with the `set` method on `AudioBufferOut` to initialize the output
-    /// buffers to zero in an implementation of the [`ContextualAudioRenderer`] trait.
+    /// buffers to zero in an implementation of the [`crate::ContextualAudioRenderer`] trait.
     ///
     /// ```
     /// use rsynth::ContextualAudioRenderer;

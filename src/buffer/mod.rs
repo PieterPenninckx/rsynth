@@ -92,7 +92,7 @@ fn number_of_frames_in_range_works_open_starting_range() {
 /// Audio input buffer.
 ///
 /// It is guaranteed that all channels have the same number of frames.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AudioBufferIn<'channels, 'samples, S>
 where
     S: 'static + Copy,
@@ -161,7 +161,8 @@ where
     /// different lifetimes.
     ///
     /// # Remark
-    /// Alternatively, you can use the [`index_frames_from_slice`] method.
+    /// If you enable the `rsor_0_1` Cargo feature,
+    /// you can also use the [`index_frames_from_slice`] method.
     ///
     /// # Example
     /// ```
@@ -180,6 +181,8 @@ where
     /// ```
     ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    /// [`rsor`]: https://crates.io/crates/rsor
+    /// [`index_frames_from_slice`]: ./struct.AudioBufferIn.html#method.index_frames_from_slice
     pub fn index_frames<'s, 'v, R>(
         &'s self,
         range: R,
@@ -345,6 +348,7 @@ fn buffer_in_index_frames_from_slice_works() {
 /// An audio output buffer.
 ///
 /// It is guaranteed that all channels have the same number of frames.
+#[derive(Debug)]
 pub struct AudioBufferOut<'channels, 'out_samples, S>
 where
     S: 'static + Copy,
@@ -470,8 +474,8 @@ where
     /// different lifetimes.
     ///
     /// # Remark
-    ///
-    /// See also the method [`index_frames_from_slice`].
+    /// If you enable the `rsor_0_1` Cargo feature,
+    /// you can also use the [`index_frames_from_slice`] method.    
     ///
     /// # Example
     /// ```
@@ -491,6 +495,7 @@ where
     /// ```
     ///
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    /// [`index_frames_from_slice`]: ./struct.AudioBufferOut.html#method.index_frames_from_slice
     pub fn index_frames<'s, 'v, R>(
         &'s mut self,
         range: R,
@@ -705,6 +710,7 @@ fn buffer_out_index_frames_from_slice_works() {
 /// A buffer holding both input and output audio.
 ///
 /// All inputs and all outputs are guaranteed to have the same number of frames.
+#[derive(Debug)]
 pub struct AudioBufferInOut<'in_channels, 'in_samples, 'out_channels, 'out_samples, S>
 where
     S: 'static + Copy,
@@ -837,6 +843,10 @@ where
     /// You can use the [`vecstorage`] crate to re-use the memory of a vector for
     /// different lifetimes.
     ///
+    /// # Remark
+    /// If you enable the `rsor_0_1` Cargo feature,
+    /// you can also use the [`index_frames_from_slice`] method.
+    ///
     /// # Example
     /// ```
     /// use rsynth::buffer::AudioBufferInOut;
@@ -860,6 +870,7 @@ where
     /// assert_eq!(sub_part.index_output_channel(0), &[120]);
     /// ```
     ///
+    /// [`index_frames_from_slice`]: ./struct.AudioBufferInOut.html#method.index_frames_from_slice
     /// [`vecstorage`]: https://crates.io/crates/vecstorage
     pub fn index_frames<'s, 'in_vec, 'out_vec, R>(
         &'s mut self,
@@ -880,6 +891,9 @@ where
     #[cfg(feature = "rsor_0_1")]
     /// Get an `AudioBufferInOut` with all channels and with the given range of frames,
     /// using `rsor`'s `Slice`s to store the output.
+    ///
+    /// This method is behind the "rsor_0_1" Cargo feature.
+    /// This method is similar to the [`index_frames`] method.
     ///
     /// # Usage in a real-time thread
     /// This method will push `number_of_input_channels` elements to the given "input" [`Slice`]
@@ -911,7 +925,7 @@ where
     /// assert_eq!(sub_part.index_output_channel(0), &[120]);
     /// ```
     ///
-    /// [`vecstorage`]: https://crates.io/crates/vecstorage
+    /// [`index_frames`]: ./struct.AudioBufferInOut.html#method.index_frames
     pub fn index_frames_from_slices<'s, 'in_slice, 'out_slice, R>(
         &'s mut self,
         range: R,
@@ -979,13 +993,23 @@ where
     }
 
     #[cfg(feature = "rsor_0_1")]
+    /// Interleave actions on subsequent frames with other actions, such as handling events,
+    /// Similar to the [`interleave`] method, but using the the [`Slice`] struct
+    /// from the [`rsor`] crate.
+    ///
+    /// This method is behind the `rsor_0_1` feature.
+    /// See the documentation of [`interleave`] for more information.
+    ///
     /// # Note
     /// If the iterator yields items for which the time is > `self.number_of_frames`,
     /// all these items will be handled after the audio.
-    pub fn interleave<'s, 'in_storage, 'out_storage, I, E, C, FR, FE>(
-        &'s mut self,
-        input_slice: &'in_storage mut Slice<[S]>,
-        output_slice: &'out_storage mut Slice<[S]>,
+    ///
+    /// [`rsor`]: https://crates.io/crate/rsor
+    /// [`interleave`]: ./struct.AudioBufferInOut.html#method.interleave
+    pub fn interleave_with_slice<I, E, C, FR, FE>(
+        &mut self,
+        input_slice: &mut Slice<[S]>,
+        output_slice: &mut Slice<[S]>,
         iterator: I,
         context: &mut C,
         render: FR,
@@ -1023,11 +1047,100 @@ where
             render(context, &mut sub_buffer);
         }
     }
+
+    /// Interleave actions on subsequent frames with other actions, such as handling events.
+    ///
+    /// Apart from the `input_storage` and `output_storage`, which are only used for technical
+    /// purposes, this method has the following parameters:
+    /// * `iterator`: an iterator, yielding items of type `(usize, E)`, where `E` is a generic
+    ///   type parameter.
+    /// * `context`: some context, see below
+    /// * `render`: a function that will be called with two parameters: the `context` and a sub-chunk
+    /// * `handle_event`: a function that will be called for every item yielded by the `iterator`.
+    ///
+    /// # Note
+    /// If the iterator yields items for which the time is > `self.number_of_frames`,
+    /// all these items will be handled after the audio.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::audio_chunk;
+    /// use rsynth::vecstorage::VecStorage;
+    /// use rsynth::buffer::AudioBufferInOut;
+    ///
+    /// let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    /// let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    /// let mut events = vec![(0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)];
+    /// let input = input.as_slices();
+    /// let mut output_as_slices = provided_output.as_mut_slices();
+    /// let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    ///
+    /// buffer.interleave(
+    ///     &mut VecStorage::with_capacity(2),
+    ///     &mut VecStorage::with_capacity(2),
+    ///     events.drain(..),
+    ///     &mut (),
+    ///     |&mut _context, buf: &mut AudioBufferInOut<i32>| {
+    ///         println!("Audio: {:?}", buf);
+    ///     },
+    ///     |&mut _context, e| {
+    ///         println!("Event: {}", e);
+    ///     },
+    /// );
+    /// // This will first print "Event: 1", "Event: 2", then debug-print the first two frames
+    /// // of the audio, then "Event: 3", "Event: 4", then debug-print the remaining two frames
+    /// // of the audio and then debug-print "Event: 5".
+    /// ```
+    pub fn interleave<I, E, C, FR, FE>(
+        &mut self,
+        input_storage: &mut VecStorage<&'static [S]>,
+        output_storage: &mut VecStorage<&'static [S]>,
+        iterator: I,
+        context: &mut C,
+        render: FR,
+        handle_event: FE,
+    ) where
+        S: Copy + 'static,
+        I: Iterator<Item = (usize, E)>,
+        FR: Fn(&mut C, &mut AudioBufferInOut<'_, '_, '_, '_, S>),
+        FE: Fn(&mut C, E),
+    {
+        let mut last_event_time = 0;
+        for (event_time, event) in iterator {
+            let event_time = event_time as usize;
+            if event_time == last_event_time {
+                handle_event(context, event);
+                continue;
+            }
+            if last_event_time < self.number_of_frames() {
+                let mut input_guard = input_storage.vec_guard();
+                let mut output_guard = output_storage.vec_guard();
+                let mut sub_buffer = self.index_frames(
+                    last_event_time..event_time,
+                    &mut input_guard,
+                    &mut output_guard,
+                );
+                render(context, &mut sub_buffer);
+            }
+            last_event_time = event_time;
+            handle_event(context, event);
+        }
+        if (last_event_time as usize) < self.number_of_frames() {
+            let mut input_guard = input_storage.vec_guard();
+            let mut output_guard = output_storage.vec_guard();
+            let mut sub_buffer = self.index_frames(
+                last_event_time..self.number_of_frames(),
+                &mut input_guard,
+                &mut output_guard,
+            );
+            render(context, &mut sub_buffer);
+        }
+    }
 }
 
 #[cfg(feature = "rsor_0_1")]
 #[test]
-fn interleave_works() {
+fn interleave_with_slices_works() {
     let test_plugin = TestPlugin::new(
         vec![
             audio_chunk![[11, 12], [21, 22]],
@@ -1050,7 +1163,7 @@ fn interleave_works() {
     let mut output_as_slices = provided_output.as_mut_slices();
     let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
     let dummy_event_handler = DummyEventHandler;
-    buffer.interleave(
+    buffer.interleave_with_slice(
         &mut input_slice,
         &mut output_slice,
         events.drain(..),
@@ -1066,9 +1179,49 @@ fn interleave_works() {
     assert_eq!(provided_output, expected_output);
 }
 
+#[test]
+fn interleave_works() {
+    let test_plugin = TestPlugin::new(
+        vec![
+            audio_chunk![[11, 12], [21, 22]],
+            audio_chunk![[13, 14], [23, 24]],
+        ],
+        vec![
+            audio_chunk![[110, 120], [210, 220]],
+            audio_chunk![[130, 140], [230, 240]],
+        ],
+        vec![vec![1, 2], vec![3, 4], vec![5]],
+        vec![vec![], vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut events = vec![(0 as usize, 1), (0, 2), (2, 3), (2, 4), (4, 5)];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    let dummy_event_handler = DummyEventHandler;
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, _), e| {
+            tp.handle_event(e);
+        },
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
+}
+
 #[cfg(feature = "rsor_0_1")]
 #[test]
-fn interleave_works_with_empty_event_iterator() {
+fn interleave_with_slice_works_with_empty_event_iterator() {
     let test_plugin = TestPlugin::<_, (), _>::new(
         vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
         vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
@@ -1085,9 +1238,43 @@ fn interleave_works_with_empty_event_iterator() {
     let mut output_as_slices = provided_output.as_mut_slices();
     let mut events = Vec::new();
     let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
-    buffer.interleave(
+    buffer.interleave_with_slice(
         &mut input_slice,
         &mut output_slice,
+        events.drain(..),
+        &mut (test_plugin, dummy_event_handler),
+        |&mut (ref mut tp, ref mut de), ref mut buf| {
+            tp.render_buffer(buf, de);
+        },
+        |&mut (ref mut tp, _), e| {
+            tp.handle_event(e);
+        },
+    );
+    let expected_output = audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]];
+    assert_eq!(provided_output, expected_output);
+}
+
+#[test]
+fn interleave_works_with_empty_event_iterator() {
+    let test_plugin = TestPlugin::<_, (), _>::new(
+        vec![audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]]],
+        vec![audio_chunk![[110, 120, 130, 140], [210, 220, 230, 240]]],
+        vec![vec![]],
+        vec![vec![]],
+        (),
+    );
+    let input = audio_chunk![[11, 12, 13, 14], [21, 22, 23, 24]];
+    let mut provided_output = audio_chunk![[0, 0, 0, 0], [0, 0, 0, 0]];
+    let mut input_storage = VecStorage::with_capacity(2);
+    let mut output_storage = VecStorage::with_capacity(2);
+    let dummy_event_handler = DummyEventHandler;
+    let input = input.as_slices();
+    let mut output_as_slices = provided_output.as_mut_slices();
+    let mut events = Vec::new();
+    let mut buffer = AudioBufferInOut::new(&input, &mut output_as_slices, 4);
+    buffer.interleave(
+        &mut input_storage,
+        &mut output_storage,
         events.drain(..),
         &mut (test_plugin, dummy_event_handler),
         |&mut (ref mut tp, ref mut de), ref mut buf| {

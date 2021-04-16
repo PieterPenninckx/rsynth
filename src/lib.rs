@@ -209,12 +209,13 @@ pub mod meta;
 pub mod test_utilities;
 pub mod utilities;
 
-/// Re-exports from the `vecstorage` crate.
+/// Re-exports from the [`vecstorage`](https://crates.io/crates/vecstorage) crate.
 pub mod vecstorage {
     pub use vecstorage::VecStorage;
 }
 
 #[cfg(feature = "rsor_0_1")]
+/// Re-exports from the [`rsor`](https://crates.io/crates/rsor) crate.
 pub mod rsor {
     pub use rsor::Slice;
 }
@@ -314,7 +315,7 @@ where
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
     ///
-    /// #[deprecated(since = "0.1.2", note = "Use or implement [`plugin_name`] instead.")]
+    #[deprecated(since = "0.1.2", note = "Use or implement `plugin_name` instead.")]
     fn name(&self) -> &str {
         "plugin_or_application"
     }

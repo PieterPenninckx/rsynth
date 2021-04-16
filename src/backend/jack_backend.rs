@@ -246,7 +246,7 @@ struct JackProcessHandler<P> {
     plugin: P,
     inputs: VecStorage<&'static [f32]>,
     outputs: VecStorage<&'static [f32]>,
-    midi_writer: VecStorage<MidiWriterWrapper>,
+    midi_writer: VecStorage<MidiWriterWrapper>, // We cannot use rsor for this one.
 }
 
 impl<P> JackProcessHandler<P>
