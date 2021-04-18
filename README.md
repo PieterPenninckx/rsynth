@@ -29,7 +29,15 @@ be better suited for you.
 
 ### Feature flags
 
-Many features are behind feature flags. See the `Cargo.toml` file for more information.
+Many features are behind feature flags: 
+* `all`: all the features below
+  * `backend-jack`: create standalone `jack` applications.
+  * `backend-vst`: create VST 2.4 plugins.
+  * `backend-combined-all`: all the "combined" backends for offline processing and testing. This always include in-memory dummy and testing backends.
+    * `backend-combined-hound`: read and write `.wav` files with the `hound` crate
+    * `backend-combined-wav`: read and write `.wav` files with the `wav` crate
+    * `backend-combined-midly`: read and write `.mid` files with the 
+  * `rsor_0_1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
 
 ## Documentation
 
@@ -37,6 +45,13 @@ The API documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
 * [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for the documentation of the master branch
 * on your local machine after running `cargo rustdoc --features all`
+
+## Philosophy and design
+`rsynth` presents itself as a library, rather than a framework. 
+Rather than trying to solve every problem (which is not feasible for the small team), 
+`rsynth` is designed to be easy to combine with other crates for specific tasks, such as
+* [`polyphony`](https://crates.io/crates/polyphony): the name says it all
+* [`wmidi`](https://crates.io/crates/wmidi): encode and decode midi messages in real-time
 
 Background on the design can be found in the [design.md](design.md) document.
 
@@ -47,7 +62,7 @@ There are full examples in
 
 ## Current State
 
-`rsynth` is in its early stage of development and many changes are breaking changes.
+`rsynth` is in its early stage of development, and many changes are breaking changes.
 The team behind it is very small, so progress is slow.
 
 ## Roadmap
@@ -55,7 +70,7 @@ The team behind it is very small, so progress is slow.
 We try to focus on features that we are actually using ourselves.
 This helps to ensure that the features that we provide, can actually be used in practice.
 So if you want to use a particular feature that isn't there yet, feel free to open an issue (if
-needed) and you can volunteer to test the feature before it is merged.
+needed), and you can volunteer to test the feature before it is merged.
 
 In the long term, `rsynth` can be split into multiple crates for maximum re-usability
 and for license clarity (e.g. when one back-end requires a different license).
@@ -66,10 +81,6 @@ over the various components in this way.
 
 Contributions and suggestions are welcome!
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
-
-# Sponsorship
-
-Alexander Lozada's contributions to rsynth are helped by [Resamplr.com](https://resamplr.com/), a virtual instrument website.
 
 # License 
 
