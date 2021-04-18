@@ -656,7 +656,7 @@
     <span class="ident">plugin</span>: <span class="ident">P</span>,
     <span class="ident">inputs</span>: <span class="ident">VecStorage</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">f32</span>]<span class="op">&gt;</span>,
     <span class="ident">outputs</span>: <span class="ident">VecStorage</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">f32</span>]<span class="op">&gt;</span>,
-    <span class="ident">midi_writer</span>: <span class="ident">VecStorage</span><span class="op">&lt;</span><span class="ident">MidiWriterWrapper</span><span class="op">&gt;</span>,
+    <span class="ident">midi_writer</span>: <span class="ident">VecStorage</span><span class="op">&lt;</span><span class="ident">MidiWriterWrapper</span><span class="op">&gt;</span>, <span class="comment">// We cannot use rsor for this one.</span>
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> <span class="ident">JackProcessHandler</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>
