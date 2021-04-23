@@ -1674,7 +1674,7 @@
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">audio_chunk</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::<span class="ident">EventHandler</span>;
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">rsor</span>::<span class="ident">Slice</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">test_utilities</span>::{<span class="ident">DummyEventHandler</span>, <span class="ident">TestPlugin</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">vecstorage</span>::<span class="ident">VecStorage</span>;
@@ -1801,7 +1801,7 @@
     <span class="doccomment">/// different lifetimes.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Remark</span>
-    <span class="doccomment">/// If you enable the `rsor_0_1` Cargo feature,</span>
+    <span class="doccomment">/// If you enable the `rsor-0-1` Cargo feature,</span>
     <span class="doccomment">/// you can also use the [`index_frames_from_slice`] method.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Example</span>
@@ -1864,7 +1864,7 @@
     <span class="doccomment">/// assert_eq!(channels[0], &amp;[12]);</span>
     <span class="doccomment">/// assert_eq!(channels[1], &amp;[22]);</span>
     <span class="doccomment">/// ```</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">index_frames_from_slice</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="lifetime">&#39;v</span>, <span class="ident">R</span><span class="op">&gt;</span>(
         <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> <span class="self">self</span>,
         <span class="ident">range</span>: <span class="ident">R</span>,
@@ -1943,7 +1943,7 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">buffer_in_index_frames_from_slice_works</span>() {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">slice</span> <span class="op">=</span> <span class="ident">Slice</span>::<span class="ident">with_capacity</span>(<span class="number">2</span>);
@@ -2114,7 +2114,7 @@
     <span class="doccomment">/// different lifetimes.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Remark</span>
-    <span class="doccomment">/// If you enable the `rsor_0_1` Cargo feature,</span>
+    <span class="doccomment">/// If you enable the `rsor-0-1` Cargo feature,</span>
     <span class="doccomment">/// you can also use the [`index_frames_from_slice`] method.    </span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Example</span>
@@ -2152,7 +2152,7 @@
         }
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
     <span class="doccomment">/// Get an `AdioBufferOut` with all channels and the given range of frames, using a [`Slice`]</span>
     <span class="doccomment">/// to store the channels of the result.</span>
     <span class="doccomment">///</span>
@@ -2306,7 +2306,7 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">buffer_out_index_frames_from_slice_works</span>() {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">channel1</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">11</span>, <span class="number">12</span>, <span class="number">13</span>, <span class="number">14</span>];
@@ -2484,7 +2484,7 @@
     <span class="doccomment">/// different lifetimes.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Remark</span>
-    <span class="doccomment">/// If you enable the `rsor_0_1` Cargo feature,</span>
+    <span class="doccomment">/// If you enable the `rsor-0-1` Cargo feature,</span>
     <span class="doccomment">/// you can also use the [`index_frames_from_slice`] method.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Example</span>
@@ -2528,11 +2528,11 @@
         }
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
     <span class="doccomment">/// Get an `AudioBufferInOut` with all channels and with the given range of frames,</span>
     <span class="doccomment">/// using `rsor`&#39;s `Slice`s to store the output.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// This method is behind the &quot;rsor_0_1&quot; Cargo feature.</span>
+    <span class="doccomment">/// This method is behind the &quot;rsor-0-1&quot; Cargo feature.</span>
     <span class="doccomment">/// This method is similar to the [`index_frames`] method.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Usage in a real-time thread</span>
@@ -2632,12 +2632,12 @@
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">outputs</span>
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
     <span class="doccomment">/// Interleave actions on subsequent frames with other actions, such as handling events,</span>
     <span class="doccomment">/// Similar to the [`interleave`] method, but using the the [`Slice`] struct</span>
     <span class="doccomment">/// from the [`rsor`] crate.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// This method is behind the `rsor_0_1` feature.</span>
+    <span class="doccomment">/// This method is behind the `rsor-0-1` feature.</span>
     <span class="doccomment">/// See the documentation of [`interleave`] for more information.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Note</span>
@@ -2778,7 +2778,7 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">interleave_with_slices_works</span>() {
     <span class="kw">let</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="ident">new</span>(
@@ -2859,7 +2859,7 @@
     <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">provided_output</span>, <span class="ident">expected_output</span>);
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor_0_1&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rsor-0-1&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">test</span>]</span>
 <span class="kw">fn</span> <span class="ident">interleave_with_slice_works_with_empty_event_iterator</span>() {
     <span class="kw">let</span> <span class="ident">test_plugin</span> <span class="op">=</span> <span class="ident">TestPlugin</span>::<span class="op">&lt;</span><span class="kw">_</span>, (), <span class="kw">_</span><span class="op">&gt;</span>::<span class="ident">new</span>(

@@ -532,10 +532,6 @@
 <span id="529">529</span>
 <span id="530">530</span>
 <span id="531">531</span>
-<span id="532">532</span>
-<span id="533">533</span>
-<span id="534">534</span>
-<span id="535">535</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wrapper for the VST backend (behind the `backend-vst` feature).</span>
 <span class="doccomment">//!</span>
@@ -768,7 +764,6 @@
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// # #[macro_use] extern crate rsynth;</span>
 <span class="doccomment">/// # extern crate num_traits;</span>
-<span class="doccomment">/// # extern crate asprim;</span>
 <span class="doccomment">/// # #[macro_use] extern crate vst;</span>
 <span class="doccomment">/// use rsynth::{</span>
 <span class="doccomment">///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},</span>
@@ -806,7 +801,6 @@
 <span class="doccomment">///     fn category(&amp;self) -&gt; Category { Category::Synth }</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// use asprim::AsPrim;</span>
 <span class="doccomment">/// use num_traits::Float;</span>
 <span class="doccomment">/// # use rsynth::buffer::AudioBufferInOut;</span>
 <span class="doccomment">///</span>
@@ -818,7 +812,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// impl&lt;S, H&gt; ContextualAudioRenderer&lt;S, H&gt; for MyPlugin</span>
 <span class="doccomment">/// where</span>
-<span class="doccomment">///     S: Float + AsPrim,</span>
+<span class="doccomment">///     S: Float,</span>
 <span class="doccomment">///     H: HostInterface,</span>
 <span class="doccomment">/// {</span>
 <span class="doccomment">///     // Implementation omitted for brevity.</span>
@@ -866,7 +860,6 @@
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// # #[macro_use] extern crate rsynth;</span>
 <span class="doccomment">/// # extern crate num_traits;</span>
-<span class="doccomment">/// # extern crate asprim;</span>
 <span class="doccomment">/// # #[macro_use] extern crate vst;</span>
 <span class="doccomment">/// use rsynth::{</span>
 <span class="doccomment">///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},</span>
@@ -904,7 +897,6 @@
 <span class="doccomment">///     fn category(&amp;self) -&gt; Category { Category::Synth }</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// use asprim::AsPrim;</span>
 <span class="doccomment">/// use num_traits::Float;</span>
 <span class="doccomment">/// # use rsynth::buffer::AudioBufferInOut;</span>
 <span class="doccomment">///</span>
@@ -918,7 +910,7 @@
 <span class="doccomment">/// use rsynth::backend::vst_backend::vst::plugin::HostCallback;</span>
 <span class="doccomment">/// impl&lt;S&gt; ContextualAudioRenderer&lt;S, HostCallback&gt; for MyPlugin</span>
 <span class="doccomment">/// where</span>
-<span class="doccomment">///     S: Float + AsPrim,</span>
+<span class="doccomment">///     S: Float,</span>
 <span class="doccomment">/// {</span>
 <span class="doccomment">///     fn render_buffer(&amp;mut self, buffer: &amp;mut AudioBufferInOut&lt;S&gt;, context: &amp;mut HostCallback)</span>
 <span class="doccomment">///     {</span>

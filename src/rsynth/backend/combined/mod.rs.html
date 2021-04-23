@@ -912,7 +912,7 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output</span>
 <span class="doccomment">//! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the &quot;backend-combined-hound&quot; feature)</span>
-<span class="doccomment">//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the &quot;backend-combined-midly&quot; feature)</span>
+<span class="doccomment">//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the &quot;backend-combined-midly-0-5&quot; feature)</span>
 <span class="doccomment">//! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory</span>
 <span class="doccomment">//! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests</span>
 <span class="doccomment">//!</span>
@@ -951,7 +951,7 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-hound&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">hound</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">memory</span>;
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-midly&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backend-combined-midly-0-5&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">midly</span>;
 
 <span class="doccomment">/// Define how audio is read.</span>

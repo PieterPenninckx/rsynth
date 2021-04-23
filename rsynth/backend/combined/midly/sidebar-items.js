@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["midly","Re-exports from the `midly` crate."]],"struct":[["MidlyMidiReader","Read from midi events as parsed by the `midly` crate."]]});
+initSidebarItems({"mod":[["midly_0_5","Re-exports from the `midly` crate."]],"struct":[["MidlyMidiReader","Read from midi events as parsed by the `midly` crate."]]});

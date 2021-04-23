@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["WAV_FORMAT_IEEE_FLOAT","Value signifying IEEE float data."],["WAV_FORMAT_PCM","Value signifying PCM data."]],"struct":[["Header","Structure for the `\"fmt \"` chunk of wave files, specifying key information about the enclosed data."]]});
