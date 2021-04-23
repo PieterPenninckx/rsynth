@@ -52,7 +52,6 @@
 // Note that the example is also logging to a file in the realtime thread, which may cause clipping.
 #[macro_use]
 extern crate log;
-extern crate asprim;
 extern crate num_traits;
 extern crate rand;
 extern crate rsynth;

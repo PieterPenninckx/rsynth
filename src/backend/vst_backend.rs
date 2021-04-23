@@ -229,7 +229,6 @@ impl HostInterface for HostCallback {
 /// ```
 /// # #[macro_use] extern crate rsynth;
 /// # extern crate num_traits;
-/// # extern crate asprim;
 /// # #[macro_use] extern crate vst;
 /// use rsynth::{
 ///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},
@@ -267,7 +266,6 @@ impl HostInterface for HostCallback {
 ///     fn category(&self) -> Category { Category::Synth }
 /// }
 ///
-/// use asprim::AsPrim;
 /// use num_traits::Float;
 /// # use rsynth::buffer::AudioBufferInOut;
 ///
@@ -279,7 +277,7 @@ impl HostInterface for HostCallback {
 ///
 /// impl<S, H> ContextualAudioRenderer<S, H> for MyPlugin
 /// where
-///     S: Float + AsPrim,
+///     S: Float,
 ///     H: HostInterface,
 /// {
 ///     // Implementation omitted for brevity.
@@ -327,7 +325,6 @@ impl HostInterface for HostCallback {
 /// ```
 /// # #[macro_use] extern crate rsynth;
 /// # extern crate num_traits;
-/// # extern crate asprim;
 /// # #[macro_use] extern crate vst;
 /// use rsynth::{
 ///     meta::{Meta, MetaData, Port, MidiPort, AudioPort, InOut},
@@ -365,7 +362,6 @@ impl HostInterface for HostCallback {
 ///     fn category(&self) -> Category { Category::Synth }
 /// }
 ///
-/// use asprim::AsPrim;
 /// use num_traits::Float;
 /// # use rsynth::buffer::AudioBufferInOut;
 ///
@@ -379,7 +375,7 @@ impl HostInterface for HostCallback {
 /// use rsynth::backend::vst_backend::vst::plugin::HostCallback;
 /// impl<S> ContextualAudioRenderer<S, HostCallback> for MyPlugin
 /// where
-///     S: Float + AsPrim,
+///     S: Float,
 /// {
 ///     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut HostCallback)
 ///     {

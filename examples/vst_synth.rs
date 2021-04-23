@@ -42,7 +42,6 @@
 extern crate vst;
 #[macro_use]
 extern crate log;
-extern crate asprim;
 extern crate num_traits;
 extern crate rand;
 #[macro_use]

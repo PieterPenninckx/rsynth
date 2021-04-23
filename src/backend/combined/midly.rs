@@ -3,18 +3,18 @@ use super::MICROSECONDS_PER_SECOND;
 use crate::event::{DeltaEvent, RawMidiEvent, TimeStretcher};
 
 /// Re-exports from the `midly` crate.
-pub mod midly {
-    pub use midly::*;
+pub mod midly_0_5 {
+    pub use midly_0_5::*;
 }
 
-use self::midly::Timing;
+use self::midly_0_5::Timing;
 #[cfg(test)]
-use self::midly::{
+use self::midly_0_5::{
     num::{u15, u24, u28, u4, u7},
     Format, Header, MidiMessage, Track, TrackEvent,
 };
-use self::midly::{MetaMessage, TrackEventKind};
-use crate::backend::combined::midly::midly::Smf;
+use self::midly_0_5::{MetaMessage, TrackEventKind};
+use crate::backend::combined::midly::midly_0_5::Smf;
 use itertools::Itertools;
 use std::convert::TryFrom;
 use std::num::NonZeroU64;

@@ -214,7 +214,7 @@ pub mod vecstorage {
     pub use vecstorage::VecStorage;
 }
 
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 /// Re-exports from the [`rsor`](https://crates.io/crates/rsor) crate.
 pub mod rsor {
     pub use rsor::Slice;

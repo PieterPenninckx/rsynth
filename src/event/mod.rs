@@ -11,10 +11,10 @@
 //!
 //! If possible, implement the `Copy` trait for the event,
 //! so that the event can be dispatched to different voices in a polyphonic context.
-#[cfg(feature = "backend-combined-midly")]
-use crate::backend::combined::midly::midly::TrackEventKind;
-#[cfg(all(test, feature = "backend-combined-midly"))]
-use crate::backend::combined::midly::midly::{
+#[cfg(feature = "backend-combined-midly-0-5")]
+use crate::backend::combined::midly::midly_0_5::TrackEventKind;
+#[cfg(all(test, feature = "backend-combined-midly-0-5"))]
+use crate::backend::combined::midly::midly_0_5::{
     num::{u4, u7},
     MidiMessage,
 };
@@ -211,10 +211,10 @@ impl RawMidiEvent {
     }
 }
 
-#[cfg(feature = "backend-combined-midly")]
-use crate::backend::combined::midly::midly::io::CursorError;
+#[cfg(feature = "backend-combined-midly-0-5")]
+use crate::backend::combined::midly::midly_0_5::io::CursorError;
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 #[derive(Debug, Clone)]
 /// The error type when converting from `midly`'s `TrackEventKind` to a `RawMidiEvent`.
 pub enum MidlyConversionError {
@@ -224,7 +224,7 @@ pub enum MidlyConversionError {
     CursorError(CursorError),
 }
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 impl Display for MidlyConversionError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
@@ -241,21 +241,21 @@ impl Display for MidlyConversionError {
     }
 }
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 impl Error for MidlyConversionError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
 }
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 impl From<CursorError> for MidlyConversionError {
     fn from(e: CursorError) -> Self {
         MidlyConversionError::CursorError(e)
     }
 }
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 impl<'a> TryFrom<TrackEventKind<'a>> for RawMidiEvent {
     type Error = MidlyConversionError;
 
@@ -272,7 +272,7 @@ impl<'a> TryFrom<TrackEventKind<'a>> for RawMidiEvent {
     }
 }
 
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 #[test]
 fn conversion_from_midly_to_raw_midi_event_works() {
     let channel = 1;

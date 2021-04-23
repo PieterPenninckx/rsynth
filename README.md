@@ -25,7 +25,7 @@ be better suited for you.
 | Basic meta-data                    |  ✓  |        ✓          |          N/A            |
 | Access to the underlying host      |  ✓  |        ✓          |          N/A            |
 | Parameter changes                  |  ✘  |        ✘          |           ✘             |
-| GUI stuff                          |  ✘  |        ✘          |           ✘             |
+| GUI support                        |  ✘  |        ✘          |           ✘             |
 
 ### Feature flags
 
@@ -35,9 +35,9 @@ Many features are behind feature flags:
   * `backend-vst`: create VST 2.4 plugins.
   * `backend-combined-all`: all the "combined" backends for offline processing and testing. This always include in-memory dummy and testing backends.
     * `backend-combined-hound`: read and write `.wav` files with the `hound` crate
-    * `backend-combined-wav`: read and write `.wav` files with the `wav` crate
-    * `backend-combined-midly`: read and write `.mid` files with the 
-  * `rsor_0_1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
+    * `backend-combined-wav-0-6`: read and write `.wav` files with the `wav` crate
+    * `backend-combined-midly-0-5`: read and write `.mid` files with the `midly` crate 
+  * `rsor-0-1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
 
 ## Documentation
 
