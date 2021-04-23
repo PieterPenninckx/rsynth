@@ -25,7 +25,7 @@ jobs:
     - name: Run tests
       run: cargo test --verbose --features all
     - name: Check rsor
-      run: cargo check --tests --examples --features rsor_0_1
+      run: cargo check --tests --examples --features rsor-0-1
     - name: Check jack 0.6.2
       run: cargo update -p jack --precise 0.6.2; cargo check --tests --examples --features backend-jack
     - name: Check jack 0.7.0
@@ -34,8 +34,8 @@ jobs:
       run: cargo check --tests --examples --features backend-vst
     - name: Check hound
       run: cargo check --tests --examples --features backend-combined-hound
-    - name: Check wav
-      run: cargo check --tests --examples --features backend-combined-wav
+    - name: Check wav 0.6
+      run: cargo update -p midly --precise 0.6.0; cargo check --tests --examples --features backend-combined-wav-0-6
     - name: Check midly
-      run: cargo check --tests --examples --features backend-combined-midly
+      run: cargo check --tests --examples --features backend-combined-midly-0-5
 

@@ -11,7 +11,7 @@
 //!
 //! * Dummy: [`AudioDummy`]: dummy audio input (generates silence) and output and [`MidiDummy`]: dummy midi input (generates no events) and output
 //! * Hound: [`HoundAudioReader`] and [`HoundAudioWriter`]: read and write `.wav` files (behind the "backend-combined-hound" feature)
-//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the "backend-combined-midly" feature)
+//! * Midly: [`MidlyMidiReader`]: read `.mid` files (behind the "backend-combined-midly-0-5" feature)
 //! * Memory: [`AudioBufferReader`] and [`AudioBufferWriter`]: read and write audio from memory
 //! * Testing: [`TestAudioReader`] and [`TestAudioWriter`]: audio input and output, to be used in tests
 //!
@@ -50,7 +50,7 @@ pub mod dummy;
 #[cfg(feature = "backend-combined-hound")]
 pub mod hound;
 pub mod memory;
-#[cfg(feature = "backend-combined-midly")]
+#[cfg(feature = "backend-combined-midly-0-5")]
 pub mod midly;
 
 /// Define how audio is read.

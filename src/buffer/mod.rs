@@ -34,7 +34,7 @@
 use crate::audio_chunk;
 #[cfg(test)]
 use crate::event::EventHandler;
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 use crate::rsor::Slice;
 use crate::test_utilities::{DummyEventHandler, TestPlugin};
 use crate::vecstorage::VecStorage;
@@ -161,7 +161,7 @@ where
     /// different lifetimes.
     ///
     /// # Remark
-    /// If you enable the `rsor_0_1` Cargo feature,
+    /// If you enable the `rsor-0-1` Cargo feature,
     /// you can also use the [`index_frames_from_slice`] method.
     ///
     /// # Example
@@ -224,7 +224,7 @@ where
     /// assert_eq!(channels[0], &[12]);
     /// assert_eq!(channels[1], &[22]);
     /// ```
-    #[cfg(feature = "rsor_0_1")]
+    #[cfg(feature = "rsor-0-1")]
     pub fn index_frames_from_slice<'s, 'v, R>(
         &'s self,
         range: R,
@@ -303,7 +303,7 @@ fn buffer_in_index_frames_works() {
     }
 }
 
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 #[test]
 fn buffer_in_index_frames_from_slice_works() {
     let mut slice = Slice::with_capacity(2);
@@ -474,7 +474,7 @@ where
     /// different lifetimes.
     ///
     /// # Remark
-    /// If you enable the `rsor_0_1` Cargo feature,
+    /// If you enable the `rsor-0-1` Cargo feature,
     /// you can also use the [`index_frames_from_slice`] method.    
     ///
     /// # Example
@@ -512,7 +512,7 @@ where
         }
     }
 
-    #[cfg(feature = "rsor_0_1")]
+    #[cfg(feature = "rsor-0-1")]
     /// Get an `AdioBufferOut` with all channels and the given range of frames, using a [`Slice`]
     /// to store the channels of the result.
     ///
@@ -666,7 +666,7 @@ fn buffer_out_index_frames_works() {
     }
 }
 
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 #[test]
 fn buffer_out_index_frames_from_slice_works() {
     let mut channel1 = vec![11, 12, 13, 14];
@@ -844,7 +844,7 @@ where
     /// different lifetimes.
     ///
     /// # Remark
-    /// If you enable the `rsor_0_1` Cargo feature,
+    /// If you enable the `rsor-0-1` Cargo feature,
     /// you can also use the [`index_frames_from_slice`] method.
     ///
     /// # Example
@@ -888,11 +888,11 @@ where
         }
     }
 
-    #[cfg(feature = "rsor_0_1")]
+    #[cfg(feature = "rsor-0-1")]
     /// Get an `AudioBufferInOut` with all channels and with the given range of frames,
     /// using `rsor`'s `Slice`s to store the output.
     ///
-    /// This method is behind the "rsor_0_1" Cargo feature.
+    /// This method is behind the "rsor-0-1" Cargo feature.
     /// This method is similar to the [`index_frames`] method.
     ///
     /// # Usage in a real-time thread
@@ -992,12 +992,12 @@ where
         &mut self.outputs
     }
 
-    #[cfg(feature = "rsor_0_1")]
+    #[cfg(feature = "rsor-0-1")]
     /// Interleave actions on subsequent frames with other actions, such as handling events,
     /// Similar to the [`interleave`] method, but using the the [`Slice`] struct
     /// from the [`rsor`] crate.
     ///
-    /// This method is behind the `rsor_0_1` feature.
+    /// This method is behind the `rsor-0-1` feature.
     /// See the documentation of [`interleave`] for more information.
     ///
     /// # Note
@@ -1138,7 +1138,7 @@ where
     }
 }
 
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 #[test]
 fn interleave_with_slices_works() {
     let test_plugin = TestPlugin::new(
@@ -1219,7 +1219,7 @@ fn interleave_works() {
     assert_eq!(provided_output, expected_output);
 }
 
-#[cfg(feature = "rsor_0_1")]
+#[cfg(feature = "rsor-0-1")]
 #[test]
 fn interleave_with_slice_works_with_empty_event_iterator() {
     let test_plugin = TestPlugin::<_, (), _>::new(

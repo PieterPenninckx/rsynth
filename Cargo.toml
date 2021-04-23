@@ -13,31 +13,33 @@ categories = ["multimedia::audio"]
 exclude = [".github/"]
 
 [features]
-all = ["backend-jack", "backend-vst", "backend-combined-all", "rsor_0_1"]
+default = ["all"]
+all = ["backend-jack", "backend-vst", "backend-combined-all", "rsor-0-1"]
 backend-jack = ["jack"]
 backend-vst = ["vst"]
-backend-combined-all = ["backend-combined-hound", "backend-combined-wav", "backend-combined-midly"]
+backend-combined-all = ["backend-combined-hound", "backend-combined-midly-0-5", "backend-combined-wav-0-6"]
 backend-combined-hound = ["hound", "backend-combined", "dasp_sample"]
-backend-combined-wav = ["wav", "backend-combined", "dasp_sample"]
-backend-combined-midly = ["midly", "backend-combined"]
+backend-combined-wav-0-6 = ["wav-0-6", "backend-combined", "dasp_sample"]
+backend-combined-midly-0-5 = ["midly-0-5", "backend-combined"]
 backend-combined = ["itertools"]
-rsor_0_1 = ["rsor"]
+rsor-0-1 = ["rsor"]
 
 [dependencies]
 num-traits = "0.2"
 log = "0.4"
-jack = {version = ">= 0.6.2, <0.8.0", optional = true}
+jack = {version = ">= 0.6.2, < 0.8.0", optional = true}
 vst = {version = "0.2.0", optional = true}
 hound = {version = "3.4.0", optional = true}
 dasp_sample = {version = "0.11.0", optional = true}
-wav = {version = "0.4.0", optional = true}
+wav-0-6 = {package = "wav", version = "0.6.0", optional = true}
 vecstorage = "0.1.0"
 midi-consts = "0.1.0"
 gcd = "2.0.1"
 itertools = {version = "0.10.0", optional = true}
 rsor = {version = "0.1.2", optional = true}
 
-[dependencies.midly]
+[dependencies.midly-0-5]
+package = "midly"
 version = "0.5.0"
 optional = true
 default-features = false

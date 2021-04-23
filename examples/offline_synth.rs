@@ -5,7 +5,7 @@
 // =========
 // You can compile this example with
 // ```bash
-// cargo build --release --examples --features backend-combined-midly,backend-combined-wav
+// cargo build --release --examples --features backend-combined-midly-0-5,backend-combined-wav-0-6
 // ```
 // This generates a standalone application that you can find
 //
@@ -15,8 +15,8 @@
 #[macro_use]
 extern crate log;
 extern crate asprim;
-#[cfg(feature = "backend-combined-midly")]
-extern crate midly;
+#[cfg(feature = "backend-combined-midly-0-5")]
+extern crate midly_0_5;
 extern crate num_traits;
 extern crate rand;
 extern crate rsynth;
@@ -24,24 +24,24 @@ extern crate rsynth;
 mod example_synth;
 use example_synth::*;
 
-#[cfg(feature = "backend-combined-midly")]
-use midly::Smf;
-
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::dummy::{AudioDummy, MidiDummy};
+#[cfg(feature = "backend-combined-wav-0-6")]
+use rsynth::backend::combined::memory::wav_0_6::{read, write, BitDepth, Header};
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::memory::AudioBufferWriter;
-#[cfg(feature = "backend-combined-midly")]
-use rsynth::backend::combined::midly::MidlyMidiReader;
+#[cfg(feature = "backend-combined-midly-0-5")]
+use rsynth::backend::combined::midly::{midly_0_5::Smf, MidlyMidiReader};
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::run;
 use rsynth::buffer::AudioChunk;
 use std::fs::OpenOptions;
 use std::{env, fs};
-#[cfg(feature = "backend-combined-wav")]
-use wav::{BitDepth, Header};
 
-#[cfg(all(feature = "backend-combined-midly", feature = "backend-combined-wav"))]
+#[cfg(all(
+    feature = "backend-combined-midly-0-5",
+    feature = "backend-combined-wav-0-6"
+))]
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
@@ -93,13 +93,16 @@ fn main() {
             .unwrap();
         println!("Writing to output file.");
         // Note: normally you will probably want to use a buffered writer.
-        wav::write(header, track, &mut output_file).unwrap();
+        write(header, &track, &mut output_file).unwrap();
     }
 }
 
-#[cfg(not(all(feature = "backend-combined-midly", feature = "backend-combined-wav")))]
+#[cfg(not(all(
+    feature = "backend-combined-midly-0-5",
+    feature = "backend-combined-wav-0-6"
+)))]
 fn main() {
     println!("This example was compiled without support for midly and wav.");
-    println!("Compile with passing `--backend-combined-midly,backend-combined-wav`");
+    println!("Compile with passing `--backend-combined-midly-0-5,backend-combined-wav-0-6`");
     println!("as parameter to `cargo`.");
 }

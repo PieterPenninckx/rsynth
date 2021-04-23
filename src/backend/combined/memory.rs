@@ -1,36 +1,35 @@
 //! In-memory backend, useful for testing.
 use super::{AudioReader, AudioWriter};
 use crate::buffer::{AudioBufferIn, AudioBufferOut, AudioChunk};
-#[cfg(feature = "backend-combined-wav")]
-use dasp_sample::{FromSample, I24};
+#[cfg(feature = "dasp_sample")]
+// Re-exports from the `dasp-sample` crate
+pub mod dasp_sample {
+    pub use dasp_sample::*;
+}
 use std::borrow::Borrow;
 use std::marker::PhantomData;
-#[cfg(feature = "backend-combined-wav")]
-use wav::{BitDepth, Header};
 
 /// An [`AudioReader`] that reads from a given [`AudioChunk`].
 /// The generic parameter type `S` represents the sample type.
 ///
 #[cfg_attr(
-    feature = "backend-combined-wav",
+    feature = "backend-combined-wav-0-6",
     doc = "\
 # Example
 
 The following example illustrates how an [`AudioChunk`] can be generated from a wav file.
 
-_Remark_ the example assumes the `rsynth` crate is compiled with the `backend-combined-wav`.
+_Remark_ the example assumes the `rsynth` crate is compiled with the `backend-combined-wav-0-6` feature.
 
 _Remark_ the example does not use proper error handling.
 ```
-extern crate wav;
-
 use std::fs::File;
 use std::path::Path;
-use rsynth::backend::combined::memory::AudioChunkReader;
+use rsynth::backend::combined::memory::{AudioChunkReader, wav_0_6::read};
 
 fn create_reader_from_file(filename: &str) {
     let mut file = File::open(Path::new(filename)).unwrap();
-    let (header, samples) = wav::read(&mut file).unwrap();
+    let (header, samples) = read(&mut file).unwrap();
     let reader = AudioChunkReader::<f32, _>::from((header, samples));
 }
 ```
@@ -109,38 +108,6 @@ where
 /// [`AudioChunk`]: ../../../buffer/struct.AudioChunk.html
 pub type AudioBufferReader<'b, S> = AudioChunkReader<S, &'b AudioChunk<S>>;
 
-#[cfg(feature = "backend-combined-wav")]
-impl<S> From<(Header, BitDepth)> for AudioChunkReader<S, AudioChunk<S>>
-where
-    S: Copy + FromSample<u8> + FromSample<i16> + FromSample<I24>,
-{
-    fn from((header, samples): (Header, BitDepth)) -> Self {
-        let chunk = match samples {
-            BitDepth::Eight(s) => AudioChunk::from_interlaced_iterator(
-                s.iter().map(|a| S::from_sample_(*a)),
-                header.channel_count as usize,
-            ),
-            BitDepth::Sixteen(s) => AudioChunk::from_interlaced_iterator(
-                s.iter().map(|a| S::from_sample_(*a)),
-                header.channel_count as usize,
-            ),
-            BitDepth::TwentyFour(s) => AudioChunk::from_interlaced_iterator(
-                s.iter().map(|a| {
-                    S::from_sample_(I24::new(*a).expect("24 bits sample should be 24 bits"))
-                }),
-                header.channel_count as usize,
-            ),
-            BitDepth::Empty => AudioChunk::new(header.channel_count as usize),
-        };
-        Self {
-            frames_per_second: header.sampling_rate as u64,
-            frame: 0,
-            chunk,
-            phantom: PhantomData,
-        }
-    }
-}
-
 #[cfg(test)]
 mod AudioBufferReaderTests {
     mod fill_buffer {
@@ -176,6 +143,51 @@ mod AudioBufferReaderTests {
             assert_eq!(slices[0], vec![5, 4].as_slice());
             assert_eq!(slices[1], vec![10, 9].as_slice());
             assert_eq!(slices[2], vec![15, 14].as_slice());
+        }
+    }
+}
+
+#[cfg(feature = "backend-combined-wav-0-6")]
+pub mod wav_0_6 {
+    /// Re-exports from we `wav` crate (version range 0.6.x).
+    pub use wav_0_6::*;
+
+    use super::dasp_sample::{FromSample, I24};
+    use super::{AudioChunk, AudioChunkReader};
+    use std::marker::PhantomData;
+
+    impl<S> From<(Header, BitDepth)> for AudioChunkReader<S, AudioChunk<S>>
+    where
+        S: Copy + FromSample<u8> + FromSample<i16> + FromSample<I24> + FromSample<f32>,
+    {
+        fn from((header, samples): (Header, BitDepth)) -> Self {
+            let chunk = match samples {
+                BitDepth::Eight(s) => AudioChunk::from_interlaced_iterator(
+                    s.iter().map(|a| S::from_sample_(*a)),
+                    header.channel_count as usize,
+                ),
+                BitDepth::Sixteen(s) => AudioChunk::from_interlaced_iterator(
+                    s.iter().map(|a| S::from_sample_(*a)),
+                    header.channel_count as usize,
+                ),
+                BitDepth::TwentyFour(s) => AudioChunk::from_interlaced_iterator(
+                    s.iter().map(|a| {
+                        S::from_sample_(I24::new(*a).expect("24 bits sample should be 24 bits"))
+                    }),
+                    header.channel_count as usize,
+                ),
+                BitDepth::ThirtyTwoFloat(s) => AudioChunk::from_interlaced_iterator(
+                    s.iter().map(|a| S::from_sample_(*a)),
+                    header.channel_count as usize,
+                ),
+                BitDepth::Empty => AudioChunk::new(header.channel_count as usize),
+            };
+            Self {
+                frames_per_second: header.sampling_rate as u64,
+                frame: 0,
+                chunk,
+                phantom: PhantomData,
+            }
         }
     }
 }
