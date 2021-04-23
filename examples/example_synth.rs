@@ -4,7 +4,6 @@
 
 extern crate polyphony;
 
-use asprim::AsPrim;
 use num_traits::Float;
 use polyphony::{
     midi::{RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier},
@@ -67,7 +66,7 @@ impl Noise {
     // for `f32` and `f64`.
     fn render_audio_buffer<S>(&mut self, buffer: &mut AudioBufferInOut<S>)
     where
-        S: AsPrim + Float,
+        S: Float + From<f32>,
     {
         if self.state == SimpleVoiceState::Idle {
             return;
@@ -78,8 +77,9 @@ impl Noise {
             for sample in output_channel.iter_mut() {
                 // We "add" to the output.
                 // In this way, various noises can be heard together.
-                *sample =
-                    *sample + self.white_noise[self.position].as_::<S>() * self.amplitude.as_();
+                *sample = *sample
+                    + <S as From<f32>>::from(self.white_noise[self.position])
+                        * <S as From<f32>>::from(self.amplitude);
                 // Increment the position of our sound sample.
                 // We loop this easily by using modulo.
                 self.position = (self.position + 1) % self.white_noise.len();
@@ -168,7 +168,7 @@ impl AudioHandler for NoisePlayer {
 #[allow(unused_variables)]
 impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
 where
-    S: AsPrim + Float,
+    S: Float + From<f32>,
     Context: HostInterface,
 {
     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context) {

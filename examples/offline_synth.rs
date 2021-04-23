@@ -14,7 +14,6 @@
 //
 #[macro_use]
 extern crate log;
-extern crate asprim;
 #[cfg(feature = "backend-combined-midly-0-5")]
 extern crate midly_0_5;
 extern crate num_traits;
