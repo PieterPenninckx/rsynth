@@ -35,7 +35,7 @@ jobs:
     - name: Check hound
       run: cargo check --tests --examples --features backend-combined-hound
     - name: Check wav 0.6
-      run: cargo update -p midly --precise 0.6.0; cargo check --tests --examples --features backend-combined-wav-0-6
+      run: cargo check --tests --examples --features backend-combined-wav-0-6
     - name: Check midly
       run: cargo check --tests --examples --features backend-combined-midly-0-5
 
