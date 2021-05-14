@@ -898,6 +898,7 @@
 <span id="895">895</span>
 <span id="896">896</span>
 <span id="897">897</span>
+<span id="898">898</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Combine different back-ends for audio input, audio output and midi input,</span>
 <span class="doccomment">//! mostly for offline rendering and testing.</span>
@@ -938,9 +939,9 @@
     <span class="ident">buffers_as_mut_slice</span>, <span class="ident">buffers_as_slice</span>, <span class="ident">AudioBufferIn</span>, <span class="ident">AudioBufferInOut</span>, <span class="ident">AudioBufferOut</span>,
     <span class="ident">AudioChunk</span>,
 };
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::<span class="ident">event_queue</span>::{<span class="ident">AlwaysInsertNewAfterOld</span>, <span class="ident">EventQueue</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">event</span>::{<span class="ident">DeltaEvent</span>, <span class="ident">EventHandler</span>, <span class="ident">RawMidiEvent</span>, <span class="ident">Timed</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ContextualAudioRenderer</span>;
+<span class="kw">use</span> <span class="ident">event_queue</span>::{<span class="ident">AlwaysInsertNewAfterOld</span>, <span class="ident">EventQueue</span>};
 <span class="kw">use</span> <span class="ident">itertools</span>::<span class="ident">Itertools</span>;
 <span class="kw">use</span> <span class="ident">num_traits</span>::<span class="ident">Zero</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
@@ -1040,7 +1041,7 @@
     <span class="ident">current_time_in_frames</span>: <span class="ident">u64</span>,
     <span class="ident">previous_time_in_microseconds</span>: <span class="ident">u64</span>,
     <span class="ident">micro_seconds_per_frame</span>: <span class="ident">f64</span>,
-    <span class="ident">event_queue</span>: <span class="ident">EventQueue</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>,
+    <span class="ident">event_queue</span>: <span class="ident">EventQueue</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">RawMidiEvent</span><span class="op">&gt;</span>,
     <span class="ident">must_stop</span>: <span class="ident">bool</span>,
 }
 
@@ -1075,15 +1076,15 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">step_frames</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">number_of_frames</span>: <span class="ident">u64</span>) {
-        <span class="kw">for</span> <span class="ident">event</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">event_queue</span>.<span class="ident">iter</span>() {
+        <span class="kw">for</span> (<span class="ident">event_time_in_frames</span>, <span class="ident">event</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">event_queue</span>.<span class="ident">iter</span>() {
             <span class="kw">let</span> <span class="ident">current_time_in_frames</span> <span class="op">=</span>
-                <span class="self">self</span>.<span class="ident">current_time_in_frames</span> <span class="op">+</span> (<span class="ident">event</span>.<span class="ident">time_in_frames</span> <span class="kw">as</span> <span class="ident">u64</span>);
+                <span class="self">self</span>.<span class="ident">current_time_in_frames</span> <span class="op">+</span> (<span class="kw-2">*</span><span class="ident">event_time_in_frames</span> <span class="kw">as</span> <span class="ident">u64</span>);
             <span class="kw">let</span> <span class="ident">current_time_in_microseconds</span> <span class="op">=</span>
                 (<span class="ident">current_time_in_frames</span> <span class="kw">as</span> <span class="ident">f64</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">micro_seconds_per_frame</span>) <span class="kw">as</span> <span class="ident">u64</span>;
             <span class="kw">let</span> <span class="ident">delta_event</span> <span class="op">=</span> <span class="ident">DeltaEvent</span> {
                 <span class="ident">microseconds_since_previous_event</span>: <span class="ident">current_time_in_microseconds</span>
                     <span class="op">-</span> <span class="self">self</span>.<span class="ident">previous_time_in_microseconds</span>,
-                <span class="ident">event</span>: <span class="ident">event</span>.<span class="ident">event</span>,
+                <span class="ident">event</span>: <span class="kw-2">*</span><span class="ident">event</span>,
             };
             <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">write_event</span>(<span class="ident">delta_event</span>);
             <span class="self">self</span>.<span class="ident">previous_time_in_microseconds</span> <span class="op">=</span> <span class="ident">current_time_in_microseconds</span>;
@@ -1098,7 +1099,8 @@
     <span class="ident">W</span>: <span class="ident">MidiWriter</span>,
 {
     <span class="kw">fn</span> <span class="ident">handle_event</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">event</span>: <span class="ident">Timed</span><span class="op">&lt;</span><span class="ident">RawMidiEvent</span><span class="op">&gt;</span>) {
-        <span class="self">self</span>.<span class="ident">event_queue</span>.<span class="ident">queue_event</span>(<span class="ident">event</span>, <span class="ident">AlwaysInsertNewAfterOld</span>);
+        <span class="self">self</span>.<span class="ident">event_queue</span>
+            .<span class="ident">queue_event</span>((<span class="ident">event</span>.<span class="ident">time_in_frames</span>, <span class="ident">event</span>.<span class="ident">event</span>), <span class="ident">AlwaysInsertNewAfterOld</span>);
     }
 }
 
