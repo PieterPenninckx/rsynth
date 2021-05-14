@@ -139,7 +139,7 @@ where
     current_time_in_frames: u64,
     previous_time_in_microseconds: u64,
     micro_seconds_per_frame: f64,
-    event_queue: EventQueue<RawMidiEvent>,
+    event_queue: EventQueue<u32, RawMidiEvent>,
     must_stop: bool,
 }
 
@@ -174,15 +174,15 @@ where
     }
 
     pub fn step_frames(&mut self, number_of_frames: u64) {
-        for event in self.event_queue.iter() {
+        for (event_time_in_frames, event) in self.event_queue.iter() {
             let current_time_in_frames =
-                self.current_time_in_frames + (event.time_in_frames as u64);
+                self.current_time_in_frames + (*event_time_in_frames as u64);
             let current_time_in_microseconds =
                 (current_time_in_frames as f64 * self.micro_seconds_per_frame) as u64;
             let delta_event = DeltaEvent {
                 microseconds_since_previous_event: current_time_in_microseconds
                     - self.previous_time_in_microseconds,
-                event: event.event,
+                event: *event,
             };
             self.inner.write_event(delta_event);
             self.previous_time_in_microseconds = current_time_in_microseconds;
@@ -197,7 +197,8 @@ where
     W: MidiWriter,
 {
     fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
-        self.event_queue.queue_event(event, AlwaysInsertNewAfterOld);
+        self.event_queue
+            .queue_event((event.time_in_frames, event.event), AlwaysInsertNewAfterOld);
     }
 }
 
