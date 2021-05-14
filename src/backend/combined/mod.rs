@@ -37,9 +37,9 @@ use crate::buffer::{
     buffers_as_mut_slice, buffers_as_slice, AudioBufferIn, AudioBufferInOut, AudioBufferOut,
     AudioChunk,
 };
-use crate::event::event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
+use event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use itertools::Itertools;
 use num_traits::Zero;
 use std::error::Error;
