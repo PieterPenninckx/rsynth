@@ -1,11 +1,11 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `rsynth` crate."><meta name="keywords" content="rust, rustlang, rust-lang, rsynth"><title>rsynth - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Rsynth"><meta name="keywords" content="rust, rustlang, rust-lang, rsynth"><title>rsynth - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><script src="../crates.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><p class="location">Crate rsynth</p><div class="block version"><p>Version 0.1.1</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all rsynth's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#traits">Traits</a></li></ul></div><p class="location"></p><div id="sidebar-vars" data-name="rsynth" data-ty="mod" data-relpath="../"></div></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Crate <a class="mod" href="">rsynth</a></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/rsynth/lib.rs.html#1-542" title="goto source code">[src]</a></span></h1><div class="docblock"><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
-<p>An API abstraction for API's for audio plugins and applications.
-Use it to write real-time audio effects, software synthesizers, ... and target different platforms
-(vst, jack, offline audio rendering, ...).
-It is currently most suitable for real-time or &quot;streaming&quot; audio processing.
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../rsynth/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><p class="location">Crate rsynth</p><div class="block version"><p>Version 0.1.1</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all rsynth's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#traits">Traits</a></li></ul></div><p class="location"></p><div id="sidebar-vars" data-name="rsynth" data-ty="mod" data-relpath="../"></div></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Crate <a class="mod" href="">rsynth</a></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/rsynth/lib.rs.html#1-542" title="goto source code">[src]</a></span></h1><div class="docblock"><h1 id="rsynth" class="section-header"><a href="#rsynth">Rsynth</a></h1>
+<p>An API abstraction for API’s for audio plugins and applications.
+Use it to write real-time audio effects, software synthesizers, … and target different platforms
+(vst, jack, offline audio rendering, …).
+It is currently most suitable for real-time or “streaming” audio processing.
 E.g. you cannot use it to reverse audio in time.</p>
 <h2 id="back-ends" class="section-header"><a href="#back-ends">Back-ends</a></h2>
 <p><code>rsynth</code> currently supports the following back-ends:</p>
@@ -19,8 +19,8 @@ midi output, mostly for offline rendering and testing (behind various features)<
 <h2 id="features-and-how-to-use-them" class="section-header"><a href="#features-and-how-to-use-them">Features and how to use them</a></h2>
 <p><code>rsynth</code> puts common functionality of the different backends behind common traits.
 Conversely, a plugin can be used for different backends by implementing common traits.
-A mix-and-match approach is used: if a backend doesn't require a certain functionality,
-you don't need the corresponding trait.</p>
+A mix-and-match approach is used: if a backend doesn’t require a certain functionality,
+you don’t need the corresponding trait.</p>
 <h3 id="starting-the-backendentry-point-for-the-host" class="section-header"><a href="#starting-the-backendentry-point-for-the-host">Starting the backend/entry point for the host</a></h3>
 <ul>
 <li>Jack: <a href="./backend/jack_backend/fn.run.html"><code>run()</code></a></li>
@@ -31,7 +31,7 @@ you don't need the corresponding trait.</p>
 <p>There are a number of traits that an application or plugin needs to implement in order to define
 meta-data. Every plugin or application should implement these, but it can be tedious, so you can
 implement these traits in a more straightforward way by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.
-However, you can also implement these trait &quot;by hand&quot;.</p>
+However, you can also implement these trait “by hand”.</p>
 <p><strong>Meta-data for Jack</strong></p>
 <p>Applications need to implement</p>
 <ul>
@@ -56,7 +56,7 @@ However, you can also implement these trait &quot;by hand&quot;.</p>
 <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> has two type parameters and the type parameter depends on the
 backends to use.
 One type parameter is the data type used to represent a sample.
-The other type parameter is called the &quot;context&quot; and can be used to access functionality of
+The other type parameter is called the “context” and can be used to access functionality of
 the backend in the audio rendering itself.
 Common functionality of the context is defined in the <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a> trait.
 The application or plugin can have either a generic implementation of the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a>
@@ -79,7 +79,7 @@ or choose to use different, specialized implementations if different behaviour i
 <li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;f32,</code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code></li>
 <li><a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a><code>&lt;f64,</code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code></li>
 </ul>
-<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>'s
+<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>’s
 <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a>, which defines functionality shared by all backends.</p>
 <h3 id="handling-midi-events" class="section-header"><a href="#handling-midi-events">Handling (midi) events</a></h3>
 <p>A plugin or application can handle events (typically midi events) by implementing the
@@ -92,7 +92,7 @@ plugins or applications can have access to the host while handling events.</p>
 <li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;, </code><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a><code>&gt;</code>,</li>
 <li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Indexed.html"><code>Indexed</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a><code>&gt;&gt;, </code><a href="./backend/jack_backend/struct.JackHost.html"><code>JackHost</code></a><code>&gt;</code></li>
 </ul>
-<p><strong>Handling events with the &quot;offline&quot; backend</strong></p>
+<p><strong>Handling events with the “offline” backend</strong></p>
 <p>Applications need to implement</p>
 <ul>
 <li><a href="./event/trait.EventHandler.html"><code>EventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.RawMidiEvent.html"><code>RawMidiEvent</code></a><code>&gt;&gt;</code></li>
@@ -107,10 +107,10 @@ Plugins need to implement</p>
 <li><a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a><code>&lt;</code><a href="./event/struct.Timed.html"><code>Timed</code></a><code>&lt;</code><a href="./event/struct.SysExEvent.html"><code>SysExEvent</code></a><code>&gt;, </code><a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a><code>&gt;</code>.</li>
 </ul>
 <p><em>Note</em>: VST 2.4 does not support sample-accurate events; a dummy timestamp of <code>0</code> is always added.</p>
-<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>'s
+<p><em>Note</em>: <a href="./backend/vst_backend/vst/plugin/struct.HostCallback.html"><code>HostCallback</code></a> is re-exported from the vst crate, but implements <code>rsynth</code>’s
 <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a>, which defines functionality shared by all backends.</p>
 <h3 id="generating-midi-events" class="section-header"><a href="#generating-midi-events">Generating midi events</a></h3>
-<p>The &quot;context&quot; parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
+<p>The “context” parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
 <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> traits allows to access features from the host/backend, such as
 generating midi events.</p>
 <p><strong>Generating midi events with Jack</strong></p>
@@ -126,10 +126,10 @@ generating midi events.</p>
 </ul>
 <p><strong>Generating midi events with VST 2.4 is not possible</strong></p>
 <h3 id="stopping-the-backend" class="section-header"><a href="#stopping-the-backend">Stopping the backend</a></h3>
-<p>The &quot;context&quot; parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
+<p>The “context” parameter passed in the methods from the <a href="trait.ContextualAudioRenderer.html"><code>ContextualAudioRenderer</code></a> and
 <a href="./event/trait.ContextualEventHandler.html"><code>ContextualEventHandler</code></a> traits allows to access features from the host/backend, such as
 stopping the backend.
-All &quot;backends&quot; implement the <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a> trait, which defines a <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method.
+All “backends” implement the <a href="./backend/trait.HostInterface.html"><code>HostInterface</code></a> trait, which defines a <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method.
 The <a href="./backend/trait.HostInterface.html#method.stop"><code>stop</code></a> method only actually does something if the backend additionally implements
 the <a href="./backend/trait.HostInterface.html#method.stop"><code>Stop</code></a> trait.</p>
 <p><strong>Stopping Jack</strong></p>
@@ -171,5 +171,5 @@ This trait can be more conveniently implemented by implementing the <a href="./m
 The extra parameter <code>context</code> can be used by the backend to provide extra information.</p>
 </td></tr><tr class="module-item"><td><a class="trait" href="trait.MidiHandlerMeta.html" title="rsynth::MidiHandlerMeta trait">MidiHandlerMeta</a></td><td class="docblock-short"><p>Define the maximum number of midi inputs and the maximum number of midi outputs.
 This trait can be more conveniently implemented by implementing the <a href="./meta/trait.Meta.html"><code>Meta</code></a> trait.</p>
-</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../" data-current-crate="rsynth"></div>
-    <script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../" data-current-crate="rsynth" data-search-js="../search-index.js"></div>
+    <script src="../main.js"></script></body></html>
