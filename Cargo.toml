@@ -21,10 +21,11 @@ backend-combined-all = ["backend-combined-hound", "backend-combined-midly-0-5", 
 backend-combined-hound = ["hound", "backend-combined", "dasp_sample"]
 backend-combined-wav-0-6 = ["wav-0-6", "backend-combined", "dasp_sample"]
 backend-combined-midly-0-5 = ["midly-0-5", "backend-combined"]
-backend-combined = ["itertools"]
+backend-combined = ["itertools", "event-queue"]
 rsor-0-1 = ["rsor"]
 
 [dependencies]
+event-queue = {path = "./event-queue", optional = true}
 num-traits = "0.2"
 log = "0.4"
 jack = {version = ">= 0.6.2, < 0.8.0", optional = true}
