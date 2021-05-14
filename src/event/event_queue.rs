@@ -1,3 +1,4 @@
+#![deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 //! Queue events.
 use super::Timed;
 use crate::buffer::AudioBufferInOut;
@@ -10,13 +11,16 @@ use std::cmp::Ordering;
 use std::collections::vec_deque::{Drain, VecDeque};
 use std::iter::FusedIterator;
 use std::ops::{Deref, Index, IndexMut};
+#[cfg_attr(test, allow(deprecated))]
 
 /// A queue for timed events.
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub struct EventQueue<T> {
     queue: VecDeque<Timed<T>>,
 }
 
 /// Determines what should happen when two events are queued with the same timing.
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub enum EventCollisionHandling {
     /// Insert the newly queued event before the previously queued.
     InsertNewBeforeOld,
@@ -29,11 +33,13 @@ pub enum EventCollisionHandling {
 }
 
 /// Trait that describes how "event collision" (queing two events with the same timestamp) should happen.
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub trait HandleEventCollision<T> {
     fn decide_on_collision(&self, old_event: &T, new_event: &T) -> EventCollisionHandling;
 }
 
 /// Always queue the new newly queued event before the previously queued in case of collision (same timestamp).
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub struct AlwaysInsertNewBeforeOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
     #[inline(always)]
@@ -43,6 +49,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewBeforeOld {
 }
 
 /// Always queue the new newly queued event after the previously queued in case of collision (same timestamp).
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub struct AlwaysInsertNewAfterOld;
 impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
     #[inline(always)]
@@ -52,6 +59,7 @@ impl<T> HandleEventCollision<T> for AlwaysInsertNewAfterOld {
 }
 
 /// Always ignore the newly queued event in case of collision (there's already an event with that timestamp).
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub struct AlwaysIgnoreNew;
 impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
     #[inline(always)]
@@ -61,6 +69,7 @@ impl<T> HandleEventCollision<T> for AlwaysIgnoreNew {
 }
 
 /// Always remove the previously queued event in case of collision (there's already an event with that timestamp).
+#[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
 pub struct AlwaysRemoveOld;
 impl<T> HandleEventCollision<T> for AlwaysRemoveOld {
     #[inline(always)]

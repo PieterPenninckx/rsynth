@@ -1,0 +1,16 @@
+[package]
+name = "event-queue"
+version = "0.1.0"
+authors = ["Pieter Penninckx"]
+edition = "2018"
+description = "A library for managing events, intended to be used for audio libraries and applications."
+license = "MIT OR Apache-2.0"
+autoexamples = false
+readme = "README.md"
+# repository = "https://github.com/PieterPenninckx/rsynth"
+# keywords = ["audio"]
+#categories = ["multimedia::audio"]
+
+[package.metadata.docs.rs]
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
