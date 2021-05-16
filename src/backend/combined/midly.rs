@@ -1,6 +1,6 @@
 //! Read midi files.
 use super::MICROSECONDS_PER_SECOND;
-use crate::event::{DeltaEvent, RawMidiEvent, TimeStretcher};
+use crate::event::{DeltaEvent, Indexed, RawMidiEvent, TimeStretcher};
 
 /// Re-exports from the `midly` crate.
 pub mod midly_0_5 {
@@ -8,201 +8,152 @@ pub mod midly_0_5 {
 }
 
 use self::midly_0_5::Timing;
+use self::midly_0_5::{
+    live::LiveEvent, num::u28, Arena, Header, MetaMessage, Track, TrackEvent, TrackEventKind,
+};
 #[cfg(test)]
 use self::midly_0_5::{
-    num::{u15, u24, u28, u4, u7},
-    Format, Header, MidiMessage, Track, TrackEvent,
+    num::{u15, u24, u4, u7},
+    Format, MidiMessage,
 };
-use self::midly_0_5::{MetaMessage, TrackEventKind};
 use crate::backend::combined::midly::midly_0_5::Smf;
 use itertools::Itertools;
+use midi_consts::channel_event::NOTE_ON;
 use std::convert::TryFrom;
-use std::num::NonZeroU64;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::num::{NonZeroU64, TryFromIntError};
 
 const SECONDS_PER_MINUTE: u64 = 60;
 const MICROSECONDS_PER_MINUTE: u64 = SECONDS_PER_MINUTE * MICROSECONDS_PER_SECOND;
 const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
-/// Read from midi events as parsed by the `midly` crate.
-pub struct MidlyMidiReader<'a, 'b> {
-    event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b>,
-    timestretcher: TimeStretcher,
-    previous_time_in_microseconds: u64,
-    ticks_per_beat: NonZeroU64,
-}
-
-impl<'a, 'b> MidlyMidiReader<'a, 'b>
+/// Create an iterator over all the tracks, merged.
+/// The item has type `(u64, usize, TrackEventKind)`,
+/// where the first element of the triple is the timing of the index, in ticks,
+/// the second item of the triple is the track index and the last item is the event itself.
+pub fn merge_tracks<'a, 'b>(
+    tracks: &'b [Track<'a>],
+) -> impl Iterator<Item = (u64, usize, TrackEventKind<'a>)> + 'b
 where
     'b: 'a,
 {
-    /// Create a new `MidlyMidiReader` that will read all tracks together (interleaved).
-    pub fn new(smf: &'b Smf<'a>) -> Result<Self, ()> {
-        let track_mask: Vec<_> = smf.tracks.iter().map(|_| true).collect();
-        Self::new_with_track_mask(smf, &track_mask)
-    }
-
-    /// Create a new `MidlyMidiReader` that will read only the masked tracks (interleaved).
-    ///
-    /// # Parameters
-    /// `smf`: the [`Smf`] for reading the midi file
-    /// `track_mask`: a slice of booleans, only the tracks that correspond to `true` will be read.
-    pub fn new_with_track_mask(smf: &'b Smf<'a>, track_mask: &[bool]) -> Result<Self, ()> {
-        let mut event_iter: Box<dyn Iterator<Item = (u64, TrackEventKind<'a>)> + 'b> =
-            Box::new(Vec::new().into_iter());
-        for (must_include, track) in track_mask.iter().zip(smf.tracks.iter()) {
-            if *must_include {
-                let mut offset = 0;
-                let iter = track.iter().map(move |e| {
-                    offset += e.delta.as_int() as u64;
-                    (offset, e.kind)
-                });
-                event_iter = Box::new(event_iter.merge_by(iter, |(t1, _), (t2, _)| t1 < t2));
-            }
-        }
-        let ticks_per_beat = match smf.header.timing {
-            Timing::Metrical(t) => NonZeroU64::new(t.as_int() as u64).ok_or(())?,
-            Timing::Timecode(_, _) => return Err(()),
-        };
-        //                   ticks * microseconds_per_beat
-        // microseconds = -----------------------------------
-        //                   ticks_per_beat
-        let timestretcher = TimeStretcher::new(
-            MICROSECONDS_PER_MINUTE / DEFAULT_BEATS_PER_MINUTE,
-            ticks_per_beat,
-        );
-        Ok(Self {
-            ticks_per_beat,
-            event_iter,
-            previous_time_in_microseconds: 0,
-            timestretcher,
+    let mut track_index = 0;
+    tracks
+        .iter()
+        .map(|t| {
+            let mut offset = 0;
+            let result = t.iter().map(move |e| {
+                offset += e.delta.as_int() as u64;
+                (offset, track_index, e.kind)
+            });
+            track_index += 1;
+            result
         })
+        .kmerge_by(|(t1, _, _), (t2, _, _)| t1 < t2)
+}
+
+enum TrackPushError {
+    TimingUnderflow,
+    TimingOverflow,
+}
+
+impl From<TryFromIntError> for TrackPushError {
+    fn from(_: TryFromIntError) -> Self {
+        TrackPushError::TimingOverflow
     }
 }
 
-impl<'a, 'b> Iterator for MidlyMidiReader<'a, 'b> {
-    type Item = DeltaEvent<RawMidiEvent>;
+#[derive(Debug)]
+pub enum TrackWritingError {
+    TrackIndexLargerThanNumberOfTracks {
+        track_index: usize,
+        number_of_tracks: usize,
+    },
+    TimingOverflow,
+    TimingCanOnlyIncrease,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let (t, event) = self.event_iter.next()?;
-            let new_factor = if let TrackEventKind::Meta(MetaMessage::Tempo(tempo)) = event {
-                Some((tempo.as_int() as u64, self.ticks_per_beat))
-            } else {
-                None
-            };
-            let time = self.timestretcher.stretch(t, new_factor);
-            if let TrackEventKind::Midi { .. } = event {
-                if let Ok(e) = RawMidiEvent::try_from(event) {
-                    let difference = time - self.previous_time_in_microseconds;
-                    self.previous_time_in_microseconds = time;
-                    return Some(DeltaEvent {
-                        microseconds_since_previous_event: difference,
-                        event: e,
-                    });
-                }
+impl From<TrackPushError> for TrackWritingError {
+    fn from(tpe: TrackPushError) -> Self {
+        match tpe {
+            TrackPushError::TimingUnderflow => TrackWritingError::TimingCanOnlyIncrease,
+            TrackPushError::TimingOverflow => TrackWritingError::TimingOverflow,
+        }
+    }
+}
+
+impl Display for TrackWritingError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            TrackWritingError::TrackIndexLargerThanNumberOfTracks {
+                track_index,
+                number_of_tracks,
+            } => write!(
+                f,
+                "Track index ({}) is larger than the number of tracks ({})",
+                track_index, number_of_tracks
+            ),
+            TrackWritingError::TimingOverflow => {
+                write!(f, "The specified timing overflows what can be specified.")
+            }
+            TrackWritingError::TimingCanOnlyIncrease => {
+                write!(f, "Events with decreasing timing found.")
             }
         }
     }
 }
 
-#[test]
-pub fn iterator_correctly_returns_one_event() {
-    // 120 beats per minute
-    // = 120 beats per 60 seconds
-    // = 120 beats per 60 000 000 microseconds
-    // so the tempo is
-    //   60 000 000 / 120 microseconds per beat
-    //   = 10 000 000 / 20 microseconds per beat
-    //   =    500 000 microseconds per beat
-    let tempo_in_microseconds_per_beat = 500000;
-    let ticks_per_beat = 32;
-    // One event after 1 second.
-    // One second corresponds to two beats, so to 64 ticks.
-    let event_time_in_ticks = 64;
-    let events = vec![
-        TrackEvent {
-            delta: u28::from(0),
-            kind: TrackEventKind::Meta(MetaMessage::Tempo(u24::from(
-                tempo_in_microseconds_per_beat,
-            ))),
-        },
-        TrackEvent {
-            delta: u28::from(event_time_in_ticks),
-            kind: TrackEventKind::Midi {
-                channel: u4::from(0),
-                message: MidiMessage::NoteOn {
-                    key: u7::from(60),
-                    vel: u7::from(90),
-                },
-            },
-        },
-    ];
-    let tracks = vec![events];
-    let header = Header {
-        timing: Timing::Metrical(u15::from(ticks_per_beat)),
-        format: Format::SingleTrack,
-    };
-    let smf = Smf { header, tracks };
-    let mut mr = MidlyMidiReader::new(&smf).expect("No errors should occur now.");
-    let observed = mr.next().expect("MidlyMidiReader should return one event.");
-    assert_eq!(observed.microseconds_since_previous_event, 1000000);
-    assert_eq!(mr.next(), None);
+impl Error for TrackWritingError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
 }
 
-#[cfg(test)]
-pub fn iterator_correctly_returns_two_events() {
-    // 120 beats per minute
-    // = 120 beats per 60 seconds
-    // = 120 beats per 60 000 000 microseconds
-    // so the tempo is
-    //   60 000 000 / 120 microseconds per beat
-    //   = 10 000 000 / 20 microseconds per beat
-    //   =    500 000 microseconds per beat
-    let tempo_in_microseconds_per_beat = 500000;
-    let ticks_per_beat = 32;
-    // One event after 1 second.
-    // One second corresponds to two beats, so to 64 ticks.
-    let event_delta_time_in_ticks = 64;
-    let events = vec![
-        TrackEvent {
-            delta: u28::from(0),
-            kind: TrackEventKind::Meta(MetaMessage::Tempo(u24::from(
-                tempo_in_microseconds_per_beat,
-            ))),
-        },
-        TrackEvent {
-            delta: u28::from(event_delta_time_in_ticks),
-            kind: TrackEventKind::Midi {
-                channel: u4::from(0),
-                message: MidiMessage::NoteOn {
-                    key: u7::from(60),
-                    vel: u7::from(90),
-                },
-            },
-        },
-        TrackEvent {
-            delta: u28::from(event_delta_time_in_ticks),
-            kind: TrackEventKind::Midi {
-                channel: u4::from(0),
-                message: MidiMessage::NoteOn {
-                    key: u7::from(60),
-                    vel: u7::from(90),
-                },
-            },
-        },
-    ];
-    let header = Header {
-        timing: Timing::Metrical(u15::from(ticks_per_beat)),
-        format: Format::SingleTrack,
-    };
-    let tracks = vec![events];
-    let smf = Smf { header, tracks };
-    let mut mr = MidlyMidiReader::new(&smf).expect("No errors should occur now");
-    let observed = mr.next().expect("MidlyMidiReader should return one event.");
-    assert_eq!(observed.microseconds_since_previous_event, 1000000);
-    let observed = mr
-        .next()
-        .expect("MidlyMidiReader should return a second event.");
-    assert_eq!(observed.microseconds_since_previous_event, 1000000);
-    assert_eq!(mr.next(), None);
+struct TrackWriter<'a> {
+    track: Track<'a>,
+    ticks: u64,
+}
+
+impl<'a> TrackWriter<'a> {
+    pub fn new() -> Self {
+        TrackWriter {
+            track: Vec::new(),
+            ticks: 0,
+        }
+    }
+
+    pub fn push(&mut self, ticks: u64, kind: TrackEventKind<'a>) -> Result<(), TrackPushError> {
+        if self.ticks > ticks {
+            return Err(TrackPushError::TimingUnderflow);
+        }
+        let delta = ticks - self.ticks;
+        let delta = u28::try_from(u32::try_from(delta)?).ok_or(TrackPushError::TimingOverflow)?;
+        self.ticks += ticks;
+        Ok(self.track.push(TrackEvent { kind, delta: delta }))
+    }
+}
+
+pub fn split_tracks<'a, I>(
+    iterator: I,
+    number_of_tracks: usize,
+) -> Result<Vec<Track<'a>>, TrackWritingError>
+where
+    I: Iterator<Item = (u64, usize, TrackEventKind<'a>)>,
+{
+    use TrackWritingError::*;
+    let mut tracks = Vec::with_capacity(number_of_tracks);
+    for _ in 0..number_of_tracks {
+        tracks.push(TrackWriter::new());
+    }
+    for (timing, track_index, event) in iterator {
+        let track = tracks
+            .get_mut(track_index)
+            .ok_or(TrackIndexLargerThanNumberOfTracks {
+                track_index,
+                number_of_tracks,
+            })?;
+        track.push(timing, event)?;
+    }
+    Ok(tracks.into_iter().map(|t| t.track).collect())
 }

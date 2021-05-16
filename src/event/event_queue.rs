@@ -1,4 +1,5 @@
 #![deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
+#![allow(deprecated)]
 //! Queue events.
 use super::Timed;
 use crate::buffer::AudioBufferInOut;
@@ -11,7 +12,6 @@ use std::cmp::Ordering;
 use std::collections::vec_deque::{Drain, VecDeque};
 use std::iter::FusedIterator;
 use std::ops::{Deref, Index, IndexMut};
-#[cfg_attr(test, allow(deprecated))]
 
 /// A queue for timed events.
 #[deprecated(since = "0.1.2", note = "Use the `event_queue` crate instead.")]
