@@ -32,6 +32,42 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 /// The item has type `(u64, usize, TrackEventKind)`,
 /// where the first element of the triple is the timing of the index, in ticks,
 /// the second item of the triple is the track index and the last item is the event itself.
+///
+/// # Example
+/// ```
+/// fn track_event_kind_with_channel(channel: u8) -> TrackEventKind<'static> {
+///     TrackEventKind::Midi {
+///         channel: u4::new(channel),
+///         message: MidiMessage::NoteOn {
+///             key: u7::new(1),
+///             vel: u7::new(1),
+///         },
+///     }
+/// }
+/// fn track_event_with_delta_and_channel(delta: u32, channel: u8) -> TrackEvent<'static> {
+///     TrackEvent {
+///         delta: u28::new(delta),
+///         kind: track_event_kind_with_channel(channel),
+///     }
+/// }
+///
+/// let tracks = vec![
+///     vec![
+///         track_event_with_delta_and_channel(2, 0),
+///         track_event_with_delta_and_channel(100, 1),
+///     ],
+///     vec![track_event_with_delta_and_channel(30, 2)],
+/// ];
+/// let result: Vec<_> = merge_tracks(&tracks[..]).collect();
+/// assert_eq!(
+///     result,
+///     vec![
+///         (2, 0, track_event_kind_with_channel(0)),
+///         (30, 1, track_event_kind_with_channel(2)),
+///         (102, 0, track_event_kind_with_channel(1)),
+///     ]
+/// )
+/// ```
 pub fn merge_tracks<'a, 'b>(
     tracks: &'b [Track<'a>],
 ) -> impl Iterator<Item = (u64, usize, TrackEventKind<'a>)> + 'b
@@ -51,6 +87,42 @@ where
             result
         })
         .kmerge_by(|(t1, _, _), (t2, _, _)| t1 < t2)
+}
+
+#[test]
+fn merge_tracks_works() {
+    fn kind(channel: u8) -> TrackEventKind<'static> {
+        TrackEventKind::Midi {
+            channel: u4::new(channel),
+            message: MidiMessage::NoteOn {
+                key: u7::new(1),
+                vel: u7::new(1),
+            },
+        }
+    }
+    fn track_event(delta: u32, channel: u8) -> TrackEvent<'static> {
+        TrackEvent {
+            delta: u28::new(delta),
+            kind: kind(channel),
+        }
+    }
+
+    let tracks = vec![
+        vec![track_event(1, 0), track_event(2, 1), track_event(4, 2)],
+        vec![track_event(2, 3), track_event(2, 4), track_event(5, 5)],
+    ];
+    let result: Vec<_> = merge_tracks(&tracks[..]).collect();
+    assert_eq!(
+        result,
+        vec![
+            (1, 0, kind(0)),
+            (2, 1, kind(3)),
+            (3, 0, kind(1)),
+            (4, 1, kind(4)),
+            (7, 0, kind(2)),
+            (9, 1, kind(5))
+        ]
+    )
 }
 
 enum TrackPushError {
@@ -91,14 +163,14 @@ impl Display for TrackWritingError {
                 number_of_tracks,
             } => write!(
                 f,
-                "Track index ({}) is larger than the number of tracks ({})",
+                "track index ({}) is larger than the number of tracks ({})",
                 track_index, number_of_tracks
             ),
             TrackWritingError::TimingOverflow => {
-                write!(f, "The specified timing overflows what can be specified.")
+                write!(f, "the specified timing overflows what can be specified.")
             }
             TrackWritingError::TimingCanOnlyIncrease => {
-                write!(f, "Events with decreasing timing found.")
+                write!(f, "events with decreasing timing found.")
             }
         }
     }
