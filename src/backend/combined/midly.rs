@@ -35,6 +35,16 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 ///
 /// # Example
 /// ```
+/// use rsynth::backend::combined::midly::{
+///     merge_tracks,
+///     midly_0_5::{
+///         MidiMessage,
+///         TrackEvent,
+///         TrackEventKind,
+///         num::{u15, u4, u7, u28}
+///     }
+/// };
+///
 /// fn track_event_kind_with_channel(channel: u8) -> TrackEventKind<'static> {
 ///     TrackEventKind::Midi {
 ///         channel: u4::new(channel),
@@ -125,58 +135,36 @@ fn merge_tracks_works() {
     )
 }
 
-enum TrackPushError {
-    TimingUnderflow,
-    TimingOverflow,
-}
-
-impl From<TryFromIntError> for TrackPushError {
-    fn from(_: TryFromIntError) -> Self {
-        TrackPushError::TimingOverflow
-    }
-}
-
+/// The error returned by the [`separate_tracks`] function.
 #[derive(Debug)]
-pub enum TrackWritingError {
-    TrackIndexLargerThanNumberOfTracks {
-        track_index: usize,
-        number_of_tracks: usize,
-    },
-    TimingOverflow,
-    TimingCanOnlyIncrease,
+#[non_exhaustive]
+pub enum SeparateTracksError {
+    /// The specified time overflows what can be specified.
+    TimeOverflow,
+    /// Time decreased from one event to a next event.
+    TimeCanOnlyIncrease,
 }
 
-impl From<TrackPushError> for TrackWritingError {
-    fn from(tpe: TrackPushError) -> Self {
-        match tpe {
-            TrackPushError::TimingUnderflow => TrackWritingError::TimingCanOnlyIncrease,
-            TrackPushError::TimingOverflow => TrackWritingError::TimingOverflow,
-        }
+impl From<TryFromIntError> for SeparateTracksError {
+    fn from(_: TryFromIntError) -> Self {
+        SeparateTracksError::TimeOverflow
     }
 }
 
-impl Display for TrackWritingError {
+impl Display for SeparateTracksError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            TrackWritingError::TrackIndexLargerThanNumberOfTracks {
-                track_index,
-                number_of_tracks,
-            } => write!(
-                f,
-                "track index ({}) is larger than the number of tracks ({})",
-                track_index, number_of_tracks
-            ),
-            TrackWritingError::TimingOverflow => {
-                write!(f, "the specified timing overflows what can be specified.")
+            SeparateTracksError::TimeOverflow => {
+                write!(f, "the specified time overflows what can be specified.")
             }
-            TrackWritingError::TimingCanOnlyIncrease => {
-                write!(f, "events with decreasing timing found.")
+            SeparateTracksError::TimeCanOnlyIncrease => {
+                write!(f, "events with decreasing time found.")
             }
         }
     }
 }
 
-impl Error for TrackWritingError {
+impl Error for SeparateTracksError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
@@ -195,37 +183,74 @@ impl<'a> TrackWriter<'a> {
         }
     }
 
-    pub fn push(&mut self, ticks: u64, kind: TrackEventKind<'a>) -> Result<(), TrackPushError> {
+    pub fn push(
+        &mut self,
+        ticks: u64,
+        kind: TrackEventKind<'a>,
+    ) -> Result<(), SeparateTracksError> {
+        use SeparateTracksError::*;
         if self.ticks > ticks {
-            return Err(TrackPushError::TimingUnderflow);
+            return Err(TimeCanOnlyIncrease);
         }
-        let delta = ticks - self.ticks;
-        let delta = u28::try_from(u32::try_from(delta)?).ok_or(TrackPushError::TimingOverflow)?;
-        self.ticks += ticks;
+        let delta = dbg!(ticks) - dbg!(self.ticks);
+        let delta = u28::try_from(u32::try_from(delta)?).ok_or(TimeOverflow)?;
+        self.ticks = ticks;
         Ok(self.track.push(TrackEvent { kind, delta: delta }))
     }
 }
 
-pub fn split_tracks<'a, I>(
-    iterator: I,
-    number_of_tracks: usize,
-) -> Result<Vec<Track<'a>>, TrackWritingError>
+/// Create separate `Vec<Track>'s from an iterator of triples of type `(u64, usize, TrackEventKind)`,
+/// where
+/// * the first item of the triple (of type `u64`) is the absolute time in midi ticks,
+/// * the second item of the triple (of type `usize`) is the track index.
+///   The highest track index determines the length of the resulting `Vec`.
+/// * the last item of the triple is the event itself.
+pub fn separate_tracks<'a, I>(iterator: I) -> Result<Vec<Track<'a>>, SeparateTracksError>
 where
     I: Iterator<Item = (u64, usize, TrackEventKind<'a>)>,
 {
-    use TrackWritingError::*;
-    let mut tracks = Vec::with_capacity(number_of_tracks);
-    for _ in 0..number_of_tracks {
-        tracks.push(TrackWriter::new());
-    }
+    let mut tracks = Vec::new();
     for (timing, track_index, event) in iterator {
-        let track = tracks
-            .get_mut(track_index)
-            .ok_or(TrackIndexLargerThanNumberOfTracks {
-                track_index,
-                number_of_tracks,
-            })?;
-        track.push(timing, event)?;
+        for _ in tracks.len()..=track_index {
+            tracks.push(TrackWriter::new());
+        }
+        debug_assert!(tracks.len() >= track_index);
+        tracks[track_index].push(timing, event)?;
     }
     Ok(tracks.into_iter().map(|t| t.track).collect())
+}
+
+#[test]
+fn separate_tracks_works() {
+    fn kind(channel: u8) -> TrackEventKind<'static> {
+        TrackEventKind::Midi {
+            channel: u4::new(channel),
+            message: MidiMessage::NoteOn {
+                key: u7::new(1),
+                vel: u7::new(1),
+            },
+        }
+    }
+    fn track_event(delta: u32, channel: u8) -> TrackEvent<'static> {
+        TrackEvent {
+            delta: u28::new(delta),
+            kind: kind(channel),
+        }
+    }
+
+    let merged = vec![
+        (1_u64, 0_usize, kind(0)),
+        (2, 1, kind(3)),
+        (3, 0, kind(1)),
+        (4, 1, kind(4)),
+        (7, 0, kind(2)),
+        (9, 1, kind(5)),
+    ];
+
+    let expected = vec![
+        vec![track_event(1, 0), track_event(2, 1), track_event(4, 2)],
+        vec![track_event(2, 3), track_event(2, 4), track_event(5, 5)],
+    ];
+    let observed = separate_tracks(merged.into_iter()).unwrap();
+    assert_eq!(observed, expected)
 }
