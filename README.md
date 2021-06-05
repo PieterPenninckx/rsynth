@@ -52,6 +52,8 @@ Rather than trying to solve every problem (which is not feasible for the small t
 `rsynth` is designed to be easy to combine with other crates for specific tasks, such as
 * [`polyphony`](https://crates.io/crates/polyphony): the name says it all
 * [`wmidi`](https://crates.io/crates/wmidi): encode and decode midi messages in real-time
+* [`midi-consts`](https://crates.io/crates/midi-consts): constants for low-level handling of midi data
+* [`rtrb`](crates.io/crates/rtrb), a realtime-safe single-producer single-consumer ring buffer that can be used to communicate between threads.
 
 Background on the design can be found in the [design.md](design.md) document.
 
@@ -59,6 +61,9 @@ Background on the design can be found in the [design.md](design.md) document.
 There are full examples in 
 [the examples folder in the source code](https://github.com/PieterPenninckx/rsynth/tree/master/examples).
 
+## Applications and plugins using `rsynth`
+The following applications and plugins use `rsynth`:
+* [`print_chords`](https://crates.io/crates/print_chords), a stand-alone jack application that listens to a midi port and prints the chord names.
 
 ## Current State
 
