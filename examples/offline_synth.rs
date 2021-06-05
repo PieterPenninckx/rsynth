@@ -30,7 +30,7 @@ use rsynth::backend::combined::memory::wav_0_6::{read, write, BitDepth, Header};
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::memory::AudioBufferWriter;
 #[cfg(feature = "backend-combined-midly-0-5")]
-use rsynth::backend::combined::midly::{midly_0_5::Smf, MidlyMidiReader};
+use rsynth::backend::combined::midly::midly_0_5::Smf;
 #[cfg(feature = "backend-combined")]
 use rsynth::backend::combined::run;
 use rsynth::buffer::AudioChunk;
@@ -42,6 +42,7 @@ use std::{env, fs};
     feature = "backend-combined-wav-0-6"
 ))]
 fn main() {
+    /*
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         println!("Missing command line argument.");
@@ -94,6 +95,7 @@ fn main() {
         // Note: normally you will probably want to use a buffered writer.
         write(header, &track, &mut output_file).unwrap();
     }
+     */
 }
 
 #[cfg(not(all(

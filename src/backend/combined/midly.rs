@@ -135,6 +135,61 @@ fn merge_tracks_works() {
     )
 }
 
+pub struct ConvertTicksToMicroseconds {
+    time_stretcher: TimeStretcher,
+    ticks_per_beat: Option<NonZeroU64>,
+}
+
+impl ConvertTicksToMicroseconds {
+    fn ticks_to_microseconds(header: Header) -> Self {
+        let time_stretcher;
+        let ticks_per_beat;
+        match smf.header.timing {
+            Timing::Metrical(t) => {
+                let tpb = NonZeroU64::new(t.as_int() as u64).ok_or(())?;
+                // TODO: we should keep the ticks_per_beat in this case;
+                time_stretcher =
+                    TimeStretcher::new(MICROSECONDS_PER_MINUTE / DEFAULT_BEATS_PER_MINUTE, tpb);
+                ticks_per_beat = Some(tpb);
+            }
+            Timing::Timecode(Fps::Fps29, ticks_per_frame) => {
+                ticks_per_beat = None;
+                // Frames per second = 30 / 1.001 = 30000 / 1001
+                // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
+                time_stretcher = TimeStretcher::new(
+                    MICROSECONDS_PER_SECOND * 1001,
+                    NonZeroU64::new(30000 * (ticks_per_frame as u64)).ok_or(())?,
+                );
+            }
+            Timing::Timecode(fps, ticks_per_frame) => {
+                ticks_per_beat = None;
+                // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
+                time_stretcher = TimeStretcher::new(
+                    MICROSECONDS_PER_SECOND,
+                    NonZeroU64::new((fps.as_int() as u64) * (ticks_per_frame as u64)).ok_or(())?,
+                );
+            }
+        }
+        Self {
+            ticks_per_beat,
+            time_stretcher,
+        }
+    }
+
+    fn convert<'a>(&mut self, ticks: u64, event: &TrackEventKind<'a>) -> u64 {
+        let new_factor = if let Some(ticks_per_beat) = self.ticks_per_beat {
+            if let TrackEventKind::Meta(MetaMessage::Tempo(tempo)) = event {
+                Some((tempo.as_int() as u64, ticks_per_beat))
+            } else {
+                None
+            };
+        } else {
+            None
+        };
+        timestretcher.stretch(ticks, new_factor)
+    }
+}
+
 /// The error returned by the [`separate_tracks`] function.
 #[derive(Debug)]
 #[non_exhaustive]
