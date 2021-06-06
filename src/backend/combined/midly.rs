@@ -9,7 +9,7 @@ pub mod midly_0_5 {
 
 use self::midly_0_5::Timing;
 use self::midly_0_5::{
-    live::LiveEvent, num::u28, Arena, Header, MetaMessage, Track, TrackEvent, TrackEventKind,
+    live::LiveEvent, num::u28, Arena, Fps, Header, MetaMessage, Track, TrackEvent, TrackEventKind,
 };
 #[cfg(test)]
 use self::midly_0_5::{
@@ -135,18 +135,48 @@ fn merge_tracks_works() {
     )
 }
 
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum TimeConversionCreateError {
+    ZeroTicksPerBeatNotSupported,
+    ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported,
+}
+
+impl Display for TimeConversionCreateError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            TimeConversionCreateError::ZeroTicksPerBeatNotSupported => {
+                write!(f, "zero ticks per beat is not supported")
+            }
+            TimeConversionCreateError::ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported => {
+                write!(
+                    f,
+                    "zero frames per second and ticks per frame are not supported"
+                )
+            }
+        }
+    }
+}
+
+impl Error for TimeConversionCreateError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
 pub struct ConvertTicksToMicroseconds {
     time_stretcher: TimeStretcher,
     ticks_per_beat: Option<NonZeroU64>,
 }
 
 impl ConvertTicksToMicroseconds {
-    fn ticks_to_microseconds(header: Header) -> Self {
+    fn new(header: Header) -> Result<Self, TimeConversionCreateError> {
         let time_stretcher;
         let ticks_per_beat;
-        match smf.header.timing {
+        use TimeConversionCreateError::*;
+        match header.timing {
             Timing::Metrical(t) => {
-                let tpb = NonZeroU64::new(t.as_int() as u64).ok_or(())?;
+                let tpb = NonZeroU64::new(t.as_int() as u64).ok_or(ZeroTicksPerBeatNotSupported)?;
                 // TODO: we should keep the ticks_per_beat in this case;
                 time_stretcher =
                     TimeStretcher::new(MICROSECONDS_PER_MINUTE / DEFAULT_BEATS_PER_MINUTE, tpb);
@@ -158,7 +188,8 @@ impl ConvertTicksToMicroseconds {
                 // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
                 time_stretcher = TimeStretcher::new(
                     MICROSECONDS_PER_SECOND * 1001,
-                    NonZeroU64::new(30000 * (ticks_per_frame as u64)).ok_or(())?,
+                    NonZeroU64::new(30000 * (ticks_per_frame as u64))
+                        .ok_or(ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported)?,
                 );
             }
             Timing::Timecode(fps, ticks_per_frame) => {
@@ -166,14 +197,15 @@ impl ConvertTicksToMicroseconds {
                 // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
                 time_stretcher = TimeStretcher::new(
                     MICROSECONDS_PER_SECOND,
-                    NonZeroU64::new((fps.as_int() as u64) * (ticks_per_frame as u64)).ok_or(())?,
+                    NonZeroU64::new((fps.as_int() as u64) * (ticks_per_frame as u64))
+                        .ok_or(ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported)?,
                 );
             }
         }
-        Self {
+        Ok(Self {
             ticks_per_beat,
             time_stretcher,
-        }
+        })
     }
 
     fn convert<'a>(&mut self, ticks: u64, event: &TrackEventKind<'a>) -> u64 {
@@ -182,12 +214,52 @@ impl ConvertTicksToMicroseconds {
                 Some((tempo.as_int() as u64, ticks_per_beat))
             } else {
                 None
-            };
+            }
         } else {
             None
         };
-        timestretcher.stretch(ticks, new_factor)
+        self.time_stretcher.stretch(ticks, new_factor)
     }
+}
+
+#[test]
+pub fn convert_ticks_to_microsoconds_works_with_one_event() {
+    // 120 beats per minute
+    // = 120 beats per 60 seconds
+    // = 120 beats per 60 000 000 microseconds
+    // so the tempo is
+    //   60 000 000 / 120 microseconds per beat
+    //   = 10 000 000 / 20 microseconds per beat
+    //   =    500 000 microseconds per beat
+    let tempo_in_microseconds_per_beat = 500000;
+    let ticks_per_beat = 32;
+    // One event after 1 second.
+    // One second corresponds to two beats, so to 64 ticks.
+    let event_time_in_ticks: u64 = 64;
+    let header = Header {
+        timing: Timing::Metrical(u15::from(ticks_per_beat)),
+        format: Format::SingleTrack,
+    };
+    let mut converter =
+        ConvertTicksToMicroseconds::new(header).expect("No error expected at this point.");
+    let milliseconds = converter.convert(
+        0,
+        &TrackEventKind::Meta(MetaMessage::Tempo(u24::from(
+            tempo_in_microseconds_per_beat,
+        ))),
+    );
+    assert_eq!(milliseconds, 0);
+    let milliseconds = converter.convert(
+        event_time_in_ticks,
+        &TrackEventKind::Midi {
+            channel: u4::from(0),
+            message: MidiMessage::NoteOn {
+                key: u7::from(60),
+                vel: u7::from(90),
+            },
+        },
+    );
+    assert_eq!(milliseconds, 1000000);
 }
 
 /// The error returned by the [`separate_tracks`] function.

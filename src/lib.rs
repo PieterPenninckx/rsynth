@@ -193,6 +193,7 @@
 //! [`fill_buffer`]: ./backend/combined/trait.AudioReader.html#tymethod.fill_buffer
 //! [`AudioReader`]: ./backend/combined/trait.AudioReader.html
 
+#![deny(non_snake_case)]
 #[macro_use]
 extern crate log;
 

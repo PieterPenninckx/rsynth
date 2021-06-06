@@ -109,7 +109,7 @@ where
 pub type AudioBufferReader<'b, S> = AudioChunkReader<S, &'b AudioChunk<S>>;
 
 #[cfg(test)]
-mod AudioBufferReaderTests {
+mod audio_buffer_reader_tests {
     mod fill_buffer {
         use super::super::super::AudioReader;
         use super::super::AudioBufferReader;
