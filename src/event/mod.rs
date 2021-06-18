@@ -435,9 +435,13 @@ impl TimeStretcher {
     /// Stretch the input time by the factor `nominator/denominator`.
     ///
     /// # Parameters
-    /// `input_time`: the time to be stretched
+    /// `input_time`: the absolute time to be stretched. It is assumed that this only increases
+    ///     with subsequent calls to this method.
     /// `new_speed`: if this contains `Some((nominator, denominator))`, future times will
     /// be stretched by the new factor `nominator/denominator`.
+    ///
+    /// # Returns
+    /// The absolute output time.
     pub fn stretch(
         &mut self,
         absolute_input_time: u64,

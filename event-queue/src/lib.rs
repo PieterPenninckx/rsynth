@@ -99,6 +99,9 @@ impl<T, E> EventQueue<T, E> {
     /// Queue a new event.
     /// When the buffer is full, an element may be removed from the queue to make some room.
     /// This element is returned.
+    ///
+    /// # Parameters
+    /// (new_time, new_event): the new time, absolute time, to be added and the new event to be added
     pub fn queue_event<H>(
         &mut self,
         (new_time, new_event): (T, E),

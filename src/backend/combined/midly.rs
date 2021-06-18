@@ -22,6 +22,7 @@ use midi_consts::channel_event::NOTE_ON;
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::iter::FromIterator;
 use std::num::{NonZeroU64, TryFromIntError};
 
 const SECONDS_PER_MINUTE: u64 = 60;
@@ -30,7 +31,8 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 
 /// Create an iterator over all the tracks, merged.
 /// The item has type `(u64, usize, TrackEventKind)`,
-/// where the first element of the triple is the timing of the index, in ticks,
+/// where the first element of the triple is the timing of the event relative to the beginning
+/// of the tracks, in ticks,
 /// the second item of the triple is the track index and the last item is the event itself.
 ///
 /// # Example
@@ -45,36 +47,41 @@ const DEFAULT_BEATS_PER_MINUTE: u64 = 120;
 ///     }
 /// };
 ///
-/// fn track_event_kind_with_channel(channel: u8) -> TrackEventKind<'static> {
-///     TrackEventKind::Midi {
-///         channel: u4::new(channel),
-///         message: MidiMessage::NoteOn {
-///             key: u7::new(1),
-///             vel: u7::new(1),
-///         },
-///     }
+/// // Create a note on event with the given channel
+/// fn note_on_with_channel(channel: u8) -> TrackEventKind<'static> {
+///     // ...
+/// #     TrackEventKind::Midi {
+/// #         channel: u4::new(channel),
+/// #         message: MidiMessage::NoteOn {
+/// #             key: u7::new(1),
+/// #             vel: u7::new(1),
+/// #         },
+/// #     }
 /// }
-/// fn track_event_with_delta_and_channel(delta: u32, channel: u8) -> TrackEvent<'static> {
-///     TrackEvent {
-///         delta: u28::new(delta),
-///         kind: track_event_kind_with_channel(channel),
-///     }
+///
+/// // Create a note on event with the given delta and channel.
+/// fn note_on_with_delta_and_channel(delta: u32, channel: u8) -> TrackEvent<'static> {
+///     // ...
+/// #     TrackEvent {
+/// #        delta: u28::new(delta),
+/// #        kind: note_on_with_channel(channel),
+/// #    }
 /// }
 ///
 /// let tracks = vec![
 ///     vec![
-///         track_event_with_delta_and_channel(2, 0),
-///         track_event_with_delta_and_channel(100, 1),
+///         note_on_with_delta_and_channel(2, 0),
+///         note_on_with_delta_and_channel(100, 1),
 ///     ],
-///     vec![track_event_with_delta_and_channel(30, 2)],
+///     vec![note_on_with_delta_and_channel(30, 2)],
 /// ];
 /// let result: Vec<_> = merge_tracks(&tracks[..]).collect();
 /// assert_eq!(
 ///     result,
 ///     vec![
-///         (2, 0, track_event_kind_with_channel(0)),
-///         (30, 1, track_event_kind_with_channel(2)),
-///         (102, 0, track_event_kind_with_channel(1)),
+///         (2, 0, note_on_with_channel(0)),
+///         (30, 1, note_on_with_channel(2)),
+///         (102, 0, note_on_with_channel(1)),
 ///     ]
 /// )
 /// ```
@@ -135,11 +142,15 @@ fn merge_tracks_works() {
     )
 }
 
+pub struct TrackMerger {}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum TimeConversionCreateError {
+    /// The header indicates that there are zero ticks per beat.
     ZeroTicksPerBeatNotSupported,
-    ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported,
+    /// The header indicates that there are zero ticks per frame.
+    ZeroTicksPerFrameNotSupported,
 }
 
 impl Display for TimeConversionCreateError {
@@ -148,11 +159,8 @@ impl Display for TimeConversionCreateError {
             TimeConversionCreateError::ZeroTicksPerBeatNotSupported => {
                 write!(f, "zero ticks per beat is not supported")
             }
-            TimeConversionCreateError::ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported => {
-                write!(
-                    f,
-                    "zero frames per second and ticks per frame are not supported"
-                )
+            TimeConversionCreateError::ZeroTicksPerFrameNotSupported => {
+                write!(f, "zero ticks per frame is not supported")
             }
         }
     }
@@ -164,42 +172,46 @@ impl Error for TimeConversionCreateError {
     }
 }
 
+/// Convert timings of [`TrackEventKind`] from ticks to microseconds.
 pub struct ConvertTicksToMicroseconds {
     time_stretcher: TimeStretcher,
     ticks_per_beat: Option<NonZeroU64>,
 }
 
 impl ConvertTicksToMicroseconds {
-    fn new(header: Header) -> Result<Self, TimeConversionCreateError> {
+    /// Create a new `ConvertTicksToMicrosecond` with the given header.
+    ///
+    /// The parameter `header` is used to determine the meaning of "tick", since this is stored
+    /// in the header in a midi file.  
+    pub fn new(header: Header) -> Result<Self, TimeConversionCreateError> {
         let time_stretcher;
         let ticks_per_beat;
         use TimeConversionCreateError::*;
         match header.timing {
             Timing::Metrical(t) => {
                 let tpb = NonZeroU64::new(t.as_int() as u64).ok_or(ZeroTicksPerBeatNotSupported)?;
-                // TODO: we should keep the ticks_per_beat in this case;
                 time_stretcher =
                     TimeStretcher::new(MICROSECONDS_PER_MINUTE / DEFAULT_BEATS_PER_MINUTE, tpb);
                 ticks_per_beat = Some(tpb);
             }
             Timing::Timecode(Fps::Fps29, ticks_per_frame) => {
-                ticks_per_beat = None;
                 // Frames per second = 30 / 1.001 = 30000 / 1001
                 // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
                 time_stretcher = TimeStretcher::new(
                     MICROSECONDS_PER_SECOND * 1001,
-                    NonZeroU64::new(30000 * (ticks_per_frame as u64))
-                        .ok_or(ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported)?,
+                    NonZeroU64::new((ticks_per_frame as u64) * 30000)
+                        .ok_or(ZeroTicksPerFrameNotSupported)?,
                 );
+                ticks_per_beat = None;
             }
             Timing::Timecode(fps, ticks_per_frame) => {
-                ticks_per_beat = None;
                 // microseconds = ticks * microseconds_per_second / (ticks_per_frame * frames_per_second) ;
                 time_stretcher = TimeStretcher::new(
                     MICROSECONDS_PER_SECOND,
                     NonZeroU64::new((fps.as_int() as u64) * (ticks_per_frame as u64))
-                        .ok_or(ZeroFramesPerSecondAndZeroTicksPerFrameNotSupported)?,
+                        .ok_or(ZeroTicksPerFrameNotSupported)?,
                 );
+                ticks_per_beat = None;
             }
         }
         Ok(Self {
@@ -208,7 +220,16 @@ impl ConvertTicksToMicroseconds {
         })
     }
 
-    fn convert<'a>(&mut self, ticks: u64, event: &TrackEventKind<'a>) -> u64 {
+    /// Return the time of the event, in microseconds, relative to the beginning of the track.
+    ///
+    /// # Parameters
+    /// `ticks`: the absolute time, in ticks, relative to the beginning of the track.
+    /// It is assumed that this only increases with subsequent calls to this method.
+    /// `event`: the event.
+    ///
+    /// # Return value
+    /// The absolute time, in microseconds, relative to the beginning of the track.
+    pub fn convert<'a>(&mut self, ticks: u64, event: &TrackEventKind<'a>) -> u64 {
         let new_factor = if let Some(ticks_per_beat) = self.ticks_per_beat {
             if let TrackEventKind::Meta(MetaMessage::Tempo(tempo)) = event {
                 Some((tempo.as_int() as u64, ticks_per_beat))
@@ -282,10 +303,13 @@ impl Display for SeparateTracksError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             SeparateTracksError::TimeOverflow => {
-                write!(f, "the specified time overflows what can be specified.")
+                write!(
+                    f,
+                    "the time overflows what can be represented in a midi file."
+                )
             }
             SeparateTracksError::TimeCanOnlyIncrease => {
-                write!(f, "events with decreasing time found.")
+                write!(f, "subsequent events with decreasing time found.")
             }
         }
     }
@@ -297,87 +321,211 @@ impl Error for SeparateTracksError {
     }
 }
 
+/// Write to a track, keeping ... well, keeping "track" of the timing relative to the beginning.
+#[derive(Clone)]
 struct TrackWriter<'a> {
     track: Track<'a>,
     ticks: u64,
 }
 
 impl<'a> TrackWriter<'a> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         TrackWriter {
             track: Vec::new(),
             ticks: 0,
         }
     }
 
-    pub fn push(
-        &mut self,
-        ticks: u64,
-        kind: TrackEventKind<'a>,
-    ) -> Result<(), SeparateTracksError> {
+    fn push(&mut self, ticks: u64, kind: TrackEventKind<'a>) -> Result<(), SeparateTracksError> {
         use SeparateTracksError::*;
         if self.ticks > ticks {
             return Err(TimeCanOnlyIncrease);
         }
-        let delta = dbg!(ticks) - dbg!(self.ticks);
+        let delta = ticks - self.ticks;
         let delta = u28::try_from(u32::try_from(delta)?).ok_or(TimeOverflow)?;
         self.ticks = ticks;
-        Ok(self.track.push(TrackEvent { kind, delta: delta }))
+        Ok(self.track.push(TrackEvent { kind, delta }))
     }
 }
 
-/// Create separate `Vec<Track>'s from an iterator of triples of type `(u64, usize, TrackEventKind)`,
-/// where
-/// * the first item of the triple (of type `u64`) is the absolute time in midi ticks,
-/// * the second item of the triple (of type `usize`) is the track index.
-///   The highest track index determines the length of the resulting `Vec`.
-/// * the last item of the triple is the event itself.
-pub fn separate_tracks<'a, I>(iterator: I) -> Result<Vec<Track<'a>>, SeparateTracksError>
-where
-    I: Iterator<Item = (u64, usize, TrackEventKind<'a>)>,
-{
-    let mut tracks = Vec::new();
-    for (timing, track_index, event) in iterator {
-        for _ in tracks.len()..=track_index {
-            tracks.push(TrackWriter::new());
-        }
-        debug_assert!(tracks.len() >= track_index);
-        tracks[track_index].push(timing, event)?;
-    }
-    Ok(tracks.into_iter().map(|t| t.track).collect())
+/// Separate tracks.
+pub struct TrackSeparator<'a> {
+    tracks: Vec<TrackWriter<'a>>,
 }
 
-#[test]
-fn separate_tracks_works() {
-    fn kind(channel: u8) -> TrackEventKind<'static> {
-        TrackEventKind::Midi {
-            channel: u4::new(channel),
-            message: MidiMessage::NoteOn {
-                key: u7::new(1),
-                vel: u7::new(1),
-            },
-        }
-    }
-    fn track_event(delta: u32, channel: u8) -> TrackEvent<'static> {
-        TrackEvent {
-            delta: u28::new(delta),
-            kind: kind(channel),
-        }
+impl<'a> TrackSeparator<'a> {
+    /// Create a new `TrackSeparator`.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::backend::combined::midly::TrackSeparator;
+    /// let track_separator = TrackSeparator::new();
+    /// let tracks : Vec<_> = track_separator.collect();
+    /// assert!(tracks.is_empty());
+    /// ```
+    #[inline]
+    pub fn new() -> Self {
+        TrackSeparator { tracks: Vec::new() }
     }
 
-    let merged = vec![
-        (1_u64, 0_usize, kind(0)),
-        (2, 1, kind(3)),
-        (3, 0, kind(1)),
-        (4, 1, kind(4)),
-        (7, 0, kind(2)),
-        (9, 1, kind(5)),
-    ];
+    /// Create a new `TrackSeparator` from the elements of the given iterator.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::backend::combined::midly::TrackSeparator;
+    /// use rsynth::backend::combined::midly::midly_0_5::{TrackEventKind, TrackEvent};
+    /// # use rsynth::backend::combined::midly::midly_0_5::{MidiMessage, num::{u4, u7, u28}};
+    ///
+    /// fn note_on_with_channel(channel: u8) -> TrackEventKind<'static> {
+    ///     // ...
+    /// #    TrackEventKind::Midi {
+    /// #        channel: u4::new(channel),
+    /// #        message: MidiMessage::NoteOn {
+    /// #            key: u7::new(1),
+    /// #            vel: u7::new(1),
+    /// #        },
+    /// #    }
+    /// }
+    ///
+    /// fn note_on_with_channel_and_delta_time(delta: u32, channel: u8) -> TrackEvent<'static> {
+    ///     // ...
+    /// #    TrackEvent {
+    /// #        delta: u28::new(delta),
+    /// #        kind: note_on_with_channel(channel),
+    /// #    }
+    /// }
+    ///
+    /// let events : Vec<(u64, usize, _)>= vec![
+    ///     (1, 0, note_on_with_channel(0)),
+    ///     (2, 1, note_on_with_channel(3)),
+    ///     (3, 0, note_on_with_channel(1)),
+    ///     (4, 1, note_on_with_channel(4)),
+    ///     (7, 0, note_on_with_channel(2)),
+    ///     (9, 1, note_on_with_channel(5)),
+    /// ];
+    ///
+    /// let separated : Vec<_> = TrackSeparator::from_iterator(events.into_iter())
+    ///     .expect("No error should occur here.")
+    ///     .collect();
+    ///
+    /// assert_eq!(
+    ///     separated,
+    ///     vec![
+    ///         vec![
+    ///             note_on_with_channel_and_delta_time(1, 0),
+    ///             note_on_with_channel_and_delta_time(2, 1),
+    ///             note_on_with_channel_and_delta_time(4, 2)
+    ///         ],
+    ///         vec![
+    ///             note_on_with_channel_and_delta_time(2, 3),
+    ///             note_on_with_channel_and_delta_time(2, 4),
+    ///             note_on_with_channel_and_delta_time(5, 5)
+    ///         ],
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    pub fn from_iterator<I>(iterator: I) -> Result<Self, SeparateTracksError>
+    where
+        I: Iterator<Item = (u64, usize, TrackEventKind<'a>)>,
+    {
+        let mut result = TrackSeparator::new();
+        result.extend(iterator)?;
+        Ok(result)
+    }
 
-    let expected = vec![
-        vec![track_event(1, 0), track_event(2, 1), track_event(4, 2)],
-        vec![track_event(2, 3), track_event(2, 4), track_event(5, 5)],
-    ];
-    let observed = separate_tracks(merged.into_iter()).unwrap();
-    assert_eq!(observed, expected)
+    /// Push a new event.
+    ///
+    /// # Parameters
+    /// * `ticks`: the time in midi ticks, relative to the beginning
+    ///   of the tracks
+    /// * `track_index`: the index of the track to which the event belongs
+    /// * `event`: the event
+    ///
+    /// Create a new `TrackSeparator`.
+    ///
+    /// # Example
+    /// ```
+    /// use rsynth::backend::combined::midly::TrackSeparator;
+    /// use rsynth::backend::combined::midly::midly_0_5::{TrackEventKind, TrackEvent};
+    /// # use rsynth::backend::combined::midly::{
+    /// #     midly_0_5::{
+    /// #         MidiMessage,
+    /// #         num::{u4, u7, u28}
+    /// #     }
+    /// # };
+    ///
+    /// // Create a note on event with the given channel
+    /// fn note_on_with_channel(channel: u8) -> TrackEventKind<'static> {
+    ///     // ...
+    /// #     TrackEventKind::Midi {
+    /// #         channel: u4::new(channel),
+    /// #         message: MidiMessage::NoteOn {
+    /// #             key: u7::new(1),
+    /// #             vel: u7::new(1),
+    /// #         },
+    /// #     }
+    /// }
+    ///
+    /// // Create a note on event with the given delta and channel.
+    /// fn note_on_with_delta_and_channel(delta: u32, channel: u8) -> TrackEvent<'static> {
+    ///     // ...
+    /// #     TrackEvent {
+    /// #        delta: u28::new(delta),
+    /// #        kind: note_on_with_channel(channel),
+    /// #    }
+    /// }
+    /// let mut track_separator = TrackSeparator::new();
+    /// track_separator.push(5, 0, note_on_with_channel(0));
+    /// track_separator.push(0, 1, note_on_with_channel(1));
+    /// track_separator.push(10, 0, note_on_with_channel(2));
+    /// let tracks : Vec<_> = track_separator.collect();
+    /// assert_eq!(tracks.len(), 2);
+    /// assert_eq!(
+    ///             tracks[0],
+    ///             vec![
+    ///                 note_on_with_delta_and_channel(5, 0),
+    ///                 note_on_with_delta_and_channel(5, 2)
+    ///             ]
+    /// );
+    /// assert_eq!(tracks[1], vec![note_on_with_delta_and_channel(0, 1)]);
+    /// ```
+    #[inline]
+    pub fn push(
+        &mut self,
+        ticks: u64,
+        track_index: usize,
+        event: TrackEventKind<'a>,
+    ) -> Result<(), SeparateTracksError> {
+        if self.tracks.len() <= track_index {
+            self.tracks.resize(track_index + 1, TrackWriter::new());
+        }
+        self.tracks[track_index].push(ticks, event)
+    }
+
+    /// Append all events from an iterator of triples of type `(u64, usize, TrackEventKind)`,
+    /// where
+    /// * the first item of the triple (of type `u64`) is the time in midi ticks, relative to the beginning
+    ///   of the tracks
+    /// * the second item of the triple (of type `usize`) is the track index.
+    ///   The highest track index determines the length of the resulting `Vec`.
+    /// * the last item of the triple is the event itself.
+    #[inline]
+    pub fn extend<I>(&mut self, iterator: I) -> Result<(), SeparateTracksError>
+    where
+        I: Iterator<Item = (u64, usize, TrackEventKind<'a>)>,
+    {
+        for (ticks, track_index, event) in iterator {
+            self.push(ticks, track_index, event)?
+        }
+        Ok(())
+    }
+
+    /// Create a collection containing all the tracks.
+    pub fn collect<B>(self) -> B
+    where
+        B: FromIterator<Track<'a>>,
+    {
+        self.tracks.into_iter().map(|t| t.track).collect()
+    }
 }
