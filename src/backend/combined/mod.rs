@@ -110,14 +110,7 @@ where
     /// Return the number of channels. This method is only called if `specifies_number_of_channels`
     /// returns `true`.
     /// This method should always return the same number.
-    ///
-    /// _Note_: this method has a default implementation that returns `0`.
-    /// This default implementation will disappear in a future version of `rsynth` and then
-    /// implementors have to specify the number of channels.
-    fn number_of_channels(&self) -> usize {
-        // TODO: remove this default implementation.
-        0
-    }
+    fn number_of_channels(&self) -> usize;
 }
 
 pub const MICROSECONDS_PER_SECOND: u64 = 1_000_000;
