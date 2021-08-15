@@ -2,7 +2,7 @@
 
 An API abstraction for API's for audio plugins and applications.
 Use it to write real-time audio effects, software synthesizers, ... and target different platforms
-(vst, jack, ...).
+(jack, ...).
 It is currently most suitable for real-time or "streaming" audio processing.
 E.g. you cannot use it to reverse audio in time.
 
@@ -12,32 +12,30 @@ We focus on API's that are typically used for audio effects and software synthes
 If you want to "just" play audio on various platforms, [cpal](https://crates.io/crates/cpal) may
 be better suited for you.
 
-| feature |  VST 2.4 via [`vst-rs`]      | Jack via [`jack`] | Offline audio rendering |
-|---------|:------------------------------:|:-----------------:|:-----------------------:|
-| Full duplex audio input and output |  ✓  |        ✓          |           ✓             |
-| Midi input                         |  ✓  |        ✓          |           ✓             |
-| Midi output                        | N/A |        ✓          |           ✘             |
-| Sample accurate midi               | N/A |        ✓          |           ✓             |
-| Multiple midi inputs and outputs   | N/A |        ✓          |           ✘             |
-| Sampling frequency change          |  ✓  |        ✘          |          N/A            |
-| Signal stopping the application    | N/A |        ✓          |           ✓             |
-| Jack-specific events               | N/A |        ✘          |          N/A            |
-| Basic meta-data                    |  ✓  |        ✓          |          N/A            |
-| Access to the underlying host      |  ✓  |        ✓          |          N/A            |
-| Parameter changes                  |  ✘  |        ✘          |           ✘             |
-| GUI support                        |  ✘  |        ✘          |           ✘             |
+| feature           |  Jack via [`jack`] | Offline audio rendering |
+|-------------------|:------------------:|:-----------------------:|
+| Full duplex audio input and output | ✓ |           ✓             |
+| Midi input                         | ✓ |           ✓             |
+| Midi output                        | ✓ |           ✘             |
+| Sample accurate midi               | ✓ |           ✓             |
+| Multiple midi inputs and outputs   | ✓ |           ✘             |
+| Sampling frequency change          | ✘ |          N/A            |
+| Signal stopping the application    | ✓ |           ✓             |
+| Jack-specific events               | ✘ |          N/A            |
+| Basic meta-data                    | ✓ |          N/A            |
+| Access to the underlying host      | ✓ |          N/A            |
+| Parameter changes                  | ✘ |           ✘             |
+| GUI support                        | ✘ |           ✘             |
 
 ### Feature flags
 
 Many features are behind feature flags: 
-* `all`: all the features below
-  * `backend-jack`: create standalone `jack` applications.
-  * `backend-vst`: create VST 2.4 plugins.
-  * `backend-combined-all`: all the "combined" backends for offline processing and testing. This always include in-memory dummy and testing backends.
-    * `backend-combined-hound`: read and write `.wav` files with the `hound` crate
-    * `backend-combined-wav-0-6`: read and write `.wav` files with the `wav` crate
-    * `backend-combined-midly-0-5`: read and write `.mid` files with the `midly` crate 
-  * `rsor-0-1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
+* `backend-jack`: create standalone `jack` applications.
+* `backend-combined-all`: all the "combined" backends for offline processing and testing. This always include in-memory dummy and testing backends.
+  * `backend-combined-hound`: read and write `.wav` files with the `hound` crate
+  * `backend-combined-wav-0-6`: read and write `.wav` files with the `wav` crate
+  * `backend-combined-midly-0-5`: read and write `.mid` files with the `midly` crate 
+* `rsor-0-1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
 
 ## Documentation
 
@@ -98,5 +96,4 @@ to comply with the license of that crate as well. In particular, the following o
 * the `hound` crate (behind the `backend-combined-hound` feature) uses the Apache license, see [its readme](https://github.com/ruuda/hound#license) for more details
 * the `wav` crate (behind the `backend-combined-wav` feature) uses the LGPL license
 
-[`vst-rs`]: https://github.com/RustAudio/vst-rs
 [`jack`]:https://crates.io/crates/jack
