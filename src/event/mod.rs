@@ -24,8 +24,6 @@ use std::convert::{AsMut, AsRef, TryFrom};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
 
-pub mod event_queue;
-
 /// The trait that plugins should implement in order to handle the given type of events.
 ///
 /// The type parameter `E` corresponds to the type of the event.

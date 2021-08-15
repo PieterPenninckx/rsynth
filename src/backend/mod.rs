@@ -30,8 +30,6 @@
 pub mod combined;
 #[cfg(feature = "backend-jack")]
 pub mod jack_backend;
-#[cfg(feature = "backend-vst")]
-pub mod vst_backend;
 
 /// Defines an interface for communicating with the host or server of the backend,
 /// e.g. the VST host when using VST or the  Jack server when using Jack.

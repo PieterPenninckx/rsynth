@@ -203,11 +203,9 @@ use std::fmt::{Error, Write};
 #[macro_use]
 pub mod buffer;
 pub mod backend;
-pub mod envelope;
 pub mod event;
 pub mod meta;
 pub mod test_utilities;
-pub mod utilities;
 
 /// Re-exports from the [`vecstorage`](https://crates.io/crates/vecstorage) crate.
 pub mod vecstorage {
@@ -314,19 +312,7 @@ where
 /// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonPluginMeta {
     /// The name of the plugin or application.
-    ///
-    #[deprecated(since = "0.1.2", note = "Use or implement `plugin_name` instead.")]
-    fn name(&self) -> &str {
-        "plugin_or_application"
-    }
-
-    /// The name of the plugin or application.
-    ///
-    /// # Compatibility note
-    /// The default implementation of this method will likely be removed in a future release.
-    fn plugin_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error> {
-        buffer.write_str(self.name())
-    }
+    fn plugin_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error>;
 }
 
 /// Provides some meta-data of the audio-ports used by the plugin or application to the host.
@@ -334,22 +320,6 @@ pub trait CommonPluginMeta {
 ///
 /// [`Meta`]: ./meta/trait.Meta.html
 pub trait CommonAudioPortMeta: AudioHandlerMeta {
-    /// The name of the audio input with the given index.
-    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].
-    ///
-    /// # Note
-    /// When using the Jack backend, this function should not return an empty string.
-    ///
-    /// [`Self::max_number_of_audio_inputs()`]: trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_inputs
-    #[deprecated(since = "0.1.2", note = "Use or implement `input_name` instead.")]
-    fn audio_input_name(&self, index: usize) -> String {
-        let mut result = String::new();
-        match self.input_name(&mut result, index) {
-            Ok(_) => result,
-            Err(_) => format!("audio in {}", index),
-        }
-    }
-
     /// The name of the audio input with the given index.
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_inputs()`].
     ///
@@ -363,22 +333,6 @@ pub trait CommonAudioPortMeta: AudioHandlerMeta {
         index: usize,
     ) -> Result<(), std::fmt::Error> {
         write!(buffer, "audio in {}", index)
-    }
-
-    /// The name of the audio output with the given index.
-    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_audio_outputs()`].
-    ///
-    /// # Note
-    /// When using the Jack backend, this function should not return an empty string.
-    ///
-    /// [`Self::max_number_of_audio_outputs()`]: ./trait.AudioHandlerMeta.html#tymethod.max_number_of_audio_outputs
-    #[deprecated(since = "0.1.2", note = "Use or implement `output_name` instead.")]
-    fn audio_output_name(&self, index: usize) -> String {
-        let mut result = String::new();
-        match self.output_name(&mut result, index) {
-            Ok(_) => result,
-            Err(_) => format!("audio out {}", index),
-        }
     }
 
     /// The name of the audio output with the given index.
@@ -406,25 +360,6 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
     /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].
     ///
     /// # Note
-    /// When using the Jack backend, this function should not return an empty string.
-    ///
-    /// # Note
-    /// The default implementation of this method uses `input_name`.
-    ///
-    /// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs
-    #[deprecated(since = "0.1.2", note = "Use or implement `input_name` instead.")]
-    fn midi_input_name(&self, index: usize) -> String {
-        let mut result = String::new();
-        match self.input_name(&mut result, index) {
-            Ok(_) => result,
-            Err(_) => format!("midi in {}", index),
-        }
-    }
-
-    /// The name of the midi input with the given index.
-    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_inputs()`].
-    ///
-    /// # Note
     /// When using the Jack backend, the name should not be an empty string.
     ///
     /// [`Self::max_number_of_midi_inputs()`]: trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_inputs
@@ -434,22 +369,6 @@ pub trait CommonMidiPortMeta: MidiHandlerMeta {
         index: usize,
     ) -> Result<(), std::fmt::Error> {
         write!(buffer, "midi in {}", index)
-    }
-
-    /// The name of the midi output with the given index.
-    /// You can assume that `index` is strictly smaller than [`Self::max_number_of_midi_outputs()`]
-    ///
-    /// # Note
-    /// When using the Jack backend, this function should not return an empty string.
-    ///
-    /// [`Self::max_number_of_midi_outputs()`]: ./trait.MidiHandlerMeta.html#tymethod.max_number_of_midi_outputs
-    #[deprecated(since = "0.1.2", note = "Use or implement `output_name` instead.")]
-    fn midi_output_name(&self, index: usize) -> String {
-        let mut result = String::new();
-        match self.output_name(&mut result, index) {
-            Ok(_) => result,
-            Err(_) => format!("midi out {}", index),
-        }
     }
 
     /// The name of the midi output with the given index.
@@ -474,10 +393,6 @@ where
     T::MetaData: General,
     <<T as Meta>::MetaData as General>::GeneralData: Name,
 {
-    fn name(&self) -> &str {
-        self.meta().general().name()
-    }
-
     fn plugin_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
         self.meta().general().write_name(buffer)
     }

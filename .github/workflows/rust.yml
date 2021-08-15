@@ -21,17 +21,13 @@ jobs:
     - name: install libjack-dev
       run: sudo apt-get install libjack-dev
     - name: Build
-      run: cargo build --verbose --features all
+      run: cargo build --verbose --all-features
     - name: Run tests
-      run: cargo test --verbose --features all
+      run: cargo test --verbose --all-features
     - name: Check rsor
       run: cargo check --tests --examples --features rsor-0-1
-    - name: Check jack 0.6.2
-      run: cargo update -p jack --precise 0.6.2; cargo check --tests --examples --features backend-jack
-    - name: Check jack 0.7.0
-      run: cargo update -p jack --precise 0.7.0; cargo check --tests --examples --features backend-jack
-    - name: Check vst
-      run: cargo check --tests --examples --features backend-vst
+    - name: Check jack
+      run: cargo check --tests --examples --features backend-jack
     - name: Check hound
       run: cargo check --tests --examples --features backend-combined-hound
     - name: Check wav 0.6

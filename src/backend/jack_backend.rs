@@ -387,7 +387,9 @@ where
     for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
-    let (client, _status) = Client::new(plugin.name(), ClientOptions::NO_START_SERVER)?;
+    let mut client_name = String::new();
+    plugin.plugin_name(&mut client_name);
+    let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);

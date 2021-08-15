@@ -13,10 +13,7 @@ categories = ["multimedia::audio"]
 exclude = [".github/"]
 
 [features]
-default = ["all"]
-all = ["backend-jack", "backend-vst", "backend-combined-all", "rsor-0-1"]
 backend-jack = ["jack"]
-backend-vst = ["vst"]
 backend-combined-all = ["backend-combined-hound", "backend-combined-midly-0-5", "backend-combined-wav-0-6"]
 backend-combined-hound = ["hound", "backend-combined", "dasp_sample"]
 backend-combined-wav-0-6 = ["wav-0-6", "backend-combined", "dasp_sample"]
@@ -28,8 +25,7 @@ rsor-0-1 = ["rsor"]
 event-queue = {path = "./event-queue", optional = true}
 num-traits = "0.2"
 log = "0.4"
-jack = {version = ">= 0.6.2, < 0.8.0", optional = true}
-vst = {version = "0.2.0", optional = true}
+jack = {version = "0.7.1", optional = true}
 hound = {version = "3.4.0", optional = true}
 dasp_sample = {version = "0.11.0", optional = true}
 wav-0-6 = {package = "wav", version = "0.6.0", optional = true}
@@ -54,10 +50,6 @@ polyphony = {version = "0.1.0", features = ["midi"]}
 features = [ "all" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = []
-
-[[example]]
-name = "vst_synth"
-crate-type = ["cdylib"]
 
 [[example]]
 name = "jack_synth"

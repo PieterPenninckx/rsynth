@@ -90,36 +90,17 @@ pub trait General {
 /// Implement this trait to indicate that a type can be used to represent
 /// meta-data that contains a name.
 pub trait Name {
-    /// Get the name.
-    #[deprecated(since = "0.1.2", note = "Use or implement `write_name` instead.")]
-    fn name(&self) -> &str {
-        ""
-    }
-
     /// Write the name to the given buffer.
-    ///
-    /// # Compatibility note
-    /// The default implementation of this method will likely be removed in a future release.
-    fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error> {
-        buffer.write_str(self.name())
-    }
+    fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), std::fmt::Error>;
 }
 
 impl Name for String {
-    fn name(&self) -> &str {
-        self
-    }
-
     fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
         buffer.write_str(&self)
     }
 }
 
 impl Name for &'static str {
-    fn name(&self) -> &str {
-        self
-    }
-
     fn write_name<W: std::fmt::Write>(&self, buffer: &mut W) -> Result<(), Error> {
         buffer.write_str(self)
     }
