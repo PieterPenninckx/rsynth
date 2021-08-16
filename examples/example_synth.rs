@@ -60,7 +60,7 @@ impl SineOscilator {
     }
 
     fn handle_event(&mut self, indexed: Indexed<Timed<RawMidiEvent>>) {
-        let timed = dbg!(indexed.event);
+        let timed = indexed.event;
         // We are digging into the details of midi-messages here.
         // Alternatively, you could use the `wmidi` crate.
         let data = timed.event.data();
@@ -70,8 +70,8 @@ impl SineOscilator {
                 self.state = SimpleVoiceState::Idle;
             }
             (NOTE_ON, note_number, velocity) => {
-                self.amplitude = dbg!(velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER);
-                self.frequency = dbg!(440.0 * 2.0_f32.powf(((note_number as f32) - 69.0) / 12.0));
+                self.amplitude = velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER;
+                self.frequency = 440.0 * 2.0_f32.powf(((note_number as f32) - 69.0) / 12.0);
                 self.position = 0.0;
                 self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
             }
@@ -135,7 +135,6 @@ impl AudioHandler for SinePlayer {
     }
 }
 
-#[allow(unused_variables)]
 impl<S, Context> ContextualAudioRenderer<S, Context> for SinePlayer
 where
     S: FromSample<f32> + Sample,
@@ -161,7 +160,7 @@ where
 impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for SinePlayer {
     fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, _context: &mut Context) {
         let classifier = RawMidiEventToneIdentifierDispatchClassifier;
-        let classification = dbg!(classifier.classify(event.event.event.data()));
+        let classification = classifier.classify(event.event.event.data());
         let mut dispatcher = SimpleEventDispatcher;
         let assignment = dispatcher.assign(classification, &mut self.voices);
         assignment.dispatch(event, &mut self.voices, SineOscilator::handle_event);

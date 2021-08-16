@@ -361,6 +361,18 @@ impl<E> AsMut<E> for Timed<E> {
     }
 }
 
+#[cfg(feature = "backend-combined-midly-0-5")]
+impl<'a> TryFrom<Timed<TrackEventKind<'a>>> for Timed<RawMidiEvent> {
+    type Error = MidlyConversionError;
+
+    fn try_from(timed: Timed<TrackEventKind<'a>>) -> Result<Self, Self::Error> {
+        Ok(Timed {
+            time_in_frames: timed.time_in_frames,
+            event: RawMidiEvent::try_from(timed.event)?,
+        })
+    }
+}
+
 /// `Indexed<E>` adds an index to an event of type `E`.
 /// The index typically corresponds to the index of the channel.
 #[derive(PartialEq, Eq, Debug)]
@@ -400,6 +412,30 @@ impl<E> AsRef<E> for Indexed<E> {
 impl<E> AsMut<E> for Indexed<E> {
     fn as_mut(&mut self) -> &mut E {
         &mut self.event
+    }
+}
+
+#[cfg(feature = "backend-combined-midly-0-5")]
+impl<'a> TryFrom<Indexed<TrackEventKind<'a>>> for Indexed<RawMidiEvent> {
+    type Error = MidlyConversionError;
+
+    fn try_from(indexed: Indexed<TrackEventKind<'a>>) -> Result<Self, Self::Error> {
+        Ok(Indexed {
+            index: indexed.index,
+            event: RawMidiEvent::try_from(indexed.event)?,
+        })
+    }
+}
+
+#[cfg(feature = "backend-combined-midly-0-5")]
+impl<'a> TryFrom<Indexed<Timed<TrackEventKind<'a>>>> for Indexed<Timed<RawMidiEvent>> {
+    type Error = MidlyConversionError;
+
+    fn try_from(indexed: Indexed<Timed<TrackEventKind<'a>>>) -> Result<Self, Self::Error> {
+        Ok(Indexed {
+            index: indexed.index,
+            event: Timed::<RawMidiEvent>::try_from(timed.event)?,
+        })
     }
 }
 

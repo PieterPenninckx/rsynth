@@ -58,13 +58,30 @@ mod example_synth;
 use example_synth::*;
 
 #[cfg(feature = "backend-jack")]
-use rsynth::backend::jack_backend::run;
+use rsynth::backend::jack_backend::jack::{Client, ClientOptions};
+#[cfg(feature = "backend-jack")]
+use std::{error::Error, io};
 
 #[cfg(feature = "backend-jack")]
-fn main() {
-    if let Err(e) = run(SinePlayer::new()) {
-        println!("Unexpected error: {}", e);
-    }
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut client_name = String::new();
+    plugin.plugin_name(&mut client_name);
+    let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
+
+    let sample_rate = client.sample_rate();
+    plugin.set_sample_rate(sample_rate as f64);
+
+    let jack_process_handler = JackProcessHandler::new(&client, plugin);
+    let active_client = client.activate_async((), jack_process_handler)?;
+
+    println!("Press return to quit.");
+    let mut user_input = String::new();
+    io::stdin().read_line(&mut user_input).ok();
+
+    info!("Deactivating client...");
+
+    active_client.deactivate()?;
+    Ok(())
 }
 
 #[cfg(not(feature = "backend-jack"))]

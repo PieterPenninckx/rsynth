@@ -37,7 +37,7 @@ use crate::buffer::{
     buffers_as_mut_slice, buffers_as_slice, AudioBufferIn, AudioBufferInOut, AudioBufferOut,
     AudioChunk,
 };
-use crate::event::{DeltaEvent, EventHandler, RawMidiEvent, Timed};
+use crate::event::{DeltaEvent, EventHandler, Indexed, RawMidiEvent, Timed};
 use crate::ContextualAudioRenderer;
 use event_queue::{AlwaysInsertNewAfterOld, EventQueue};
 use itertools::Itertools;
@@ -86,29 +86,10 @@ where
     type Err;
 
     /// Write to the specified audio buffer.
-    ///
-    /// If `specifies_number_of_channels()` returns `false`, the number of audio channels is
-    /// determined by the first call to this method.
-    /// If `specifies_number_of_channels()` returns `true`, the number of audio channels is
-    /// determined by the `number_of_channels()` method.
-    ///
     /// # Panics
     /// Implementations of this method may panic if the number of audio channels is not as expected.
     fn write_buffer(&mut self, buffer: &AudioBufferIn<S>) -> Result<(), Self::Err>;
 
-    // TODO: remove this method in a future version.
-    /// Return `true` if this `AudioWriter` is responsible for specifying the number of channels
-    /// and false if this is determined by the first call to `write_buffer`.
-    ///
-    /// _Note_: this method will disappear in a future version of `rsynth` and it will be the
-    /// default that the `AudioWriter` specifies the number of channels.
-    /// This method has a default implementation that returns `false`.
-    fn specifies_number_of_channels(&self) -> bool {
-        false
-    }
-
-    /// Return the number of channels. This method is only called if `specifies_number_of_channels`
-    /// returns `true`.
     /// This method should always return the same number.
     fn number_of_channels(&self) -> usize;
 }
@@ -241,7 +222,7 @@ where
 /// Panics
 /// ======
 /// Panics if `buffer_size_in_frames` is `0` or `> u32::MAX`.
-pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
+pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R, E>(
     plugin: &mut R,
     buffer_size_in_frames: usize,
     mut audio_in: AudioIn,
@@ -252,20 +233,18 @@ pub fn run<S, AudioIn, AudioOut, MidiIn, MidiOut, R>(
 where
     AudioIn: AudioReader<S>,
     AudioOut: AudioWriter<S>,
-    MidiIn: Iterator<Item = DeltaEvent<RawMidiEvent>>,
+    MidiIn: IntoIterator<Item = E>,
     MidiOut: MidiWriter,
     S: Copy + Zero + 'static,
-    R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>> + EventHandler<Timed<RawMidiEvent>>,
+    R: ContextualAudioRenderer<S, MidiWriterWrapper<MidiOut>>
+        + EventHandler<Indexed<Timed<RawMidiEvent>>>,
+    Indexed<Timed<RawMidiEvent>>: From<E>,
 {
     assert!(buffer_size_in_frames > 0);
     assert!(buffer_size_in_frames < u32::MAX as usize);
 
     let number_of_input_channels = audio_in.number_of_channels();
-    let number_of_output_channels = if audio_out.specifies_number_of_channels() {
-        audio_out.number_of_channels()
-    } else {
-        number_of_input_channels
-    };
+    let number_of_output_channels = audio_out.number_of_channels();
 
     let frames_per_second = audio_in.frames_per_second();
     assert!(frames_per_second > 0);
@@ -314,9 +293,12 @@ where
         for (time_in_frames, event) in input_midi_iterator_in_absolute_frames
             .peeking_take_while(|a| a.0 < last_time_in_frames + buffer_size_in_frames as u64)
         {
-            plugin.handle_event(Timed {
-                time_in_frames: (time_in_frames - last_time_in_frames) as u32,
-                event,
+            plugin.handle_event(Indexed {
+                index: 0, // TODO
+                event: Timed {
+                    time_in_frames: (time_in_frames - last_time_in_frames) as u32,
+                    event,
+                },
             });
         }
 
@@ -446,6 +428,10 @@ where
         self.inner.write_buffer(chunk)?;
         self.chunk_index += 1;
         Ok(())
+    }
+
+    fn number_of_channels(&self) -> usize {
+        self.inner.number_of_channels()
     }
 }
 

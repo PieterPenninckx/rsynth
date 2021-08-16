@@ -11,14 +11,16 @@ pub struct AudioDummy<S> {
     _phantom: PhantomData<S>,
     frames_per_second: u32,
     length_in_frames: usize,
+    number_of_channels: usize,
 }
 
 impl<S> AudioDummy<S> {
     /// Create a new `AudioDummy` with the given sample rate, in frames per second.
-    pub fn with_sample_rate_and_length(frames_per_second: u32, length_in_frames: usize) -> Self {
+    pub fn new(frames_per_second: u32, length_in_frames: usize, number_of_channels: usize) -> Self {
         Self {
             frames_per_second,
             length_in_frames,
+            number_of_channels,
             _phantom: PhantomData,
         }
     }
@@ -51,6 +53,10 @@ where
     type Err = std::convert::Infallible;
     fn write_buffer(&mut self, _buffer: &AudioBufferIn<S>) -> Result<(), Self::Err> {
         Ok(())
+    }
+
+    fn number_of_channels(&self) -> usize {
+        self.number_of_channels
     }
 }
 

@@ -222,10 +222,6 @@ where
         Ok(())
     }
 
-    fn specifies_number_of_channels(&self) -> bool {
-        true
-    }
-
     fn number_of_channels(&self) -> usize {
         self.buffer.number_of_channels()
     }

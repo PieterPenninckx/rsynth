@@ -57,10 +57,7 @@ fn main() {
         let buffer_size_in_frames = 256; // Quite arbitrarily.
 
         let number_of_seconds = 2;
-        let audio_in = AudioDummy::with_sample_rate_and_length(
-            samplerate,
-            number_of_seconds * samplerate as usize,
-        );
+        let audio_in = AudioDummy::new(samplerate, number_of_seconds * samplerate as usize, 0);
         let midi_event_reader = MidlyMidiReader::new(&smf).unwrap();
         let midi_out = MidiDummy::new();
         println!("Rendering {} tracks of audio.", number_of_seconds);
