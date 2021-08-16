@@ -251,7 +251,7 @@ struct JackProcessHandler<P> {
 
 impl<P> JackProcessHandler<P>
 where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+    P: CommonAudioPortMeta + CommonMidiPortMeta + Send,
     for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
         + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
     for<'c, 'mp, 'mw, 'a> P:

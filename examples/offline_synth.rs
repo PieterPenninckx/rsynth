@@ -17,7 +17,6 @@ extern crate log;
 #[cfg(feature = "backend-combined-midly-0-5")]
 extern crate midly_0_5;
 extern crate num_traits;
-extern crate rand;
 extern crate rsynth;
 
 mod example_synth;
@@ -54,7 +53,7 @@ fn main() {
         let smf = Smf::parse(&input_midi_data).unwrap();
         let mut output_buffer = AudioChunk::<f32>::new(2);
         let audio_buffer_writer = AudioBufferWriter::new(&mut output_buffer);
-        let mut plugin = NoisePlayer::new();
+        let mut plugin = SinePlayer::new();
         let buffer_size_in_frames = 256; // Quite arbitrarily.
 
         let number_of_seconds = 2;

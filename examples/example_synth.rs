@@ -1,132 +1,102 @@
 // This file contains the actual sound generation of a plugin that is shared between all backends.
-// The integration with VST is in the `vst_synt.rs` file.
 // The integration with Jack is in the `jack_synth.rs` file.
 
+extern crate dasp_sample;
 extern crate polyphony;
 
-use num_traits::Float;
 use polyphony::{
     midi::{RawMidiEventToneIdentifierDispatchClassifier, ToneIdentifier},
     simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
     EventDispatchClassifier, Voice, VoiceAssigner,
 };
-use rand::{thread_rng, Rng};
 use rsynth::event::{
     ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
 use rsynth::{AudioHandler, ContextualAudioRenderer};
 
+use dasp_sample::{FromSample, Sample};
 use midi_consts::channel_event::*;
 use rsynth::backend::HostInterface;
 use rsynth::buffer::AudioBufferInOut;
 use rsynth::meta::{InOut, Meta, MetaData};
+use std::f32::consts::PI;
 
-// The total number of samples to pre-calculate.
-// This is like recording a sample of white noise and then
-// using it as an oscillator.  It saves on CPU overhead by
-// preventing us from having to use a random function each sample.
-static SAMPLE_SIZE: usize = 65536;
 static NUMBER_OF_VOICES: usize = 6;
 static AMPLIFY_MULTIPLIER: f32 = 1.0 / NUMBER_OF_VOICES as f32;
 
-// This struct defines the data that we will need to play one "noise"
-pub struct Noise {
-    // Random data of the noise.
-    white_noise: Vec<f32>,
-    // At which sample in the noise we are.
-    position: usize,
+// This struct defines the data that we will need to play one sine wave.
+pub struct SineOscilator {
+    // The step (how much we must proceed between two samples).
+    frequency: f32,
+    // The position (the number of which we are computing the sine wave.)
+    position: f32,
     // The amplitude.
     amplitude: f32,
     // This is used to know if this is currently playing and if so, what note.
     state: SimpleVoiceState<ToneIdentifier>,
 }
 
-impl Noise {
-    fn new(sample_size: usize) -> Self {
-        let mut rng = thread_rng();
-        let samples: Vec<f32> = rng
-            .gen_iter::<f32>()
-            .take(sample_size)
-            .map(|r| {
-                // The random generator generates noise between 0 and 1,
-                // we map it to the range -1 to 1.
-                2.0 * r - 1.0
-            })
-            .collect::<Vec<f32>>();
-        Noise {
-            white_noise: samples,
-            position: 0,
+impl SineOscilator {
+    fn new() -> Self {
+        SineOscilator {
+            frequency: 0.0,
+            position: 0.0,
             amplitude: 0.0,
             state: SimpleVoiceState::Idle,
         }
     }
 
-    // Here, we use one implementation over all floating point types.
-    // If you want to use SIMD optimization, you can have separate implementations
-    // for `f32` and `f64`.
-    fn render_audio_buffer<S>(&mut self, buffer: &mut AudioBufferInOut<S>)
-    where
-        S: Float + From<f32>,
-    {
+    fn get_sample(&mut self, frames_per_second: f32) -> f32 {
+        // Note: this is a very naive implementation, just for demonstration purposes.
         if self.state == SimpleVoiceState::Idle {
-            return;
+            return 0.0;
         }
-        let outputs = buffer.outputs();
-        assert_eq!(2, outputs.number_of_channels());
-        for output_channel in outputs.channel_iter_mut() {
-            for sample in output_channel.iter_mut() {
-                // We "add" to the output.
-                // In this way, various noises can be heard together.
-                *sample = *sample
-                    + <S as From<f32>>::from(self.white_noise[self.position])
-                        * <S as From<f32>>::from(self.amplitude);
-                // Increment the position of our sound sample.
-                // We loop this easily by using modulo.
-                self.position = (self.position + 1) % self.white_noise.len();
+        let step = self.frequency / frames_per_second * 2.0 * PI;
+        self.position += step;
+        if self.position > 2.0 * PI {
+            self.position -= 2.0 * PI;
+        }
+        self.position.sin() * self.amplitude
+    }
+
+    fn handle_event(&mut self, indexed: Indexed<Timed<RawMidiEvent>>) {
+        let timed = dbg!(indexed.event);
+        // We are digging into the details of midi-messages here.
+        // Alternatively, you could use the `wmidi` crate.
+        let data = timed.event.data();
+        match (data[0] & EVENT_TYPE_MASK, data[1], data[2]) {
+            (NOTE_OFF, _, _) | (NOTE_ON, _, 0) => {
+                self.amplitude = 0.0;
+                self.state = SimpleVoiceState::Idle;
             }
+            (NOTE_ON, note_number, velocity) => {
+                self.amplitude = dbg!(velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER);
+                self.frequency = dbg!(440.0 * 2.0_f32.powf(((note_number as f32) - 69.0) / 12.0));
+                self.position = 0.0;
+                self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
+            }
+            _ => {}
         }
     }
 }
 
 // This enables using Sound in a polyphonic context.
-impl Voice<SimpleVoiceState<ToneIdentifier>> for Noise {
+impl Voice<SimpleVoiceState<ToneIdentifier>> for SineOscilator {
     fn state(&self) -> SimpleVoiceState<ToneIdentifier> {
         self.state
     }
 }
 
-impl EventHandler<Timed<RawMidiEvent>> for Noise {
-    fn handle_event(&mut self, timed: Timed<RawMidiEvent>) {
-        let state_and_channel = timed.event.data()[0];
-
-        // We are digging into the details of midi-messages here.
-        // Alternatively, you could use the `wmidi` crate.
-        let mut is_note_off_event = state_and_channel & EVENT_TYPE_MASK == NOTE_OFF;
-        if state_and_channel & EVENT_TYPE_MASK == NOTE_ON {
-            let velocity = timed.event.data()[2];
-            if velocity != 0 {
-                self.amplitude = velocity as f32 / 127.0 * AMPLIFY_MULTIPLIER;
-                self.state = SimpleVoiceState::Active(ToneIdentifier(timed.event.data()[1]));
-            } else {
-                is_note_off_event = true;
-            }
-        }
-        if is_note_off_event {
-            self.amplitude = 0.0;
-            self.state = SimpleVoiceState::Idle;
-        }
-    }
-}
-
-pub struct NoisePlayer {
+pub struct SinePlayer {
     meta_data: MetaData<&'static str, &'static str, &'static str>,
-    voices: Vec<Noise>,
+    voices: Vec<SineOscilator>,
+    sample_frequency: f32,
 }
 
-impl NoisePlayer {
+impl SinePlayer {
     fn meta_data() -> MetaData<&'static str, &'static str, &'static str> {
         MetaData {
-            general_meta: "Noise generator", // The name of the plugin
+            general_meta: "Simple sine player", // The name of the plugin
             audio_port_meta: InOut {
                 inputs: Vec::new(),             // No audio inputs
                 outputs: vec!["left", "right"], // Two audio outputs
@@ -141,16 +111,17 @@ impl NoisePlayer {
     pub fn new() -> Self {
         let mut voices = Vec::new();
         for _ in 0..NUMBER_OF_VOICES {
-            voices.push(Noise::new(SAMPLE_SIZE));
+            voices.push(SineOscilator::new());
         }
         Self {
             meta_data: Self::meta_data(),
             voices: voices,
+            sample_frequency: 44100.0,
         }
     }
 }
 
-impl Meta for NoisePlayer {
+impl Meta for SinePlayer {
     type MetaData = MetaData<&'static str, &'static str, &'static str>;
 
     fn meta(&self) -> &Self::MetaData {
@@ -158,61 +129,46 @@ impl Meta for NoisePlayer {
     }
 }
 
-impl AudioHandler for NoisePlayer {
+impl AudioHandler for SinePlayer {
     fn set_sample_rate(&mut self, sample_rate: f64) {
-        trace!("set_sample_rate(sample_rate={})", sample_rate);
-        // We are not doing anything with this right now.
+        self.sample_frequency = sample_rate as f32;
     }
 }
 
 #[allow(unused_variables)]
-impl<S, Context> ContextualAudioRenderer<S, Context> for NoisePlayer
+impl<S, Context> ContextualAudioRenderer<S, Context> for SinePlayer
 where
-    S: Float + From<f32>,
+    S: FromSample<f32> + Sample,
     Context: HostInterface,
 {
     fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context) {
         if !context.output_initialized() {
             // Initialize the output buffer.
-            buffer.outputs().set(S::zero());
+            buffer.outputs().set(S::EQUILIBRIUM);
         }
-        for noise in self.voices.iter_mut() {
-            noise.render_audio_buffer(buffer);
+        let (left_channel, right_channel) = buffer.outputs().split_stereo();
+        for (left, right) in left_channel.iter_mut().zip(right_channel.iter_mut()) {
+            let mut sample = 0.0;
+            for voice in self.voices.iter_mut() {
+                sample += voice.get_sample(self.sample_frequency);
+            }
+            *left = S::from_sample_(sample);
+            *right = *left;
         }
     }
 }
 
-impl EventHandler<Timed<RawMidiEvent>> for NoisePlayer {
-    fn handle_event(&mut self, event: Timed<RawMidiEvent>) {
+impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for SinePlayer {
+    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, _context: &mut Context) {
         let classifier = RawMidiEventToneIdentifierDispatchClassifier;
-        let classification = classifier.classify(event.event.data());
+        let classification = dbg!(classifier.classify(event.event.event.data()));
         let mut dispatcher = SimpleEventDispatcher;
         let assignment = dispatcher.assign(classification, &mut self.voices);
-        assignment.dispatch(event, &mut self.voices, Noise::handle_event);
+        assignment.dispatch(event, &mut self.voices, SineOscilator::handle_event);
     }
 }
 
-impl<Context> ContextualEventHandler<Timed<RawMidiEvent>, Context> for NoisePlayer {
-    fn handle_event(&mut self, event: Timed<RawMidiEvent>, _context: &mut Context) {
-        EventHandler::handle_event(self, event);
-    }
-}
-
-// Only needed for Jack: delegate to the normal event handler.
-impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for NoisePlayer {
-    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, _context: &mut Context) {
-        EventHandler::handle_event(self, event.event)
-    }
-}
-
-impl<'a, Context> ContextualEventHandler<Timed<SysExEvent<'a>>, Context> for NoisePlayer {
-    fn handle_event(&mut self, _event: Timed<SysExEvent<'a>>, _context: &mut Context) {
-        // We don't do anything with SysEx events.
-    }
-}
-
-// Only needed for Jack.
-impl<'a, Context> ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, Context> for NoisePlayer {
+impl<'a, Context> ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, Context> for SinePlayer {
     fn handle_event(&mut self, _event: Indexed<Timed<SysExEvent>>, _context: &mut Context) {
         // We don't do anything with SysEx events
     }

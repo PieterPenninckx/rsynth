@@ -52,8 +52,6 @@
 // Note that the example is also logging to a file in the realtime thread, which may cause clipping.
 #[macro_use]
 extern crate log;
-extern crate num_traits;
-extern crate rand;
 extern crate rsynth;
 
 mod example_synth;
@@ -64,7 +62,7 @@ use rsynth::backend::jack_backend::run;
 
 #[cfg(feature = "backend-jack")]
 fn main() {
-    if let Err(e) = run(NoisePlayer::new()) {
+    if let Err(e) = run(SinePlayer::new()) {
         println!("Unexpected error: {}", e);
     }
 }

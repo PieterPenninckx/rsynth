@@ -395,7 +395,7 @@ where
     }
 
     /// Split into two `AudioBufferOut`s.
-    /// The first will contain the first `mid-1` channels and the second
+    /// The first will contain the first `mid` channels and the second
     /// will contain the remaining channels.
     ///
     /// # Panics
@@ -439,6 +439,18 @@ where
                 length: self.length,
             },
         )
+    }
+
+    /// Split into left and right channel.
+    ///
+    /// # Panics
+    /// Panics if the number of channels is not two.
+    pub fn split_stereo(&mut self) -> (&mut [S], &mut [S])
+    where
+        S: 'static + Copy,
+    {
+        let (left_channels, right_channels) = self.channels.split_at_mut(1);
+        (left_channels[0], right_channels[0])
     }
 
     fn index_frames_inner<'a, 's, 'v, R>(
