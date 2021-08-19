@@ -41,8 +41,9 @@ use crate::vecstorage::VecStorage;
 use crate::ContextualAudioRenderer;
 use num_traits::Zero;
 use std::mem;
-use std::ops::{Bound, Index, IndexMut, RangeBounds};
+use std::ops::{Bound, DerefMut, Index, IndexMut, RangeBounds};
 use std::slice::SliceIndex;
+use vecstorage::VecGuard;
 
 fn number_of_frames_in_range<R: RangeBounds<usize>>(number_of_frames: usize, range: R) -> usize {
     // start: inclusive
@@ -1645,4 +1646,83 @@ pub fn buffers_as_mut_slice<'a, S>(
     slice_len: usize,
 ) -> Vec<&'a mut [S]> {
     buffers.iter_mut().map(|b| &mut b[0..slice_len]).collect()
+}
+
+pub trait DelegateHandling<P, D> {
+    type Output;
+    fn delegate_handling(&mut self, p: &mut P, d: D) -> Self::Output;
+}
+
+mod bufferstuff {
+    use crate::vecstorage::VecStorage;
+
+    trait Plug<B> {
+        fn f(&mut self, b: B);
+    }
+
+    struct MyPlug {}
+
+    impl Plug<()> for MyPlug {
+        fn f(&mut self, b: ()) {}
+    }
+
+    impl<'a, 'b> Plug<&'a mut [&'b mut [f32]]> for MyPlug {
+        fn f(&mut self, b: &'a mut [&'b mut [f32]]) {
+            for channel in b.iter_mut() {
+                for sample in channel.iter_mut() {
+                    *sample = 0.0;
+                }
+            }
+        }
+    }
+
+    struct Backend {
+        data: Vec<Vec<f32>>,
+    }
+
+    trait BackendPlug {
+        fn handle(&mut self, data: &mut BackendData);
+    }
+
+    struct BackendData<'a> {
+        left: &'a mut [f32],
+        right: &'a mut [f32],
+    }
+
+    struct Framework<B, P> {
+        builder: B,
+        plugin: P,
+    }
+
+    trait Delegated<P, D> {
+        fn delegate(&mut self, p: &mut P, d: D);
+    }
+
+    impl<'a, 'b, P> Delegated<P, &'a mut BackendData<'b>> for VecStorage<&'static [f32]>
+    where
+        for<'y> P: Plug<&'y mut [&'a mut [f32]]>,
+    {
+        fn delegate<'x>(&'x mut self, plug: &mut P, data: &'a mut BackendData<'b>) {
+            let mut guard = self.vec_guard();
+            guard.push(&mut *data.left);
+            guard.push(&mut *data.right);
+            plug.f((&mut *guard).as_mut_slice())
+        }
+    }
+
+    impl<B, P> BackendPlug for Framework<B, P>
+    where
+        for<'a, 'b> B: Delegated<P, &'a mut BackendData<'b>>,
+    {
+        fn handle(&mut self, data: &mut BackendData) {
+            self.builder.delegate(&mut self.plugin, data);
+        }
+    }
+
+    fn testje(
+        framework: &mut Framework<VecStorage<&'static [f32]>, MyPlug>,
+        data: &mut BackendData,
+    ) {
+        framework.handle(data);
+    }
 }

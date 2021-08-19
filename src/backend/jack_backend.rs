@@ -14,7 +14,7 @@
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 //! [`run`]: ./fn.run.html
 use crate::backend::{HostInterface, Stop};
-use crate::buffer::AudioBufferInOut;
+use crate::buffer::{AudioBufferInOut, DelegateHandling};
 use crate::event::{
     ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
@@ -33,6 +33,8 @@ pub mod jack {
 
 use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use self::jack::{Client, ClientOptions, Control, ProcessHandler};
+use crate::backend::jack_backend::jack::Error;
+use std::convert::TryFrom;
 
 /// Used to communicate with `Jack`.
 ///
@@ -396,6 +398,128 @@ where
 
     let jack_process_handler = JackProcessHandler::new(&client, plugin);
     let active_client = client.activate_async((), jack_process_handler)?;
+
+    println!("Press any key to quit");
+    let mut user_input = String::new();
+    io::stdin().read_line(&mut user_input).ok();
+
+    info!("Deactivating client...");
+
+    let (_, _, plugin) = active_client.deactivate()?;
+    return Ok(plugin.plugin);
+}
+
+struct StereoBuilder {
+    in_left: Port<AudioIn>,
+    in_right: Port<AudioIn>,
+    out_left: Port<AudioOut>,
+    out_right: Port<AudioOut>,
+}
+
+impl<'c> TryFrom<&'c Client> for StereoBuilder {
+    type Error = Error;
+
+    fn try_from(client: &'c Client) -> Result<Self, Self::Error> {
+        let in_left = client.register_port("left in", AudioIn::default())?;
+        let in_right = client.register_port("right in", AudioIn::default())?;
+        let out_left = client.register_port("left out", AudioOut::default())?;
+        let out_right = client.register_port("right out", AudioOut::default())?;
+        Ok(Self {
+            in_left,
+            in_right,
+            out_left,
+            out_right,
+        })
+    }
+}
+
+struct StereoInputOutput<'a> {
+    in_left: &'a [f32],
+    in_right: &'a [f32],
+    out_left: &'a mut [f32],
+    out_right: &'a mut [f32],
+}
+
+pub trait NewContextualAudioRenderer<B, Context> {
+    fn render_buffer(&mut self, buffer: B, context: &mut Context);
+}
+
+impl<'a, P> DelegateHandling<P, (&'a Client, &'a ProcessScope)> for StereoBuilder
+where
+    for<'b, 'c, 'mp, 'mw> P:
+        NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
+{
+    type Output = Control;
+
+    fn delegate_handling(
+        &mut self,
+        plugin: &mut P,
+        (client, process_scope): (&'a Client, &'a ProcessScope),
+    ) -> Self::Output {
+        let mut jack_host: JackHost = JackHost {
+            client,
+            midi_out_ports: &mut [],
+            control: jack::Control::Continue,
+        };
+
+        let in_left = self.in_left.as_slice(process_scope);
+        let in_right = self.in_right.as_slice(process_scope);
+        let out_left = self.out_left.as_mut_slice(process_scope);
+        let out_right = self.out_right.as_mut_slice(process_scope);
+
+        let buffer = StereoInputOutput {
+            in_left,
+            in_right,
+            out_left,
+            out_right,
+        };
+        plugin.render_buffer(buffer, &mut jack_host);
+        jack_host.control
+    }
+}
+
+struct DemoJackHandler<B, P> {
+    builder: B,
+    plugin: P,
+}
+
+impl<B, P> ProcessHandler for DemoJackHandler<B, P>
+where
+    P: AudioHandler,
+    for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
+    B: Send,
+    P: Send,
+{
+    fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
+        self.builder
+            .delegate_handling(&mut self.plugin, (client, process_scope))
+    }
+}
+
+pub fn run2<P, B>(mut plugin: P) -> Result<P, jack::Error>
+where
+    P: CommonPluginMeta + AudioHandler + Send + Sync + 'static,
+    for<'b, 'c, 'mp, 'mw> P:
+        NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
+    for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
+    for<'a> B: TryFrom<&'a Client, Error = jack::Error>,
+    B: Send + 'static,
+{
+    let mut client_name = String::new();
+    plugin.plugin_name(&mut client_name);
+    let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
+
+    let sample_rate = client.sample_rate();
+    plugin.set_sample_rate(sample_rate as f64);
+
+    let stereo_builder = B::try_from(&client)?;
+
+    let demo_handler = DemoJackHandler {
+        plugin: plugin,
+        builder: stereo_builder,
+    };
+
+    let active_client = client.activate_async((), demo_handler)?;
 
     println!("Press any key to quit");
     let mut user_input = String::new();

@@ -64,6 +64,8 @@ use std::{error::Error, io};
 
 #[cfg(feature = "backend-jack")]
 fn main() -> Result<(), Box<dyn Error>> {
+    Ok(())
+    /*
     let mut client_name = String::new();
     plugin.plugin_name(&mut client_name);
     let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
@@ -82,6 +84,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     active_client.deactivate()?;
     Ok(())
+
+     */
 }
 
 #[cfg(not(feature = "backend-jack"))]
