@@ -409,6 +409,26 @@ where
     return Ok(plugin.plugin);
 }
 
+macro_rules! derive_jack_stuff {
+    (
+        #[BuildFrom($builder_name:ident)]
+        struct $buffer_name:ident$(<$lt:lifetime>)? {
+        $(
+            #[BuildFrom($build_type:ty)]
+            $field_name:ident : $field_type:ty,
+        )*
+    }
+    ) => {
+        struct $buffer_name$(<$lt>)? {
+            $($field_name : $field_type,)*
+        }
+
+        struct $builder_name {
+            $($field_name : $build_type,)*
+        }
+    };
+}
+
 struct StereoBuilder {
     in_left: Port<AudioIn>,
     in_right: Port<AudioIn>,
@@ -433,11 +453,18 @@ impl<'c> TryFrom<&'c Client> for StereoBuilder {
     }
 }
 
-struct StereoInputOutput<'a> {
-    in_left: &'a [f32],
-    in_right: &'a [f32],
-    out_left: &'a mut [f32],
-    out_right: &'a mut [f32],
+derive_jack_stuff! {
+    #[BuildFrom(Testje)]
+    struct StereoInputOutput<'a> {
+        #[BuildFrom(Port<AudioIn>)]
+        in_left: &'a [f32],
+        #[BuildFrom(Port<AudioIn>)]
+        in_right: &'a [f32],
+        #[BuildFrom(Port<AudioOut>)]
+        out_left: &'a mut [f32],
+        #[BuildFrom(Port<AudioOut>)]
+        out_right: &'a mut [f32],
+    }
 }
 
 pub trait NewContextualAudioRenderer<B, Context> {
