@@ -1,3 +1,4 @@
+#![feature(trace_macros)]
 //! # Rsynth
 //! An API abstraction for API's for audio plugins and applications.
 //! Use it to write real-time audio effects, software synthesizers, ... and target different platforms

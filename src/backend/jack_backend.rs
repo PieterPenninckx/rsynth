@@ -109,8 +109,8 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
 }
 
 fn audio_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioIn>>
-where
-    P: CommonAudioPortMeta,
+    where
+        P: CommonAudioPortMeta,
 {
     let mut in_ports = Vec::with_capacity(plugin.max_number_of_audio_inputs());
     for index in 0..plugin.max_number_of_audio_inputs() {
@@ -140,8 +140,8 @@ where
 }
 
 fn audio_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<AudioOut>>
-where
-    P: CommonAudioPortMeta,
+    where
+        P: CommonAudioPortMeta,
 {
     let mut out_ports = Vec::with_capacity(plugin.max_number_of_audio_outputs());
     for index in 0..plugin.max_number_of_audio_outputs() {
@@ -171,8 +171,8 @@ where
 }
 
 fn midi_in_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiIn>>
-where
-    P: CommonMidiPortMeta,
+    where
+        P: CommonMidiPortMeta,
 {
     let mut in_ports = Vec::with_capacity(plugin.max_number_of_midi_inputs());
     for index in 0..plugin.max_number_of_midi_inputs() {
@@ -201,8 +201,8 @@ where
 }
 
 fn midi_out_ports<P>(client: &Client, plugin: &P) -> Vec<Port<MidiOut>>
-where
-    P: CommonMidiPortMeta,
+    where
+        P: CommonMidiPortMeta,
 {
     let mut out_ports = Vec::with_capacity(plugin.max_number_of_midi_outputs());
     for index in 0..plugin.max_number_of_midi_outputs() {
@@ -238,6 +238,7 @@ struct MidiWriterWrapper {
 }
 
 unsafe impl Send for MidiWriterWrapper {}
+
 unsafe impl Sync for MidiWriterWrapper {}
 
 struct JackProcessHandler<P> {
@@ -252,11 +253,11 @@ struct JackProcessHandler<P> {
 }
 
 impl<P> JackProcessHandler<P>
-where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + Send,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+    where
+        P: CommonAudioPortMeta + CommonMidiPortMeta + Send,
+        for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
         + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
-    for<'c, 'mp, 'mw, 'a> P:
+        for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn new(client: &Client, plugin: P) -> Self {
@@ -328,11 +329,11 @@ where
 }
 
 impl<P> ProcessHandler for JackProcessHandler<P>
-where
-    P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
+    where
+        P: CommonAudioPortMeta + CommonMidiPortMeta + CommonPluginMeta + Send,
+        for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>
         + ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
-    for<'c, 'mp, 'mw, 'a> P:
+        for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
@@ -375,18 +376,18 @@ where
 /// Run the plugin until the user presses a key on the computer keyboard or the plugin
 /// requests the `JackHost` to stop.
 pub fn run<P>(mut plugin: P) -> Result<P, jack::Error>
-where
-    P: CommonPluginMeta
+    where
+        P: CommonPluginMeta
         + AudioHandler
         + CommonAudioPortMeta
         + CommonMidiPortMeta
         + Send
         + Sync
         + 'static,
-    for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>,
-    for<'c, 'mp, 'mw> P:
+        for<'c, 'mp, 'mw> P: ContextualAudioRenderer<f32, JackHost<'c, 'mp, 'mw>>,
+        for<'c, 'mp, 'mw> P:
         ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, JackHost<'c, 'mp, 'mw>>,
-    for<'c, 'mp, 'mw, 'a> P:
+        for<'c, 'mp, 'mw, 'a> P:
         ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, JackHost<'c, 'mp, 'mw>>,
 {
     let mut client_name = String::new();
@@ -409,24 +410,114 @@ where
     return Ok(plugin.plugin);
 }
 
-macro_rules! derive_jack_stuff {
-    (
-        #[BuildFrom($builder_name:ident)]
-        struct $buffer_name:ident$(<$lt:lifetime>)? {
-        $(
-            #[BuildFrom($build_type:ty)]
-            $field_name:ident : $field_type:ty,
-        )*
-    }
-    ) => {
-        struct $buffer_name$(<$lt>)? {
-            $($field_name : $field_type,)*
-        }
 
-        struct $builder_name {
-            $($field_name : $build_type,)*
+macro_rules! derive_stuff {
+    (
+        $(#[$global_meta:meta])*
+        struct $buffer_name:ident$(<$lt:lifetime>)? {
+            $global_head:tt
+            $($global_tail:tt)*
+        }
+        $(
+            $(#[$local_meta:meta])*
+            $local_macro:ident!{
+                $($local_token:tt)*
+            }
+        )*
+    ) => {
+        $(#[$global_meta])*
+        struct $buffer_name$(<$lt>)? {
+            $global_head
+            $($global_tail)*
+        }
+        derive_stuff!{
+            @inner
+            $buffer_name
+            @($($global_tail)*)
+            @(
+                $(
+                    $(#[$local_meta])*
+                    $local_macro!{
+                        @($global_head)
+                        @($($local_token)*)
+                    }
+                )*
+            )
         }
     };
+    (
+        @inner
+        $buffer_name:ident
+        @()
+        @(
+            $(
+                $(#[$local_meta:meta])*
+                $local_macro:ident!{
+                    @($($global_processed:tt)*)
+                    @($($local_token:tt)*)
+                }
+            )*
+        )
+    ) => {
+        $(
+            $(#[$local_meta])*
+            $local_macro!{
+                $buffer_name
+                $(#[$local_meta])*
+                @($($global_processed)*)
+                @($($local_token)*)
+            }
+        )*
+    };
+    (
+        @inner
+        $buffer_name:ident
+        @($global_head:tt $($global_tail:tt)*)
+        @(
+            $(
+                $(#[$local_meta:meta])*
+                $local_macro:ident!{
+                    @($($global_processed:tt)*)
+                    @($($local_token:tt)*)
+                }
+            )*
+        )
+    ) => {
+        derive_stuff!{
+            @inner
+            $buffer_name
+            @($($global_tail)*)
+            @(
+                $(
+                    $(#[$local_meta])*
+                    $local_macro!{
+                        @($($global_processed)* $global_head)
+                        @($($local_token)*)
+                    }
+                )*
+            )
+        }
+    };
+}
+
+trace_macros!(true);
+derive_stuff! {
+    struct StereoInputOutput<'a> {
+        in_left: &'a [f32],
+        in_right: &'a [f32],
+        out_left: &'a mut [f32],
+        out_right: &'a mut [f32],
+    }
+    #[cfg(feature="non")]
+    non_existing_macro!{
+        eendertwa
+    }
+}
+trace_macros!(false);
+
+#[cfg(feature="non")]
+non_existing_macro2!{
+    blabla
 }
 
 struct StereoBuilder {
@@ -453,28 +544,14 @@ impl<'c> TryFrom<&'c Client> for StereoBuilder {
     }
 }
 
-derive_jack_stuff! {
-    #[BuildFrom(Testje)]
-    struct StereoInputOutput<'a> {
-        #[BuildFrom(Port<AudioIn>)]
-        in_left: &'a [f32],
-        #[BuildFrom(Port<AudioIn>)]
-        in_right: &'a [f32],
-        #[BuildFrom(Port<AudioOut>)]
-        out_left: &'a mut [f32],
-        #[BuildFrom(Port<AudioOut>)]
-        out_right: &'a mut [f32],
-    }
-}
-
 pub trait NewContextualAudioRenderer<B, Context> {
     fn render_buffer(&mut self, buffer: B, context: &mut Context);
 }
 
 impl<'a, P> DelegateHandling<P, (&'a Client, &'a ProcessScope)> for StereoBuilder
-where
-    for<'b, 'c, 'mp, 'mw> P:
-        NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
+    where
+            for<'b, 'c, 'mp, 'mw> P:
+    NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
 {
     type Output = Control;
 
@@ -511,11 +588,11 @@ struct DemoJackHandler<B, P> {
 }
 
 impl<B, P> ProcessHandler for DemoJackHandler<B, P>
-where
-    P: AudioHandler,
-    for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
-    B: Send,
-    P: Send,
+    where
+        P: AudioHandler,
+        for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output=Control>,
+        B: Send,
+        P: Send,
 {
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.builder
@@ -524,13 +601,13 @@ where
 }
 
 pub fn run2<P, B>(mut plugin: P) -> Result<P, jack::Error>
-where
-    P: CommonPluginMeta + AudioHandler + Send + Sync + 'static,
-    for<'b, 'c, 'mp, 'mw> P:
+    where
+        P: CommonPluginMeta + AudioHandler + Send + Sync + 'static,
+        for<'b, 'c, 'mp, 'mw> P:
         NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
-    for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
-    for<'a> B: TryFrom<&'a Client, Error = jack::Error>,
-    B: Send + 'static,
+        for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output=Control>,
+        for<'a> B: TryFrom<&'a Client, Error=jack::Error>,
+        B: Send + 'static,
 {
     let mut client_name = String::new();
     plugin.plugin_name(&mut client_name);
