@@ -500,7 +500,6 @@ macro_rules! derive_stuff {
 }
 
 // TODO's:
-// * Check if it compiles
 // * Also support output ports
 // * Correctly take into account lifetime parameters of buffer
 // * Add full paths to everything.
@@ -529,8 +528,8 @@ macro_rules! derive_jack_stuff {
         $(#[$local_meta:meta])*
         @($(,)?)
         @($($struct_constructor:tt)*)
-        @($($try_from:tt)*)
-        @($($delegate:tt)*)
+        @($(($try_from_field_name:ident, $value:expr))*)
+        @($(($delegate_field_name:ident, $method:tt))*)
     ) => {
         $(#[$local_meta:meta])*
         struct $builder_name {
@@ -542,7 +541,9 @@ macro_rules! derive_jack_stuff {
 
             fn try_from(client: &'c Client) -> Result<Self, Self::Error> {
                 Ok(Self {
-                    $($try_from)*
+                    $(
+                        $try_from_field_name: client.register_port(stringify!($try_from_field_name), $value)?,
+                    )*
                 })
             }
         }
@@ -566,7 +567,9 @@ macro_rules! derive_jack_stuff {
                 };
 
                 let buffer = $buffer_name {
-                    $($delegate)*
+                    $(
+                        $delegate_field_name: self.$delegate_field_name.$method(process_scope),
+                    )*
                 };
                 plugin.render_buffer(buffer, &mut jack_host);
                 jack_host.control
@@ -590,8 +593,8 @@ macro_rules! derive_jack_stuff {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($($struct_constructor)* $field_name : Port<AudioIn>,)
-            @($($try_from)* $field_name : client.register_port(stringify!($field_name), AudioIn::default())?,)
-            @($($delegate)* $field_name: self.$field_name.as_slice(process_scope),)
+            @($($try_from)* ($field_name, AudioIn::default()))
+            @($($delegate)* ($field_name, as_slice))
         }
     };
 }
