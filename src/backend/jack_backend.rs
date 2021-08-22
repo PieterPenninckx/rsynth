@@ -501,7 +501,7 @@ macro_rules! derive_stuff {
 
 // TODO's:
 // * Correctly take into account lifetime parameters of buffer
-// * Add full paths to everything.
+// * Add full paths to items defined by rsynth.
 macro_rules! derive_jack_stuff {
     (
         $buffer_name:ident
@@ -535,10 +535,12 @@ macro_rules! derive_jack_stuff {
             $($struct_constructor)*
         }
 
-        impl<'c> TryFrom<&'c Client> for $builder_name {
-            type Error = Error;
+        impl<'c> ::std::convert::TryFrom<&'c $crate::backend::jack_backend::jack::Client> for $builder_name {
+            type Error = $crate::backend::jack_backend::jack::Error;
 
-            fn try_from(client: &'c Client) -> Result<Self, Self::Error> {
+            fn try_from(
+                client: &'c $crate::backend::jack_backend::jack::Client
+            ) -> ::core::result::Result<Self, Self::Error> {
                 Ok(Self {
                     $(
                         $try_from_field_name: client.register_port(stringify!($try_from_field_name), $value)?,
@@ -547,17 +549,17 @@ macro_rules! derive_jack_stuff {
             }
         }
 
-        impl<'a, P> DelegateHandling<P, (&'a Client, &'a ProcessScope)> for $builder_name
+        impl<'a, P> DelegateHandling<P, (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope)> for $builder_name
         where
             for<'b, 'c, 'mp, 'mw> P:
                 NewContextualAudioRenderer<$buffer_name<'b>, JackHost<'c, 'mp, 'mw>>,
         {
-            type Output = Control;
+            type Output = $crate::backend::jack_backend::jack::Control;
 
             fn delegate_handling(
                 &mut self,
                 plugin: &mut P,
-                (client, process_scope): (&'a Client, &'a ProcessScope),
+                (client, process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
             ) -> Self::Output {
                 let mut jack_host: JackHost = JackHost {
                     client,
@@ -591,8 +593,8 @@ macro_rules! derive_jack_stuff {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
-            @($($struct_constructor)* $field_name : Port<AudioIn>,)
-            @($($try_from)* ($field_name, AudioIn::default()))
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioIn>,)
+            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
             @($($delegate)* ($field_name, as_slice))
         }
     };
@@ -612,8 +614,8 @@ macro_rules! derive_jack_stuff {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
-            @($($struct_constructor)* $field_name : Port<AudioOut>,)
-            @($($try_from)* ($field_name, AudioOut::default()))
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioOut>,)
+            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
             @($($delegate)* ($field_name, as_mut_slice))
         }
     };
