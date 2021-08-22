@@ -500,7 +500,6 @@ macro_rules! derive_stuff {
 }
 
 // TODO's:
-// * Also support output ports
 // * Correctly take into account lifetime parameters of buffer
 // * Add full paths to everything.
 macro_rules! derive_jack_stuff {
@@ -597,17 +596,35 @@ macro_rules! derive_jack_stuff {
             @($($delegate)* ($field_name, as_slice))
         }
     };
+    (
+        @inner
+        $buffer_name:ident
+        $builder_name:ident
+        $(#[$local_meta:meta])*
+        @($(,)? $field_name:ident : &$lt:lifetime mut[f32] $($global_tail:tt)*)
+        @($($struct_constructor:tt)*)
+        @($($try_from:tt)*)
+        @($($delegate:tt)*)
+    ) => {
+        derive_jack_stuff!{
+            @inner
+            $buffer_name
+            $builder_name
+            $(#[$local_meta:meta])*
+            @($($global_tail)*)
+            @($($struct_constructor)* $field_name : Port<AudioOut>,)
+            @($($try_from)* ($field_name, AudioOut::default()))
+            @($($delegate)* ($field_name, as_mut_slice))
+        }
+    };
 }
 
 derive_stuff! {
     struct StereoInputOutput<'a> {
         in_left: &'a [f32],
         in_right: &'a [f32],
-        /*
         out_left: &'a mut [f32],
         out_right: &'a mut [f32],
-
-         */
     }
 
     derive_jack_stuff!{
@@ -669,10 +686,8 @@ where
         let buffer = StereoInputOutput {
             in_left,
             in_right,
-            /*
             out_left,
             out_right,
-            */
         };
         plugin.render_buffer(buffer, &mut jack_host);
         jack_host.control
