@@ -211,6 +211,8 @@ impl RawMidiEvent {
 
 #[cfg(feature = "backend-combined-midly-0-5")]
 use crate::backend::combined::midly::midly_0_5::io::CursorError;
+#[cfg(feature = "backend-jack")]
+use crate::backend::jack_backend::jack::RawMidi;
 
 #[cfg(feature = "backend-combined-midly-0-5")]
 #[derive(Debug, Clone)]
@@ -291,6 +293,44 @@ fn conversion_from_midly_to_raw_midi_event_works() {
             0
         ]
     );
+}
+
+#[cfg(feature = "backend-jack")]
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+/// The error type when converting from `jacks`'s [`RawMidi`] to a `Timed<RawMidiEvent>`.
+pub enum JackConversionError {
+    /// The event is more than three bytes long.
+    MoreThanThreeBytesLong,
+}
+
+#[cfg(feature = "backend-jack")]
+impl Display for JackConversionError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            JackConversionError::MoreThanThreeBytesLong => write!(f, "More than three bytes long."),
+        }
+    }
+}
+
+#[cfg(feature = "backend-jack")]
+impl Error for JackConversionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+#[cfg(feature = "backend-jack")]
+impl<'a> TryFrom<RawMidi<'a>> for Timed<RawMidiEvent> {
+    type Error = JackConversionError;
+
+    fn try_from(value: RawMidi<'a>) -> Result<Self, Self::Error> {
+        Ok(Timed {
+            time_in_frames: value.time as u32,
+            event: RawMidiEvent::try_new(value.bytes)
+                .ok_or(JackConversionError::MoreThanThreeBytesLong)?,
+        })
+    }
 }
 
 impl AsRef<Self> for RawMidiEvent {

@@ -413,7 +413,8 @@ where
 macro_rules! derive_stuff {
     (
         $(#[$global_meta:meta])*
-        struct $buffer_name:ident$(<$lt:lifetime>)? {
+        struct $buffer_name:ident$(<$lt:lifetime>)?
+        {
             $global_head:tt
             $($global_tail:tt)*
         }
@@ -425,7 +426,8 @@ macro_rules! derive_stuff {
         )*
     ) => {
         $(#[$global_meta])*
-        struct $buffer_name$(<$lt>)? {
+        struct $buffer_name$(<$lt>)?
+        {
             $global_head
             $($global_tail)*
         }
@@ -621,24 +623,32 @@ macro_rules! derive_jack_stuff {
     };
 }
 
-derive_stuff! {
-    struct StereoInputOutput<'a> {
-        in_left: &'a [f32],
-        in_right: &'a [f32],
-        out_left: &'a mut [f32],
-        out_right: &'a mut [f32],
-    }
+//derive_stuff! {
+struct StereoInputOutput<'a> {
+    in_left: &'a [f32],
+    in_right: &'a [f32],
+    out_left: &'a mut [f32],
+    out_right: &'a mut [f32],
+    midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+}
 
+fn f(x: &mut StereoInputOutput) {
+    x.midi_in.next();
+}
+/*
     derive_jack_stuff!{
         struct MyBuilder {generate_fields!() }
     }
 }
+
+ */
 
 struct StereoBuilder {
     in_left: Port<AudioIn>,
     in_right: Port<AudioIn>,
     out_left: Port<AudioOut>,
     out_right: Port<AudioOut>,
+    midi_in: Port<MidiIn>,
 }
 
 impl<'c> TryFrom<&'c Client> for StereoBuilder {
@@ -649,11 +659,13 @@ impl<'c> TryFrom<&'c Client> for StereoBuilder {
         let in_right = client.register_port("right in", AudioIn::default())?;
         let out_left = client.register_port("left out", AudioOut::default())?;
         let out_right = client.register_port("right out", AudioOut::default())?;
+        let midi_in = client.register_port("midi in", MidiIn::default())?;
         Ok(Self {
             in_left,
             in_right,
             out_left,
             out_right,
+            midi_in,
         })
     }
 }
@@ -684,12 +696,17 @@ where
         let in_right = self.in_right.as_slice(process_scope);
         let out_left = self.out_left.as_mut_slice(process_scope);
         let out_right = self.out_right.as_mut_slice(process_scope);
+        let mut midi_in = self
+            .midi_in
+            .iter(process_scope)
+            .filter_map(|e| Timed::<RawMidiEvent>::try_from(e).ok());
 
         let buffer = StereoInputOutput {
             in_left,
             in_right,
             out_left,
             out_right,
+            midi_in: &mut midi_in,
         };
         plugin.render_buffer(buffer, &mut jack_host);
         jack_host.control
