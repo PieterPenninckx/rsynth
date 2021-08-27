@@ -1,3 +1,4 @@
+#![feature(trace_macros)]
 // An example of a software synthesizer using the offline ("combined") back-end.
 // The code that is shared between all backends is in the `example_synth.rs` file.
 //

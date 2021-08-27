@@ -9,9 +9,12 @@ use polyphony::{
     simple_event_dispatching::{SimpleEventDispatcher, SimpleVoiceState},
     EventDispatchClassifier, Voice, VoiceAssigner,
 };
+#[cfg(feature = "backend-jack")]
+use rsynth::derive_jack_port_builder;
 use rsynth::event::{
-    ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
+    CoIterator, ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
+use rsynth::{derive_ports, ContextualAudioRenderer};
 
 use dasp_sample::{FromSample, Sample};
 use midi_consts::channel_event::*;
@@ -22,6 +25,40 @@ use std::f32::consts::PI;
 
 static NUMBER_OF_VOICES: usize = 6;
 static AMPLIFY_MULTIPLIER: f32 = 1.0 / NUMBER_OF_VOICES as f32;
+
+/*
+trace_macros!(true);
+derive_ports! {
+    struct SineOscilatorPorts<'a> {
+        audio_in: &'a [f32],
+        audio_out: &'a mut [f32],
+        midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+    }
+
+
+    derive_jack_port_builder! {
+        struct SineOscilatorPortsBuilder {
+            generate_fields!();
+        }
+    }
+}
+trace_macros!(false);
+
+ */
+
+derive_ports! {
+    struct SineOscilatorPorts<'a> {
+        out_left: &'a mut [f32],
+        out_right: &'a mut [f32],
+        midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+    }
+
+    derive_jack_port_builder! {
+        struct SineOscilatorPortsBuilder {
+            generate_fields!()
+        }
+    }
+}
 
 // This struct defines the data that we will need to play one sine wave.
 pub struct SineOscilator {
@@ -36,7 +73,7 @@ pub struct SineOscilator {
 }
 
 impl SineOscilator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         SineOscilator {
             frequency: 0.0,
             position: 0.0,
@@ -133,26 +170,19 @@ impl AudioHandler for SinePlayer {
         self.sample_frequency = sample_rate as f32;
     }
 }
-/*
-impl<S, Context> ContextualAudioRenderer<S, Context> for SinePlayer
+
+impl<'a, Context> ContextualAudioRenderer<SineOscilatorPorts<'a>, Context> for SinePlayer
 where
-    S: FromSample<f32> + Sample,
     Context: HostInterface,
 {
-    fn render_buffer(&mut self, buffer: &mut AudioBufferInOut<S>, context: &mut Context) {
-        if !context.output_initialized() {
-            // Initialize the output buffer.
-            buffer.outputs().set(S::EQUILIBRIUM);
-        }
-        let (left_channel, right_channel) = buffer.outputs().split_stereo();
-        for (left, right) in left_channel.iter_mut().zip(right_channel.iter_mut()) {
+    fn render_buffer(&mut self, ports: SineOscilatorPorts<'a>, context: &mut Context) {
+        for (left, right) in ports.out_left.iter_mut().zip(ports.out_right.iter_mut()) {
             let mut sample = 0.0;
             for voice in self.voices.iter_mut() {
                 sample += voice.get_sample(self.sample_frequency);
             }
-            *left = S::from_sample_(sample);
-            *right = *left;
+            *left = sample;
+            *right = sample;
         }
     }
 }
- */

@@ -1,3 +1,4 @@
+#![feature(trace_macros)]
 // An example of a software synthesizer using the JACK back-end.
 // The code that is shared between all backends is in the `example_synth.rs` file.
 //
@@ -55,37 +56,39 @@ extern crate log;
 extern crate rsynth;
 
 mod example_synth;
+use example_synth::SineOscilatorPortsBuilder;
 use example_synth::*;
+use std::convert::TryFrom;
 
+use crate::rsynth::AudioHandler;
 #[cfg(feature = "backend-jack")]
 use rsynth::backend::jack_backend::jack::{Client, ClientOptions};
+use rsynth::backend::jack_backend::JackHandler;
 #[cfg(feature = "backend-jack")]
 use std::{error::Error, io};
 
 #[cfg(feature = "backend-jack")]
 fn main() -> Result<(), Box<dyn Error>> {
-    Ok(())
-    /*
-    let mut client_name = String::new();
-    plugin.plugin_name(&mut client_name);
-    let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
+    let mut plugin = SinePlayer::new();
+    let (client, _status) = Client::new("sine oscillator", ClientOptions::NO_START_SERVER)?;
 
     let sample_rate = client.sample_rate();
     plugin.set_sample_rate(sample_rate as f64);
 
-    let jack_process_handler = JackProcessHandler::new(&client, plugin);
-    let active_client = client.activate_async((), jack_process_handler)?;
+    let builder = SineOscilatorPortsBuilder::try_from(&client)?;
 
-    println!("Press return to quit.");
+    let process_handler = JackHandler { plugin, builder };
+
+    let active_client = client.activate_async((), process_handler)?;
+
+    println!("Press enter to quit");
     let mut user_input = String::new();
     io::stdin().read_line(&mut user_input).ok();
 
     info!("Deactivating client...");
 
     active_client.deactivate()?;
-    Ok(())
-
-     */
+    return Ok(());
 }
 
 #[cfg(not(feature = "backend-jack"))]

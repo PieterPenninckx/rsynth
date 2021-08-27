@@ -15,10 +15,8 @@
 //! [`run`]: ./fn.run.html
 use crate::backend::{HostInterface, Stop};
 use crate::buffer::DelegateHandling;
-use crate::event::{
-    CoIterator, ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
-};
-use crate::AudioHandler;
+use crate::event::{CoIterator, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed};
+use crate::{AudioHandler, ContextualAudioRenderer};
 use std::io;
 
 /// Re-exports of the [`jack`](https://crates.io/crates/jack) crate.
@@ -71,10 +69,11 @@ impl<'c> CoIterator for MidiWriter<'c> {
 ///
 /// [`render_audio`]: ../../trait.ContextualAudioRenderer.html#tymethod.render_buffer
 /// [`run`]: ./fn.run.html
+// TODO: stop making fields public.
 pub struct JackHost<'c, 'mp, 'mw> {
-    client: &'c Client,
-    midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
-    control: jack::Control,
+    pub client: &'c Client,
+    pub midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
+    pub control: jack::Control,
 }
 
 impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
@@ -136,120 +135,18 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
     }
 }
 
-// `MidiWriter` does not implement `Send`, but we do want `JackProcessHandler` to implement `Send`.
-// `JackProcessHandler` contains only `VecStorage` of `MidiWriter`s, not a real `MidiWriter`.
-// So we solve this by creating a data type that is guaranteed to have the same alignment and
-// size as a `MidiWriter`.
-struct MidiWriterWrapper {
-    _inner: jack::MidiWriter<'static>,
-}
-
-unsafe impl Send for MidiWriterWrapper {}
-
-unsafe impl Sync for MidiWriterWrapper {}
-
-macro_rules! derive_stuff {
-    (
-        $(#[$global_meta:meta])*
-        struct $buffer_name:ident$(<$lt:lifetime>)?
-        {
-            $global_head:tt
-            $($global_tail:tt)*
-        }
-        $(
-            $(#[$local_meta:meta])*
-            $local_macro:ident!{
-                $($local_token:tt)*
-            }
-        )*
-    ) => {
-        $(#[$global_meta])*
-        struct $buffer_name$(<$lt>)?
-        {
-            $global_head
-            $($global_tail)*
-        }
-        derive_stuff!{
-            @inner
-            $buffer_name
-            @($($global_tail)*)
-            @(
-                $(
-                    $(#[$local_meta])*
-                    $local_macro!{
-                        @($global_head)
-                        @($($local_token)*)
-                    }
-                )*
-            )
-        }
-    };
-    (
-        @inner
-        $buffer_name:ident
-        @()
-        @(
-            $(
-                $(#[$local_meta:meta])*
-                $local_macro:ident!{
-                    @($($global_processed:tt)*)
-                    @($($local_token:tt)*)
-                }
-            )*
-        )
-    ) => {
-        $(
-            $(#[$local_meta])*
-            $local_macro!{
-                $buffer_name
-                $(#[$local_meta])*
-                @($($global_processed)*)
-                @($($local_token)*)
-            }
-        )*
-    };
-    (
-        @inner
-        $buffer_name:ident
-        @($global_head:tt $($global_tail:tt)*)
-        @(
-            $(
-                $(#[$local_meta:meta])*
-                $local_macro:ident!{
-                    @($($global_processed:tt)*)
-                    @($($local_token:tt)*)
-                }
-            )*
-        )
-    ) => {
-        derive_stuff!{
-            @inner
-            $buffer_name
-            @($($global_tail)*)
-            @(
-                $(
-                    $(#[$local_meta])*
-                    $local_macro!{
-                        @($($global_processed)* $global_head)
-                        @($($local_token)*)
-                    }
-                )*
-            )
-        }
-    };
-}
-
 // TODO's:
 // * Correctly take into account lifetime parameters of buffer
 // * Add full paths to items defined by rsynth.
-macro_rules! derive_jack_stuff {
+#[macro_export]
+macro_rules! derive_jack_port_builder {
     (
         $buffer_name:ident
         $(#[$local_meta:meta])*
         @($($global_tail:tt)*)
-        @(struct $builder_name:ident { generate_fields!()})
+        @(struct $builder_name:ident { $($whatever:tt)*})
     ) => {
-        derive_jack_stuff!{
+        derive_jack_port_builder!{
             @inner
             $buffer_name
             $builder_name
@@ -273,7 +170,7 @@ macro_rules! derive_jack_stuff {
         @($($delegate_things: tt)*)
     ) => {
         $(#[$local_meta:meta])*
-        struct $builder_name {
+        pub struct $builder_name {
             $($struct_constructor)*
         }
 
@@ -291,10 +188,10 @@ macro_rules! derive_jack_stuff {
             }
         }
 
-        impl<'a, P> DelegateHandling<P, (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope)> for $builder_name
+        impl<'a, P> $crate::buffer::DelegateHandling<P, (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope)> for $builder_name
         where
             for<'b, 'c, 'mp, 'mw> P:
-                NewContextualAudioRenderer<$buffer_name<'b>, JackHost<'c, 'mp, 'mw>>,
+                $crate::ContextualAudioRenderer<$buffer_name<'b>, $crate::backend::jack_backend::JackHost<'c, 'mp, 'mw>>,
         {
             type Output = $crate::backend::jack_backend::jack::Control;
 
@@ -304,7 +201,7 @@ macro_rules! derive_jack_stuff {
                 (client, $process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
             ) -> Self::Output {
                 use ::std::convert::TryFrom;
-                let mut jack_host: JackHost = JackHost {
+                let mut jack_host = $crate::backend::jack_backend::JackHost {
                     client,
                     midi_out_ports: &mut [],
                     control: jack::Control::Continue,
@@ -331,14 +228,14 @@ macro_rules! derive_jack_stuff {
         @($($try_from:tt)*)
         @($($delegate_things: tt)*)
     ) => {
-        derive_jack_stuff!{
+        derive_jack_port_builder!{
             @inner
             $buffer_name
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioIn>,)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::AudioIn>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
             @($($delegate_things)* $field_name: $self_.$field_name.as_slice($process_scope),)
         }
@@ -354,14 +251,14 @@ macro_rules! derive_jack_stuff {
         @($($try_from:tt)*)
         @($($delegate_things: tt)*)
     ) => {
-        derive_jack_stuff!{
+        derive_jack_port_builder!{
             @inner
             $buffer_name
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioOut>,)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::AudioOut>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
             @($($delegate_things)* $field_name: $self_.$field_name.as_mut_slice($process_scope),)
         }
@@ -377,14 +274,14 @@ macro_rules! derive_jack_stuff {
         @($($try_from:tt)*)
         @($($delegate_things: tt)*)
     ) => {
-        derive_jack_stuff!{
+        derive_jack_port_builder!{
             @inner
             $buffer_name
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<MidiIn>,)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::MidiIn>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiIn::default()))
             @($($delegate_things)*
                 $field_name: &mut $self_.$field_name
@@ -404,117 +301,27 @@ macro_rules! derive_jack_stuff {
         @($($try_from:tt)*)
         @($($delegate_things: tt)*)
     ) => {
-        derive_jack_stuff!{
+        derive_jack_port_builder!{
             @inner
             $buffer_name
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<MidiOut>,)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::MidiOut>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiOut::default()))
             @($($delegate_things)* $field_name: &mut $self_.$field_name.writer($process_scope), )
         }
     };
 }
 
-derive_stuff! {
-struct StereoInputOutput<'a> {
-    in_left: &'a [f32],
-    in_right: &'a [f32],
-    out_left: &'a mut [f32],
-    out_right: &'a mut [f32],
-    midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
-    midi_out: &'a mut dyn CoIterator<Item = Timed<RawMidiEvent>>,
+pub struct JackHandler<B, P> {
+    pub builder: B, // TODO: remove the visibility of this?
+    pub plugin: P,
 }
 
-    derive_jack_stuff!{
-        struct MyBuilder {generate_fields!() }
-    }
-}
-
-struct StereoBuilder {
-    in_left: Port<AudioIn>,
-    in_right: Port<AudioIn>,
-    out_left: Port<AudioOut>,
-    out_right: Port<AudioOut>,
-    midi_in: Port<MidiIn>,
-    midi_out: Port<MidiOut>,
-}
-
-impl<'c> TryFrom<&'c Client> for StereoBuilder {
-    type Error = Error;
-
-    fn try_from(client: &'c Client) -> Result<Self, Self::Error> {
-        let in_left = client.register_port("left in", AudioIn::default())?;
-        let in_right = client.register_port("right in", AudioIn::default())?;
-        let out_left = client.register_port("left out", AudioOut::default())?;
-        let out_right = client.register_port("right out", AudioOut::default())?;
-        let midi_in = client.register_port("midi in", MidiIn::default())?;
-        let midi_out = client.register_port("midi out", MidiOut::default())?;
-        Ok(Self {
-            in_left,
-            in_right,
-            out_left,
-            out_right,
-            midi_in,
-            midi_out,
-        })
-    }
-}
-
-pub trait NewContextualAudioRenderer<B, Context> {
-    fn render_buffer(&mut self, buffer: B, context: &mut Context);
-}
-
-impl<'a, P> DelegateHandling<P, (&'a Client, &'a ProcessScope)> for StereoBuilder
+impl<B, P> ProcessHandler for JackHandler<B, P>
 where
-    for<'b, 'c, 'mp, 'mw> P:
-        NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
-{
-    type Output = Control;
-
-    fn delegate_handling(
-        &mut self,
-        plugin: &mut P,
-        (client, process_scope): (&'a Client, &'a ProcessScope),
-    ) -> Self::Output {
-        let mut jack_host: JackHost = JackHost {
-            client,
-            midi_out_ports: &mut [],
-            control: jack::Control::Continue,
-        };
-
-        let in_left = self.in_left.as_slice(process_scope);
-        let in_right = self.in_right.as_slice(process_scope);
-        let out_left = self.out_left.as_mut_slice(process_scope);
-        let out_right = self.out_right.as_mut_slice(process_scope);
-        let mut midi_in = self
-            .midi_in
-            .iter(process_scope)
-            .filter_map(|e| Timed::<RawMidiEvent>::try_from(e).ok());
-        let mut midi_out = self.midi_out.writer(process_scope);
-        let buffer = StereoInputOutput {
-            in_left,
-            in_right,
-            out_left,
-            out_right,
-            midi_in: &mut midi_in,
-            midi_out: &mut midi_out,
-        };
-        plugin.render_buffer(buffer, &mut jack_host);
-        jack_host.control
-    }
-}
-
-struct DemoJackHandler<B, P> {
-    builder: B,
-    plugin: P,
-}
-
-impl<B, P> ProcessHandler for DemoJackHandler<B, P>
-where
-    P: AudioHandler,
     for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
     B: Send,
     P: Send,
@@ -523,37 +330,4 @@ where
         self.builder
             .delegate_handling(&mut self.plugin, (client, process_scope))
     }
-}
-
-pub fn run2<P, B>(mut plugin: P, client_name: &str) -> Result<P, jack::Error>
-where
-    P: AudioHandler + Send + Sync + 'static,
-    for<'b, 'c, 'mp, 'mw> P:
-        NewContextualAudioRenderer<StereoInputOutput<'b>, JackHost<'c, 'mp, 'mw>>,
-    for<'a> B: DelegateHandling<P, (&'a Client, &'a ProcessScope), Output = Control>,
-    for<'a> B: TryFrom<&'a Client, Error = jack::Error>,
-    B: Send + 'static,
-{
-    let (client, _status) = Client::new(&client_name, ClientOptions::NO_START_SERVER)?;
-
-    let sample_rate = client.sample_rate();
-    plugin.set_sample_rate(sample_rate as f64);
-
-    let stereo_builder = B::try_from(&client)?;
-
-    let demo_handler = DemoJackHandler {
-        plugin: plugin,
-        builder: stereo_builder,
-    };
-
-    let active_client = client.activate_async((), demo_handler)?;
-
-    println!("Press any key to quit");
-    let mut user_input = String::new();
-    io::stdin().read_line(&mut user_input).ok();
-
-    info!("Deactivating client...");
-
-    let (_, _, plugin) = active_client.deactivate()?;
-    return Ok(plugin.plugin);
 }
