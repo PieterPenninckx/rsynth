@@ -486,6 +486,7 @@ pub struct DeltaEvent<E> {
 }
 
 // TODO: find a better name for this.
-pub trait CoIterator<T> {
-    fn co_next(&mut self, item: T);
+pub trait CoIterator {
+    type Item;
+    fn co_next(&mut self, item: Self::Item);
 }

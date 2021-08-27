@@ -60,8 +60,9 @@ impl<'a> Into<RawMidi<'a>> for &'a Timed<RawMidiEvent> {
     }
 }
 
-impl<'c> CoIterator<Timed<RawMidiEvent>> for MidiWriter<'c> {
-    fn co_next(&mut self, item: Timed<RawMidiEvent>) {
+impl<'c> CoIterator for MidiWriter<'c> {
+    type Item = Timed<RawMidiEvent>;
+    fn co_next(&mut self, item: Self::Item) {
         // Not yet found a way to handle errors :-(
         let _ = self.write(&((&item).into()));
     }
@@ -686,6 +687,29 @@ macro_rules! derive_jack_stuff {
             )
         }
     };
+    (
+        @inner
+        $buffer_name:ident
+        $builder_name:ident
+        $(#[$local_meta:meta])*
+        @($(,)? $field_name:ident : &$lt:lifetime mut dyn CoIterator<Item = Timed<RawMidiEvent>> $($global_tail:tt)*)
+        @($process_scope:ident, $self_:tt)
+        @($($struct_constructor:tt)*)
+        @($($try_from:tt)*)
+        @($($delegate_things: tt)*)
+    ) => {
+        derive_jack_stuff!{
+            @inner
+            $buffer_name
+            $builder_name
+            $(#[$local_meta:meta])*
+            @($($global_tail)*)
+            @($process_scope, $self_)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<MidiOut>,)
+            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiOut::default()))
+            @($($delegate_things)* $field_name: &mut $self_.$field_name.writer($process_scope), )
+        }
+    };
 }
 
 derive_stuff! {
@@ -695,6 +719,7 @@ struct StereoInputOutput<'a> {
     out_left: &'a mut [f32],
     out_right: &'a mut [f32],
     midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+    midi_out: &'a mut dyn CoIterator<Item = Timed<RawMidiEvent>>,
 }
 
     derive_jack_stuff!{
@@ -708,6 +733,7 @@ struct StereoBuilder {
     out_left: Port<AudioOut>,
     out_right: Port<AudioOut>,
     midi_in: Port<MidiIn>,
+    midi_out: Port<MidiOut>,
 }
 
 impl<'c> TryFrom<&'c Client> for StereoBuilder {
@@ -719,12 +745,14 @@ impl<'c> TryFrom<&'c Client> for StereoBuilder {
         let out_left = client.register_port("left out", AudioOut::default())?;
         let out_right = client.register_port("right out", AudioOut::default())?;
         let midi_in = client.register_port("midi in", MidiIn::default())?;
+        let midi_out = client.register_port("midi out", MidiOut::default())?;
         Ok(Self {
             in_left,
             in_right,
             out_left,
             out_right,
             midi_in,
+            midi_out,
         })
     }
 }
@@ -759,13 +787,14 @@ where
             .midi_in
             .iter(process_scope)
             .filter_map(|e| Timed::<RawMidiEvent>::try_from(e).ok());
-
+        let mut midi_out = self.midi_out.writer(process_scope);
         let buffer = StereoInputOutput {
             in_left,
             in_right,
             out_left,
             out_right,
             midi_in: &mut midi_in,
+            midi_out: &mut midi_out,
         };
         plugin.render_buffer(buffer, &mut jack_host);
         jack_host.control
