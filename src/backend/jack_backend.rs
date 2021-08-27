@@ -16,7 +16,7 @@
 use crate::backend::{HostInterface, Stop};
 use crate::buffer::{AudioBufferInOut, DelegateHandling};
 use crate::event::{
-    ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
+    CoIterator, ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
 use crate::{
     AudioHandler, CommonAudioPortMeta, CommonMidiPortMeta, CommonPluginMeta,
@@ -33,8 +33,39 @@ pub mod jack {
 
 use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use self::jack::{Client, ClientOptions, Control, ProcessHandler};
-use crate::backend::jack_backend::jack::Error;
+use crate::backend::jack_backend::jack::{Error, MidiWriter};
 use std::convert::TryFrom;
+
+/// _Note_: you have to be very specific with references here,
+/// e.g.
+/// ```
+/// use rsynth::backend::jack_backend::jack::RawMidi;
+/// use rsynth::event::{RawMidiEvent, Timed};
+///
+/// fn jack_function<'a>(raw: &RawMidi<'a>) {
+/// }
+///
+/// fn my_function() {
+///     let raw_midi: Timed<RawMidiEvent> = todo!();
+///     // Note the explicit references on the next line.
+///     jack_function(&((&item).into()));
+/// }
+/// ```
+impl<'a> Into<RawMidi<'a>> for &'a Timed<RawMidiEvent> {
+    fn into(self) -> RawMidi<'a> {
+        RawMidi {
+            time: self.time_in_frames as u32,
+            bytes: self.event.bytes(),
+        }
+    }
+}
+
+impl<'c> CoIterator<Timed<RawMidiEvent>> for MidiWriter<'c> {
+    fn co_next(&mut self, item: Timed<RawMidiEvent>) {
+        // Not yet found a way to handle errors :-(
+        let _ = self.write(&((&item).into()));
+    }
+}
 
 /// Used to communicate with `Jack`.
 ///

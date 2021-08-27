@@ -484,3 +484,8 @@ pub struct DeltaEvent<E> {
     pub microseconds_since_previous_event: u64,
     pub event: E,
 }
+
+// TODO: find a better name for this.
+pub trait CoIterator<T> {
+    fn co_next(&mut self, item: T);
+}
