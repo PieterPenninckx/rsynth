@@ -12,13 +12,12 @@ use polyphony::{
 use rsynth::event::{
     ContextualEventHandler, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed,
 };
-use rsynth::{AudioHandler, ContextualAudioRenderer};
 
 use dasp_sample::{FromSample, Sample};
 use midi_consts::channel_event::*;
 use rsynth::backend::HostInterface;
-use rsynth::buffer::AudioBufferInOut;
 use rsynth::meta::{InOut, Meta, MetaData};
+use rsynth::AudioHandler;
 use std::f32::consts::PI;
 
 static NUMBER_OF_VOICES: usize = 6;
@@ -134,7 +133,7 @@ impl AudioHandler for SinePlayer {
         self.sample_frequency = sample_rate as f32;
     }
 }
-
+/*
 impl<S, Context> ContextualAudioRenderer<S, Context> for SinePlayer
 where
     S: FromSample<f32> + Sample,
@@ -156,19 +155,4 @@ where
         }
     }
 }
-
-impl<Context> ContextualEventHandler<Indexed<Timed<RawMidiEvent>>, Context> for SinePlayer {
-    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>, _context: &mut Context) {
-        let classifier = RawMidiEventToneIdentifierDispatchClassifier;
-        let classification = classifier.classify(event.event.event.data());
-        let mut dispatcher = SimpleEventDispatcher;
-        let assignment = dispatcher.assign(classification, &mut self.voices);
-        assignment.dispatch(event, &mut self.voices, SineOscilator::handle_event);
-    }
-}
-
-impl<'a, Context> ContextualEventHandler<Indexed<Timed<SysExEvent<'a>>>, Context> for SinePlayer {
-    fn handle_event(&mut self, _event: Indexed<Timed<SysExEvent>>, _context: &mut Context) {
-        // We don't do anything with SysEx events
-    }
-}
+ */

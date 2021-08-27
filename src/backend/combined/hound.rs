@@ -1,6 +1,4 @@
 //! Backend for reading and writing `.wav` files, based on the `hound` crate.
-use super::{AudioReader, AudioWriter};
-use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use dasp_sample::conv::{FromSample, ToSample};
 use hound::{WavReader, WavSamples, WavWriter};
 use std::error::Error;
@@ -77,38 +75,6 @@ where
             frames_per_second: spec.sample_rate as u64,
             hound_sample_reader,
         })
-    }
-}
-
-impl<'wr, S> AudioReader<S> for HoundAudioReader<'wr, S>
-where
-    S: Copy + FromSample<f32> + FromSample<i32> + FromSample<i16>,
-{
-    type Err = hound::Error;
-
-    fn number_of_channels(&self) -> usize {
-        self.number_of_channels
-    }
-
-    fn frames_per_second(&self) -> u64 {
-        self.frames_per_second
-    }
-
-    fn fill_buffer(&mut self, outputs: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
-        assert_eq!(outputs.number_of_channels(), self.number_of_channels());
-        let length = outputs.number_of_frames();
-        let mut frame_index = 0;
-        while frame_index < length {
-            for output in outputs.channel_iter_mut() {
-                if let Some(sample) = self.hound_sample_reader.read_sample()? {
-                    output[frame_index] = sample;
-                } else {
-                    return Ok(frame_index);
-                }
-            }
-            frame_index += 1;
-        }
-        Ok(frame_index)
     }
 }
 
@@ -210,33 +176,6 @@ where
             hound_sample_writer,
             number_of_channels: spec.channels as usize,
         })
-    }
-}
-
-impl<'ww, S> AudioWriter<S> for HoundAudioWriter<'ww, S>
-where
-    S: ToSample<f32> + ToSample<i32> + ToSample<i16> + Copy,
-{
-    type Err = hound::Error;
-
-    fn write_buffer(&mut self, inputs: &AudioBufferIn<S>) -> Result<(), Self::Err> {
-        assert_eq!(inputs.number_of_channels(), self.number_of_channels);
-        assert!(self.number_of_channels > 0);
-        let length = inputs.number_of_frames();
-
-        let mut frame_index = 0;
-        while frame_index < length {
-            for input in inputs.channels().iter() {
-                self.hound_sample_writer.write_sample(input[frame_index])?;
-            }
-            frame_index += 1;
-        }
-
-        self.hound_sample_writer.flush()
-    }
-
-    fn number_of_channels(&self) -> usize {
-        self.number_of_channels
     }
 }
 

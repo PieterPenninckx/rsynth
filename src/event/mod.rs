@@ -19,7 +19,6 @@ use crate::backend::combined::midly::midly_0_5::{
     MidiMessage,
 };
 use core::num::NonZeroU64;
-use gcd::Gcd;
 use std::convert::{AsMut, AsRef, TryFrom};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
@@ -474,7 +473,7 @@ impl<'a> TryFrom<Indexed<Timed<TrackEventKind<'a>>>> for Indexed<Timed<RawMidiEv
     fn try_from(indexed: Indexed<Timed<TrackEventKind<'a>>>) -> Result<Self, Self::Error> {
         Ok(Indexed {
             index: indexed.index,
-            event: Timed::<RawMidiEvent>::try_from(timed.event)?,
+            event: Timed::<RawMidiEvent>::try_from(indexed.event)?,
         })
     }
 }
