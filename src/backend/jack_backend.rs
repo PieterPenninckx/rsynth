@@ -517,6 +517,7 @@ macro_rules! derive_jack_stuff {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
+            @(process_scope, self)
             @()
             @()
             @()
@@ -528,6 +529,7 @@ macro_rules! derive_jack_stuff {
         $builder_name:ident
         $(#[$local_meta:meta])*
         @($(,)?)
+        @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($(($try_from_field_name:ident, $value:expr))*)
         @($(($delegate_field_name:ident, $method:tt))*)
@@ -559,9 +561,9 @@ macro_rules! derive_jack_stuff {
             type Output = $crate::backend::jack_backend::jack::Control;
 
             fn delegate_handling(
-                &mut self,
+                &mut $self_,
                 plugin: &mut P,
-                (client, process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
+                (client, $process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
             ) -> Self::Output {
                 let mut jack_host: JackHost = JackHost {
                     client,
@@ -571,7 +573,7 @@ macro_rules! derive_jack_stuff {
 
                 let buffer = $buffer_name {
                     $(
-                        $delegate_field_name: self.$delegate_field_name.$method(process_scope),
+                        $delegate_field_name: $self_.$delegate_field_name.$method($process_scope),
                     )*
                 };
                 plugin.render_buffer(buffer, &mut jack_host);
@@ -585,6 +587,7 @@ macro_rules! derive_jack_stuff {
         $builder_name:ident
         $(#[$local_meta:meta])*
         @($(,)? $field_name:ident : &$lt:lifetime[f32] $($global_tail:tt)*)
+        @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
         @($($delegate:tt)*)
@@ -595,6 +598,7 @@ macro_rules! derive_jack_stuff {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
+            @($process_scope, $self_)
             @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioIn>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
             @($($delegate)* ($field_name, as_slice))
@@ -606,6 +610,7 @@ macro_rules! derive_jack_stuff {
         $builder_name:ident
         $(#[$local_meta:meta])*
         @($(,)? $field_name:ident : &$lt:lifetime mut[f32] $($global_tail:tt)*)
+        @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
         @($($delegate:tt)*)
@@ -616,6 +621,7 @@ macro_rules! derive_jack_stuff {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
+            @($process_scope, $self_)
             @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioOut>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
             @($($delegate)* ($field_name, as_mut_slice))
