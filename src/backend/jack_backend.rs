@@ -532,7 +532,7 @@ macro_rules! derive_jack_stuff {
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($(($try_from_field_name:ident, $value:expr))*)
-        @($(($delegate_field_name:ident, $method:tt))*)
+        @($($delegate_things: tt)*)
     ) => {
         $(#[$local_meta:meta])*
         struct $builder_name {
@@ -565,6 +565,7 @@ macro_rules! derive_jack_stuff {
                 plugin: &mut P,
                 (client, $process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
             ) -> Self::Output {
+                use ::std::convert::TryFrom;
                 let mut jack_host: JackHost = JackHost {
                     client,
                     midi_out_ports: &mut [],
@@ -573,7 +574,7 @@ macro_rules! derive_jack_stuff {
 
                 let buffer = $buffer_name {
                     $(
-                        $delegate_field_name: $self_.$delegate_field_name.$method($process_scope),
+                        $delegate_things
                     )*
                 };
                 plugin.render_buffer(buffer, &mut jack_host);
@@ -590,7 +591,7 @@ macro_rules! derive_jack_stuff {
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
-        @($($delegate:tt)*)
+        @($($delegate_things: tt)*)
     ) => {
         derive_jack_stuff!{
             @inner
@@ -601,7 +602,7 @@ macro_rules! derive_jack_stuff {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioIn>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
-            @($($delegate)* ($field_name, as_slice))
+            @($($delegate_things)* $field_name: $self_.$field_name.as_slice($process_scope),)
         }
     };
     (
@@ -613,7 +614,7 @@ macro_rules! derive_jack_stuff {
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
-        @($($delegate:tt)*)
+        @($($delegate_things: tt)*)
     ) => {
         derive_jack_stuff!{
             @inner
@@ -624,12 +625,39 @@ macro_rules! derive_jack_stuff {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<AudioOut>,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
-            @($($delegate)* ($field_name, as_mut_slice))
+            @($($delegate_things)* $field_name: $self_.$field_name.as_mut_slice($process_scope),)
+        }
+    };
+    (
+        @inner
+        $buffer_name:ident
+        $builder_name:ident
+        $(#[$local_meta:meta])*
+        @($(,)? $field_name:ident : &$lt:lifetime mut dyn Iterator<Item = Timed<RawMidiEvent>> $($global_tail:tt)*)
+        @($process_scope:ident, $self_:tt)
+        @($($struct_constructor:tt)*)
+        @($($try_from:tt)*)
+        @($($delegate_things: tt)*)
+    ) => {
+        derive_jack_stuff!{
+            @inner
+            $buffer_name
+            $builder_name
+            $(#[$local_meta:meta])*
+            @($($global_tail)*)
+            @($process_scope, $self_)
+            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<MidiIn>,)
+            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiIn::default()))
+            @($($delegate_things)*
+                $field_name: &mut $self_.$field_name
+                    .iter($process_scope)
+                    .filter_map(|e| $crate::event::Timed::<$crate::event::RawMidiEvent>::try_from(e).ok()),
+            )
         }
     };
 }
 
-//derive_stuff! {
+derive_stuff! {
 struct StereoInputOutput<'a> {
     in_left: &'a [f32],
     in_right: &'a [f32],
@@ -638,16 +666,10 @@ struct StereoInputOutput<'a> {
     midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
 }
 
-fn f(x: &mut StereoInputOutput) {
-    x.midi_in.next();
-}
-/*
     derive_jack_stuff!{
         struct MyBuilder {generate_fields!() }
     }
 }
-
- */
 
 struct StereoBuilder {
     in_left: Port<AudioIn>,
