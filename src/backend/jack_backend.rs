@@ -27,8 +27,9 @@ pub mod jack {
 
 use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use self::jack::{Client, ClientOptions, Control, ProcessHandler};
-use crate::backend::jack_backend::jack::{Error, MidiWriter};
+use crate::backend::jack_backend::jack::{Error, MidiWriter, PortSpec};
 use std::convert::TryFrom;
+use std::ops::{Deref, DerefMut};
 
 /// _Note_: you have to be very specific with references here,
 /// e.g.
@@ -192,7 +193,7 @@ macro_rules! derive_jack_port_builder {
         @($(,)?)
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
-        @($(($try_from_field_name:ident, $value:expr))*)
+        @($(($try_from_field_name:ident, $try_from_type:ty))*)
         @($($delegate_things: tt)*)
     ) => {
         $(#[$local_meta:meta])*
@@ -208,7 +209,7 @@ macro_rules! derive_jack_port_builder {
             ) -> ::core::result::Result<Self, Self::Error> {
                 Ok(Self {
                     $(
-                        $try_from_field_name: client.register_port(stringify!($try_from_field_name), $value)?,
+                        $try_from_field_name: <$try_from_type>::from_client(client, stringify!($try_from_field_name))?,
                     )*
                 })
             }
@@ -262,7 +263,7 @@ macro_rules! derive_jack_port_builder {
             @($($global_tail)*)
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
+            @($($try_from)* ($field_name, <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)* $field_name: $self_.$field_name.as_slice($process_scope),)
         }
     };
@@ -285,7 +286,7 @@ macro_rules! derive_jack_port_builder {
             @($($global_tail)*)
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
+            @($($try_from)* ($field_name, <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)* $field_name: $self_.$field_name.as_mut_slice($process_scope),)
         }
     };
@@ -308,7 +309,7 @@ macro_rules! derive_jack_port_builder {
             @($($global_tail)*)
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiIn::default()))
+            @($($try_from)* ($field_name, <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)*
                 $field_name: &mut $self_.$field_name
                     .iter($process_scope)
@@ -335,7 +336,7 @@ macro_rules! derive_jack_port_builder {
             @($($global_tail)*)
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiOut::default()))
+            @($($try_from)* ($field_name, <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)* $field_name: &mut $self_.$field_name.writer($process_scope), )
         }
     };
@@ -344,6 +345,52 @@ macro_rules! derive_jack_port_builder {
 pub struct JackHandler<B, P> {
     pub builder: B, // TODO: remove the visibility of this?
     pub plugin: P,
+}
+
+pub struct PortWrapper<P> {
+    inner: P,
+}
+
+impl<P> Default for PortWrapper<P>
+where
+    P: Default,
+{
+    fn default() -> Self {
+        Self {
+            inner: P::default(),
+        }
+    }
+}
+
+impl<P> PortWrapper<P> {
+    pub fn new(p: P) -> Self {
+        Self { inner: p }
+    }
+}
+
+impl<P> Deref for PortWrapper<P> {
+    type Target = P;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> PortWrapper<Port<T>>
+where
+    T: PortSpec + Default,
+{
+    pub fn from_client(client: &Client, port_name: &str) -> Result<Self, Error> {
+        Ok(Self {
+            inner: client.register_port(port_name, T::default())?,
+        })
+    }
+}
+
+impl<P> DerefMut for PortWrapper<P> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
 }
 
 impl<B, P> ProcessHandler for JackHandler<B, P>
@@ -363,19 +410,19 @@ pub trait JackBuilder {
 }
 
 impl JackBuilder for &'static mut dyn Iterator<Item = Timed<RawMidiEvent>> {
-    type Port = Port<MidiIn>;
+    type Port = PortWrapper<Port<MidiIn>>;
 }
 
 impl JackBuilder for &'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> {
-    type Port = Port<MidiOut>;
+    type Port = PortWrapper<Port<MidiOut>>;
 }
 
 impl JackBuilder for &'static [f32] {
-    type Port = Port<AudioIn>;
+    type Port = PortWrapper<Port<AudioIn>>;
 }
 
 impl JackBuilder for &'static mut [f32] {
-    type Port = Port<AudioOut>;
+    type Port = PortWrapper<Port<AudioOut>>;
 }
 
 fn plugtestje<'a>(port: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>) {}
