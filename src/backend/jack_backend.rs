@@ -146,6 +146,24 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
 //   ```
 //   and then for the delegation: `my_field.build(process_scope).my_into()` (see the `MyInto`
 //   trait at the bottom, but probably use a better name).
+//   Note: the `build` method should be a method on a type, not a method defined by a trait,
+//   since you cannot (yet) do
+//   ```
+//   pub trait MyBuilder<'a> {
+//       type Output;
+//       fn build(self, process_scope: &'a ProcessScope) -> Self::Output;
+//   }
+//
+//   impl<'a> MyBuilder<'a> for &'a mut Port<MidiOut> {
+//       // Error on the next line: `impl Trait` in type aliases is unstable,
+//       // See issue https://github.com/rust-lang/rust/issues/63063 for more information.
+//       type Output = impl Iterator<Item = Timed<RawMidiEvent>> + 'a;
+//
+//       fn build(self, process_scope: &'a ProcessScope) -> Self::Output {
+//           self.writer(process_scope)
+//       }
+//   }
+//   ```
 #[macro_export]
 macro_rules! derive_jack_port_builder {
     (
