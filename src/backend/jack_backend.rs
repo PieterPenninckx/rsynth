@@ -234,6 +234,7 @@ macro_rules! derive_jack_port_builder {
                     control: jack::Control::Continue,
                 };
 
+                use $crate::backend::jack_backend::MyInto;
                 let buffer = $buffer_name {
                     $(
                         $delegate_things
@@ -264,7 +265,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: $self_.$field_name.as_slice($process_scope),)
+            @($($delegate_things)* $field_name: $self_.$field_name.build($process_scope).my_into(),)
         }
     };
     (
@@ -287,7 +288,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: $self_.$field_name.as_mut_slice($process_scope),)
+            @($($delegate_things)* $field_name: $self_.$field_name.build($process_scope).my_into(),)
         }
     };
     (
@@ -312,8 +313,7 @@ macro_rules! derive_jack_port_builder {
             @($($try_from)* ($field_name, <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)*
                 $field_name: &mut $self_.$field_name
-                    .iter($process_scope)
-                    .filter_map(|e| $crate::event::Timed::<$crate::event::RawMidiEvent>::try_from(e).ok()),
+                    .build($process_scope).my_into(),
             )
         }
     };
@@ -337,7 +337,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: &mut $self_.$field_name.writer($process_scope), )
+            @($($delegate_things)* $field_name: &mut $self_.$field_name.build($process_scope), )
         }
     };
 }
@@ -388,25 +388,54 @@ where
 }
 
 impl PortWrapper<Port<AudioIn>> {
-    fn build<'a>(&'a self, process_scope: &'a ProcessScope) -> &'a [f32] {
+    pub fn build<'a>(&'a self, process_scope: &'a ProcessScope) -> &'a [f32] {
         self.inner.as_slice(process_scope)
     }
 }
 
+impl<'a> MyInto<&'a [f32]> for &'a [f32] {
+    fn my_into(self) -> &'a [f32] {
+        self
+    }
+}
+
 impl PortWrapper<Port<AudioOut>> {
-    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> &'a mut [f32] {
+    pub fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> &'a mut [f32] {
         self.inner.as_mut_slice(process_scope)
     }
 }
 
-impl PortWrapper<Port<MidiIn>> {
-    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiIter<'a> {
-        self.inner.iter(process_scope)
+impl<'a> MyInto<&'a mut [f32]> for &'a mut [f32] {
+    fn my_into(self) -> &'a mut [f32] {
+        self
     }
 }
 
+impl PortWrapper<Port<MidiIn>> {
+    pub fn build<'a, T>(
+        &'a mut self,
+        process_scope: &'a ProcessScope,
+    ) -> impl Iterator<Item = T> + 'a
+    where
+        T: TryFrom<RawMidi<'a>>,
+    {
+        self.inner
+            .iter(process_scope)
+            .filter_map(|e| T::try_from(e).ok())
+    }
+}
+
+/*
+impl<'a> MyInto<&'a mut dyn Iterator<Item = Timed<RawMidiEvent>>> for &'a mut MidiIter<'a> {
+    fn my_into(self) -> &'a mut dyn Iterator<Item = Timed<RawMidiEvent>> {
+        self.filter_map(|e| Timed::<RawMidiEvent>::try_from(e).ok())
+    }
+}
+
+ */
+
 impl PortWrapper<Port<MidiOut>> {
-    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiWriter<'a> {
+    pub fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiWriter<'a> {
         self.inner.writer(process_scope)
     }
 }
@@ -468,7 +497,7 @@ pub trait MyInto<T> {
     fn my_into(self) -> T;
 }
 
-impl<'a, X> MyInto<&'a mut dyn Iterator<Item = X::Item>> for &'a mut X
+impl<'a, X> MyInto<&'a mut dyn Iterator<Item = <X as Iterator>::Item>> for &'a mut X
 where
     X: Iterator,
 {
