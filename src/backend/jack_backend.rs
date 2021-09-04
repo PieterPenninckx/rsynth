@@ -136,8 +136,16 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
 }
 
 // TODO's:
-// * Correctly take into account lifetime parameters of buffer
-// * Add full paths to items defined by rsynth.
+// * Make the `derive_ports` macro also pass the token-tree with any lifetime replaced by `'static`
+//   (preferably: first the own things, then the jack-specific things)
+// * generate code as follows:
+//   ```
+//   struct MyBuilder {
+//       my_field: <MyStaticType as JackPort>::Port
+//   }
+//   ```
+//   and then for the delegation: `my_field.build(process_scope).my_into()` (see the `MyInto`
+//   trait at the bottom, but probably use a better name).
 #[macro_export]
 macro_rules! derive_jack_port_builder {
     (
@@ -235,7 +243,7 @@ macro_rules! derive_jack_port_builder {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::AudioIn>,)
+            @($($struct_constructor)* $field_name : <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioIn::default()))
             @($($delegate_things)* $field_name: $self_.$field_name.as_slice($process_scope),)
         }
@@ -258,7 +266,7 @@ macro_rules! derive_jack_port_builder {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::AudioOut>,)
+            @($($struct_constructor)* $field_name : <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::AudioOut::default()))
             @($($delegate_things)* $field_name: $self_.$field_name.as_mut_slice($process_scope),)
         }
@@ -281,7 +289,7 @@ macro_rules! derive_jack_port_builder {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::MidiIn>,)
+            @($($struct_constructor)* $field_name : <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiIn::default()))
             @($($delegate_things)*
                 $field_name: &mut $self_.$field_name
@@ -308,7 +316,7 @@ macro_rules! derive_jack_port_builder {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : $crate::backend::jack_backend::jack::Port<$crate::backend::jack_backend::jack::MidiOut>,)
+            @($($struct_constructor)* $field_name : <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, $crate::backend::jack_backend::jack::MidiOut::default()))
             @($($delegate_things)* $field_name: &mut $self_.$field_name.writer($process_scope), )
         }
@@ -329,5 +337,53 @@ where
     fn process(&mut self, client: &Client, process_scope: &ProcessScope) -> Control {
         self.builder
             .delegate_handling(&mut self.plugin, (client, process_scope))
+    }
+}
+
+pub trait JackBuilder {
+    type Port;
+}
+
+impl JackBuilder for &'static mut dyn Iterator<Item = Timed<RawMidiEvent>> {
+    type Port = Port<MidiIn>;
+}
+
+impl JackBuilder for &'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> {
+    type Port = Port<MidiOut>;
+}
+
+impl JackBuilder for &'static [f32] {
+    type Port = Port<AudioIn>;
+}
+
+impl JackBuilder for &'static mut [f32] {
+    type Port = Port<AudioOut>;
+}
+
+fn plugtestje<'a>(port: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>) {}
+
+fn testje<'a>(
+    port: &'a Port<MidiIn>,
+    process_scope: &'a ProcessScope,
+) -> impl Iterator<Item = Timed<RawMidiEvent>> + 'a {
+    port.iter(process_scope)
+        .filter_map(|e| <Timed<RawMidiEvent>>::try_from(e).ok())
+}
+
+fn testje2<'a>(port: &'a Port<MidiIn>, process_scope: &'a ProcessScope) {
+    let mut x = testje(port, process_scope);
+    plugtestje(x.my_into());
+}
+
+pub trait MyInto<T> {
+    fn my_into(self) -> T;
+}
+
+impl<'a, X> MyInto<&'a mut dyn Iterator<Item = X::Item>> for &'a mut X
+where
+    X: Iterator,
+{
+    fn my_into(self) -> &'a mut dyn Iterator<Item = <X as Iterator>::Item> {
+        self
     }
 }
