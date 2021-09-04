@@ -27,7 +27,7 @@ pub mod jack {
 
 use self::jack::{AudioIn, AudioOut, MidiIn, MidiOut, Port, ProcessScope, RawMidi};
 use self::jack::{Client, ClientOptions, Control, ProcessHandler};
-use crate::backend::jack_backend::jack::{Error, MidiWriter, PortSpec};
+use crate::backend::jack_backend::jack::{Error, MidiIter, MidiWriter, PortSpec};
 use std::convert::TryFrom;
 use std::ops::{Deref, DerefMut};
 
@@ -384,6 +384,30 @@ where
         Ok(Self {
             inner: client.register_port(port_name, T::default())?,
         })
+    }
+}
+
+impl PortWrapper<Port<AudioIn>> {
+    fn build<'a>(&'a self, process_scope: &'a ProcessScope) -> &'a [f32] {
+        self.inner.as_slice(process_scope)
+    }
+}
+
+impl PortWrapper<Port<AudioOut>> {
+    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> &'a mut [f32] {
+        self.inner.as_mut_slice(process_scope)
+    }
+}
+
+impl PortWrapper<Port<MidiIn>> {
+    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiIter<'a> {
+        self.inner.iter(process_scope)
+    }
+}
+
+impl PortWrapper<Port<MidiOut>> {
+    fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiWriter<'a> {
+        self.inner.writer(process_scope)
     }
 }
 
