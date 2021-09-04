@@ -194,7 +194,7 @@ macro_rules! derive_jack_port_builder {
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($(($try_from_field_name:ident, $try_from_type:ty))*)
-        @($($delegate_things: tt)*)
+        @($(($field_name:ident, $temp:ident))*)
     ) => {
         $(#[$local_meta:meta])*
         pub struct $builder_name {
@@ -223,9 +223,9 @@ macro_rules! derive_jack_port_builder {
             type Output = $crate::backend::jack_backend::jack::Control;
 
             fn delegate_handling(
-                &mut $self_,
+                &mut self,
                 plugin: &mut P,
-                (client, $process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
+                (client, process_scope): (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope),
             ) -> Self::Output {
                 use ::std::convert::TryFrom;
                 let mut jack_host = $crate::backend::jack_backend::JackHost {
@@ -235,9 +235,12 @@ macro_rules! derive_jack_port_builder {
                 };
 
                 use $crate::backend::jack_backend::MyInto;
+                $(
+                    let mut $temp = self.$field_name.build(process_scope);
+                )*
                 let buffer = $buffer_name {
                     $(
-                        $delegate_things
+                        $field_name: $temp.my_into(),
                     )*
                 };
                 plugin.render_buffer(buffer, &mut jack_host);
@@ -265,7 +268,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: $self_.$field_name.build($process_scope).my_into(),)
+            @($($delegate_things)* ($field_name, temp))
         }
     };
     (
@@ -288,7 +291,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: $self_.$field_name.build($process_scope).my_into(),)
+            @($($delegate_things)* ($field_name, temp))
         }
     };
     (
@@ -311,10 +314,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)*
-                $field_name: &mut $self_.$field_name
-                    .build($process_scope).my_into(),
-            )
+            @($($delegate_things)* ($field_name, temp))
         }
     };
     (
@@ -337,7 +337,7 @@ macro_rules! derive_jack_port_builder {
             @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* $field_name: &mut $self_.$field_name.build($process_scope), )
+            @($($delegate_things)* ($field_name, temp))
         }
     };
 }
