@@ -30,7 +30,7 @@ derive_ports! {
     struct SineOscilatorPorts<'a> {
         out_left: &'a mut [f32],
         out_right: &'a mut [f32],
-        midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+        midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>
     }
 
     derive_jack_port_builder! {
