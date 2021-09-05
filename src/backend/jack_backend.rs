@@ -76,10 +76,6 @@ impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
 }
 
 impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
-    fn output_initialized(&self) -> bool {
-        false
-    }
-
     fn stop(&mut self) {
         self.control = jack::Control::Quit
     }
