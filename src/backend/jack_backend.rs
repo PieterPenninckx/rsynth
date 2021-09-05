@@ -253,7 +253,7 @@ macro_rules! derive_jack_port_builder {
         $buffer_name:ident
         $builder_name:ident
         $(#[$local_meta:meta])*
-        @($(,)? $field_name:ident : &$lt:lifetime[f32] $($global_tail:tt)*)
+        @($field_name:ident : $field_type:ty , $($global_tail:tt)*)
         @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
@@ -266,77 +266,8 @@ macro_rules! derive_jack_port_builder {
             $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, <&'static [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* ($field_name, temp))
-        }
-    };
-    (
-        @inner
-        $buffer_name:ident
-        $builder_name:ident
-        $(#[$local_meta:meta])*
-        @($(,)? $field_name:ident : &$lt:lifetime mut[f32] $($global_tail:tt)*)
-        @($process_scope:ident, $self_:tt)
-        @($($struct_constructor:tt)*)
-        @($($try_from:tt)*)
-        @($($delegate_things: tt)*)
-    ) => {
-        derive_jack_port_builder!{
-            @inner
-            $buffer_name
-            $builder_name
-            $(#[$local_meta:meta])*
-            @($($global_tail)*)
-            @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, <&'static mut [f32] as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* ($field_name, temp))
-        }
-    };
-    (
-        @inner
-        $buffer_name:ident
-        $builder_name:ident
-        $(#[$local_meta:meta])*
-        @($(,)? $field_name:ident : &$lt:lifetime mut dyn Iterator<Item = Timed<RawMidiEvent>> $($global_tail:tt)*)
-        @($process_scope:ident, $self_:tt)
-        @($($struct_constructor:tt)*)
-        @($($try_from:tt)*)
-        @($($delegate_things: tt)*)
-    ) => {
-        derive_jack_port_builder!{
-            @inner
-            $buffer_name
-            $builder_name
-            $(#[$local_meta:meta])*
-            @($($global_tail)*)
-            @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, <&'static mut dyn Iterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
-            @($($delegate_things)* ($field_name, temp))
-        }
-    };
-    (
-        @inner
-        $buffer_name:ident
-        $builder_name:ident
-        $(#[$local_meta:meta])*
-        @($(,)? $field_name:ident : &$lt:lifetime mut dyn CoIterator<Item = Timed<RawMidiEvent>> $($global_tail:tt)*)
-        @($process_scope:ident, $self_:tt)
-        @($($struct_constructor:tt)*)
-        @($($try_from:tt)*)
-        @($($delegate_things: tt)*)
-    ) => {
-        derive_jack_port_builder!{
-            @inner
-            $buffer_name
-            $builder_name
-            $(#[$local_meta:meta])*
-            @($($global_tail)*)
-            @($process_scope, $self_)
-            @($($struct_constructor)* $field_name : <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port,)
-            @($($try_from)* ($field_name, <&'static mut dyn CoIterator<Item = Timed<RawMidiEvent>> as $crate::backend::jack_backend::JackBuilder>::Port))
+            @($($struct_constructor)* $field_name : <$field_type as $crate::backend::jack_backend::JackBuilder>::Port,)
+            @($($try_from)* ($field_name, <$field_type as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)* ($field_name, temp))
         }
     };
