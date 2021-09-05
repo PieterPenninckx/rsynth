@@ -11,8 +11,7 @@ macro_rules! derive_ports {
         $(#[$global_meta:meta])*
         struct $buffer_name:ident$(<$lt:lifetime>)?
         {
-            $global_head:tt
-            $($global_tail:tt)*
+            $($global:tt)*
         }
         $(
             $(#[$local_meta:meta])*
@@ -24,18 +23,18 @@ macro_rules! derive_ports {
         $(#[$global_meta])*
         pub struct $buffer_name$(<$lt>)?
         {
-            $global_head
-            $($global_tail)*
+            $($global)*
         }
         derive_ports!{
             @inner
             $buffer_name
-            @($($global_tail)*)
+            @($($global)*)
             @(
                 $(
                     $(#[$local_meta])*
                     $local_macro!{
-                        @($global_head)
+                        @()
+                        @()
                         @($($local_token)*)
                     }
                 )*
@@ -51,6 +50,7 @@ macro_rules! derive_ports {
                 $(#[$local_meta:meta])*
                 $local_macro:ident!{
                     @($($global_processed:tt)*)
+                    @($($global_processed_static:tt)*)
                     @($($local_token:tt)*)
                 }
             )*
@@ -59,22 +59,23 @@ macro_rules! derive_ports {
         $(
             $(#[$local_meta])*
             $local_macro!{
-                $buffer_name
-                $(#[$local_meta])*
-                @($($global_processed)*)
                 @($($local_token)*)
+                @($(#[$local_meta])*)
+                @($($global_processed)*)
+                $buffer_name
             }
         )*
     };
     (
         @inner
         $buffer_name:ident
-        @($global_head:tt $($global_tail:tt)*)
+        @($global_head:lifetime $($global_tail:tt)*)
         @(
             $(
                 $(#[$local_meta:meta])*
                 $local_macro:ident!{
                     @($($global_processed:tt)*)
+                    @($($global_processed_static:tt)*)
                     @($($local_token:tt)*)
                 }
             )*
@@ -89,6 +90,38 @@ macro_rules! derive_ports {
                     $(#[$local_meta])*
                     $local_macro!{
                         @($($global_processed)* $global_head)
+                        @($($global_processed_static)* 'static)
+                        @($($local_token)*)
+                    }
+                )*
+            )
+        }
+    };
+    (
+        @inner
+        $buffer_name:ident
+        @($global_head:tt $($global_tail:tt)*)
+        @(
+            $(
+                $(#[$local_meta:meta])*
+                $local_macro:ident!{
+                    @($($global_processed:tt)*)
+                    @($($global_processed_static:tt)*)
+                    @($($local_token:tt)*)
+                }
+            )*
+        )
+    ) => {
+        derive_ports!{
+            @inner
+            $buffer_name
+            @($($global_tail)*)
+            @(
+                $(
+                    $(#[$local_meta])*
+                    $local_macro!{
+                        @($($global_processed)* $global_head)
+                        @($($global_processed_static)* $global_head)
                         @($($local_token)*)
                     }
                 )*

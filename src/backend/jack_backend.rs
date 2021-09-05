@@ -168,10 +168,10 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
 #[macro_export]
 macro_rules! derive_jack_port_builder {
     (
-        $buffer_name:ident
-        $(#[$local_meta:meta])*
-        @($($global_tail:tt)*)
         @(struct $builder_name:ident { $($whatever:tt)*})
+        @($(#[$local_meta:meta])*)
+        @($($global_tail:tt)*)
+        $buffer_name:ident
     ) => {
         derive_jack_port_builder!{
             @inner
