@@ -7,12 +7,8 @@
 //! `examples/example_synth` contains the code that is shared for all backends and
 //! `examples/jack_synth.rs` contains the jack-specific code.
 //!
-//! # Usage
-//! See the documentation of the [`run`] function.
-//!
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
-//! [`run`]: ./fn.run.html
 use crate::backend::{HostInterface, Stop};
 use crate::buffer::DelegateHandling;
 use crate::event::{CoIterator, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed};
@@ -64,13 +60,6 @@ impl<'c> CoIterator for MidiWriter<'c> {
 }
 
 /// Used to communicate with `Jack`.
-///
-/// You don't need to instantiate this yourself: it is passed as the `context`
-/// parameter to the [`render_audio`] method when using the [`run`] function.
-///
-/// [`render_audio`]: ../../trait.ContextualAudioRenderer.html#tymethod.render_buffer
-/// [`run`]: ./fn.run.html
-// TODO: stop making fields public.
 pub struct JackHost<'c, 'mp, 'mw> {
     pub client: &'c Client,
     pub midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
@@ -136,35 +125,6 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
     }
 }
 
-// TODO's:
-// * Make the `derive_ports` macro also pass the token-tree with any lifetime replaced by `'static`
-//   (preferably: first the own things, then the jack-specific things)
-// * generate code as follows:
-//   ```
-//   struct MyBuilder {
-//       my_field: <MyStaticType as JackPort>::Port
-//   }
-//   ```
-//   and then for the delegation: `my_field.build(process_scope).my_into()` (see the `MyInto`
-//   trait at the bottom, but probably use a better name).
-//   Note: the `build` method should be a method on a type, not a method defined by a trait,
-//   since you cannot (yet) do
-//   ```
-//   pub trait MyBuilder<'a> {
-//       type Output;
-//       fn build(self, process_scope: &'a ProcessScope) -> Self::Output;
-//   }
-//
-//   impl<'a> MyBuilder<'a> for &'a mut Port<MidiOut> {
-//       // Error on the next line: `impl Trait` in type aliases is unstable,
-//       // See issue https://github.com/rust-lang/rust/issues/63063 for more information.
-//       type Output = impl Iterator<Item = Timed<RawMidiEvent>> + 'a;
-//
-//       fn build(self, process_scope: &'a ProcessScope) -> Self::Output {
-//           self.writer(process_scope)
-//       }
-//   }
-//   ```
 #[macro_export]
 macro_rules! derive_jack_port_builder {
     (
@@ -359,6 +319,7 @@ impl<'a> MyInto<&'a mut [f32]> for &'a mut [f32] {
     }
 }
 
+// TODO: make this return a specific type, so that we can put `build` behind a trait.
 impl PortWrapper<Port<MidiIn>> {
     pub fn build<'a, T>(
         &'a mut self,
@@ -372,15 +333,6 @@ impl PortWrapper<Port<MidiIn>> {
             .filter_map(|e| T::try_from(e).ok())
     }
 }
-
-/*
-impl<'a> MyInto<&'a mut dyn Iterator<Item = Timed<RawMidiEvent>>> for &'a mut MidiIter<'a> {
-    fn my_into(self) -> &'a mut dyn Iterator<Item = Timed<RawMidiEvent>> {
-        self.filter_map(|e| Timed::<RawMidiEvent>::try_from(e).ok())
-    }
-}
-
- */
 
 impl PortWrapper<Port<MidiOut>> {
     pub fn build<'a>(&'a mut self, process_scope: &'a ProcessScope) -> MidiWriter<'a> {
