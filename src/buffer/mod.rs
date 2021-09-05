@@ -34,7 +34,6 @@ macro_rules! derive_ports {
                     $(#[$local_meta])*
                     $local_macro!{
                         @()
-                        @()
                         @($($local_token)*)
                     }
                 )*
@@ -49,7 +48,6 @@ macro_rules! derive_ports {
             $(
                 $(#[$local_meta:meta])*
                 $local_macro:ident!{
-                    @($($global_processed:tt)*)
                     @($($global_processed_static:tt)*)
                     @($($local_token:tt)*)
                 }
@@ -61,7 +59,7 @@ macro_rules! derive_ports {
             $local_macro!{
                 @($($local_token)*)
                 @($(#[$local_meta])*)
-                @($($global_processed)*)
+                @($($global_processed_static)*)
                 $buffer_name
             }
         )*
@@ -74,7 +72,6 @@ macro_rules! derive_ports {
             $(
                 $(#[$local_meta:meta])*
                 $local_macro:ident!{
-                    @($($global_processed:tt)*)
                     @($($global_processed_static:tt)*)
                     @($($local_token:tt)*)
                 }
@@ -89,7 +86,6 @@ macro_rules! derive_ports {
                 $(
                     $(#[$local_meta])*
                     $local_macro!{
-                        @($($global_processed)* $global_head)
                         @($($global_processed_static)* 'static)
                         @($($local_token)*)
                     }
@@ -105,7 +101,6 @@ macro_rules! derive_ports {
             $(
                 $(#[$local_meta:meta])*
                 $local_macro:ident!{
-                    @($($global_processed:tt)*)
                     @($($global_processed_static:tt)*)
                     @($($local_token:tt)*)
                 }
@@ -120,7 +115,6 @@ macro_rules! derive_ports {
                 $(
                     $(#[$local_meta])*
                     $local_macro!{
-                        @($($global_processed)* $global_head)
                         @($($global_processed_static)* $global_head)
                         @($($local_token)*)
                     }

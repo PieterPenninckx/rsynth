@@ -26,26 +26,6 @@ use std::f32::consts::PI;
 static NUMBER_OF_VOICES: usize = 6;
 static AMPLIFY_MULTIPLIER: f32 = 1.0 / NUMBER_OF_VOICES as f32;
 
-/*
-trace_macros!(true);
-derive_ports! {
-    struct SineOscilatorPorts<'a> {
-        audio_in: &'a [f32],
-        audio_out: &'a mut [f32],
-        midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
-    }
-
-
-    derive_jack_port_builder! {
-        struct SineOscilatorPortsBuilder {
-            generate_fields!();
-        }
-    }
-}
-trace_macros!(false);
-
- */
-
 derive_ports! {
     struct SineOscilatorPorts<'a> {
         out_left: &'a mut [f32],
