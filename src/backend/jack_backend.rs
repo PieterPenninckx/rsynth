@@ -179,7 +179,6 @@ macro_rules! derive_jack_port_builder {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
-            @(process_scope, self)
             @()
             @()
             @()
@@ -191,7 +190,6 @@ macro_rules! derive_jack_port_builder {
         $builder_name:ident
         $(#[$local_meta:meta])*
         @($(,)?)
-        @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($(($try_from_field_name:ident, $try_from_type:ty))*)
         @($(($field_name:ident, $temp:ident))*)
@@ -254,7 +252,6 @@ macro_rules! derive_jack_port_builder {
         $builder_name:ident
         $(#[$local_meta:meta])*
         @($field_name:ident : $field_type:ty , $($global_tail:tt)*)
-        @($process_scope:ident, $self_:tt)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
         @($($delegate_things: tt)*)
@@ -265,7 +262,6 @@ macro_rules! derive_jack_port_builder {
             $builder_name
             $(#[$local_meta:meta])*
             @($($global_tail)*)
-            @($process_scope, $self_)
             @($($struct_constructor)* $field_name : <$field_type as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <$field_type as $crate::backend::jack_backend::JackBuilder>::Port))
             @($($delegate_things)* ($field_name, temp))
