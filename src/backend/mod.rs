@@ -6,7 +6,6 @@
 //! * [`combined`] combine different back-ends for audio input, audio output, midi input and
 //!     midi output, mostly for offline rendering and testing (behind various features)
 //! * [`jack`] (behind the `backend-jack` feature)
-//! * [`vst`] (behind the `backend-vst` feature)
 //!
 //! These backends are currently in the `rsynth` crate, but we may eventually move them to
 //! separate crates.
@@ -34,40 +33,6 @@ pub mod jack_backend;
 /// Defines an interface for communicating with the host or server of the backend,
 /// e.g. the VST host when using VST or the  Jack server when using Jack.
 pub trait HostInterface {
-    /// Return whether the output buffers are zero-initialized.
-    /// Returns `false` when in doubt.
-    ///
-    /// # Example
-    ///
-    /// The following example illustrates how `output_initialized()` can be used in
-    /// combination with the `set` method on `AudioBufferOut` to initialize the output
-    /// buffers to zero in an implementation of the [`crate::ContextualAudioRenderer`] trait.
-    ///
-    /// ```
-    /// use rsynth::ContextualAudioRenderer;
-    /// use rsynth::backend::HostInterface;
-    /// use rsynth::buffer::AudioBufferInOut;
-    /// struct MyPlugin { /* ... */ }
-    /// impl<H> ContextualAudioRenderer<f32, H> for MyPlugin
-    /// where H: HostInterface
-    /// {
-    ///     fn render_buffer(
-    ///         &mut self,
-    ///         buffer: &mut AudioBufferInOut<f32>,
-    ///         context: &mut H)
-    ///     {
-    ///         if ! context.output_initialized() {
-    ///             buffer.outputs().set(0.0);
-    ///         }
-    ///         // The rest of the audio rendering.
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// [`ContextualEventHandler`]: ../event/trait.ContextualEventHandler.html
-    /// [`rsynth::utilities::zero_init`]: ../utilities/fn.initialize_to_zero.html
-    fn output_initialized(&self) -> bool;
-
     /// Stop processing.
     /// For backends that do not support stopping, this is a no-op.
     /// For back-ends that do support stopping and that implement the `Stop` trait,

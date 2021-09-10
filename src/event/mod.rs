@@ -19,7 +19,6 @@ use crate::backend::combined::midly::midly_0_5::{
     MidiMessage,
 };
 use core::num::NonZeroU64;
-use gcd::Gcd;
 use std::convert::{AsMut, AsRef, TryFrom};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Write};
@@ -211,6 +210,8 @@ impl RawMidiEvent {
 
 #[cfg(feature = "backend-combined-midly-0-5")]
 use crate::backend::combined::midly::midly_0_5::io::CursorError;
+#[cfg(feature = "backend-jack")]
+use crate::backend::jack_backend::jack::RawMidi;
 
 #[cfg(feature = "backend-combined-midly-0-5")]
 #[derive(Debug, Clone)]
@@ -291,6 +292,44 @@ fn conversion_from_midly_to_raw_midi_event_works() {
             0
         ]
     );
+}
+
+#[cfg(feature = "backend-jack")]
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+/// The error type when converting from `jacks`'s [`RawMidi`] to a `Timed<RawMidiEvent>`.
+pub enum JackConversionError {
+    /// The event is more than three bytes long.
+    MoreThanThreeBytesLong,
+}
+
+#[cfg(feature = "backend-jack")]
+impl Display for JackConversionError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            JackConversionError::MoreThanThreeBytesLong => write!(f, "More than three bytes long."),
+        }
+    }
+}
+
+#[cfg(feature = "backend-jack")]
+impl Error for JackConversionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+#[cfg(feature = "backend-jack")]
+impl<'a> TryFrom<RawMidi<'a>> for Timed<RawMidiEvent> {
+    type Error = JackConversionError;
+
+    fn try_from(value: RawMidi<'a>) -> Result<Self, Self::Error> {
+        Ok(Timed {
+            time_in_frames: value.time as u32,
+            event: RawMidiEvent::try_new(value.bytes)
+                .ok_or(JackConversionError::MoreThanThreeBytesLong)?,
+        })
+    }
 }
 
 impl AsRef<Self> for RawMidiEvent {
@@ -434,7 +473,7 @@ impl<'a> TryFrom<Indexed<Timed<TrackEventKind<'a>>>> for Indexed<Timed<RawMidiEv
     fn try_from(indexed: Indexed<Timed<TrackEventKind<'a>>>) -> Result<Self, Self::Error> {
         Ok(Indexed {
             index: indexed.index,
-            event: Timed::<RawMidiEvent>::try_from(timed.event)?,
+            event: Timed::<RawMidiEvent>::try_from(indexed.event)?,
         })
     }
 }
@@ -445,129 +484,8 @@ pub struct DeltaEvent<E> {
     pub event: E,
 }
 
-/// Stretch integer (`u64`) time stamps by a fractional factor that may change over time.
-pub struct TimeStretcher {
-    nominator: u64,
-    denominator: NonZeroU64,
-    input_offset: u64,
-    output_offset: u64,
-    drifting_correction: f64,
-}
-
-impl TimeStretcher {
-    /// Create a new `TimeStretcher`.
-    pub fn new(nominator: u64, denominator: NonZeroU64) -> Self {
-        Self {
-            nominator,
-            denominator,
-            input_offset: 0,
-            output_offset: 0,
-            drifting_correction: 0.0,
-        }
-    }
-
-    /// Stretch the input time by the factor `nominator/denominator`.
-    ///
-    /// # Parameters
-    /// `input_time`: the time to be stretched
-    /// `new_speed`: if this contains `Some((nominator, denominator))`, future times will
-    /// be stretched by the new factor `nominator/denominator`.
-    pub fn stretch(
-        &mut self,
-        absolute_input_time: u64,
-        new_speed: Option<(u64, NonZeroU64)>,
-    ) -> u64 {
-        let self_denominator: u64 = self.denominator.into(); // Avoid some cumbersome type annotations.
-
-        // Adapt offset in order to avoid integer overflow when multiplying.
-        let input_offset_delta: u64 = (absolute_input_time - self.input_offset) / self_denominator;
-        self.input_offset += input_offset_delta * self_denominator;
-        self.output_offset += input_offset_delta * self.nominator;
-
-        let new_time = (absolute_input_time - self.input_offset) * self.nominator
-            / self_denominator
-            + self.output_offset;
-
-        if let Some((mut new_nominator, mut new_denominator)) = new_speed {
-            let gcd = new_nominator.gcd(new_denominator.into());
-            new_nominator = new_nominator / gcd;
-            // Safety: because new_denominator != 0, gcd != 0.
-            // Safety: gcd <= new_denominator, new_denominator / gcd >= 1 > 0.
-            new_denominator =
-                unsafe { NonZeroU64::new_unchecked(<_ as Into<u64>>::into(new_denominator) / gcd) };
-            if new_nominator != self.nominator || new_denominator != self.denominator {
-                // Update the drifting correction
-                let error = ((absolute_input_time - self.input_offset) * self.nominator) as f64
-                    / (self_denominator as f64)
-                    - ((new_time - self.output_offset) as f64);
-                self.drifting_correction += error;
-                let correction = self.drifting_correction as u64;
-                self.drifting_correction -= correction as f64;
-
-                // Set the new offsets, taking into account the correction.
-                self.input_offset = absolute_input_time;
-                self.output_offset = new_time + correction;
-
-                // Set the new nominators and denominators
-                self.nominator = new_nominator;
-                self.denominator = new_denominator;
-            }
-        }
-        new_time
-    }
-}
-
-#[test]
-pub fn event_time_stretcher_works_when_no_drifting_correction_needed() {
-    let mut stretcher = TimeStretcher::new(1, NonZeroU64::new(1).unwrap());
-    // Input events and the line below: output events
-    // 0 . . 1 . . 2 . . . . 3 . . . . 4
-    // 0 . 1 . 2 . . . . . . 3 . . . . . . 4
-    let input = vec![
-        (0, Some((2, NonZeroU64::new(3).unwrap()))),
-        (3, None),
-        (6, Some((7, NonZeroU64::new(5).unwrap()))),
-        (11, None),
-        (16, None),
-    ];
-    let mut observed_output = Vec::new();
-    for input in input.into_iter() {
-        observed_output.push(stretcher.stretch(input.0, input.1));
-    }
-    let expected_output = vec![0, 2, 4, 11, 18];
-    assert_eq!(expected_output, observed_output);
-}
-
-#[test]
-pub fn event_time_stretcher_works_when_drifting_correction_needed() {
-    let mut stretcher = TimeStretcher::new(1, NonZeroU64::new(1).unwrap());
-    // Underscore: factor 1/2, dash: factor 1/3
-    // _______ ----- _______------
-    // 0 . 1 2 . . 3 4 . 5 6 . . 7
-    // Below: the output. We use two lines since there are sometimes two events at the same time.
-    // 0 => 0
-    // 1 => 1
-    // 2 => 1 + 1/2, after rounding: 1. Here we change the speed, so this error gets accumulated. Error: 1/2
-    // 3 => 2 + 1/2, after rounding: 2.
-    // 4 => 2 + 1/2 + 1/3, after rounding: 2. Here we change speed, so this error gets accumulated as well. Error: 5/6.
-    // 5 => 3 + 1/2 + 1/3, after rounding: 3.
-    // 6 => 3 + 1/2 + 1/3 + 1/2. Rounding: floor(floor(floor(1 + 1/2) + 1 + 1/3) + 1 + 1/2) = 3.
-    //                           We change speed, so this error gets accumulated. Error: 8/6.
-    // 7 => 3 + 1/2 + 1/3 + 1/2 + 1. Here we apply the correction and we get 5.
-    let input = vec![
-        (0, Some((1, NonZeroU64::new(2).unwrap()))),  // 0
-        (2, None),                                    // 1
-        (3, Some((1, NonZeroU64::new(3).unwrap()))),  // 2
-        (6, None),                                    // 3
-        (7, Some((1, NonZeroU64::new(2).unwrap()))),  // 4
-        (9, None),                                    // 5
-        (10, Some((1, NonZeroU64::new(3).unwrap()))), // 6
-        (13, None),                                   // 7
-    ];
-    let mut observed_output = Vec::new();
-    for input in input.into_iter() {
-        observed_output.push(stretcher.stretch(input.0, input.1));
-    }
-    let expected_output = vec![0, 1, 1, 2, 2, 3, 3, 5];
-    assert_eq!(expected_output, observed_output);
+// TODO: find a better name for this.
+pub trait CoIterator {
+    type Item;
+    fn co_next(&mut self, item: Self::Item);
 }

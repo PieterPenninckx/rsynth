@@ -1,6 +1,4 @@
 //! Dummy backend that does nothing, useful for testing.
-use super::{AudioReader, AudioWriter, MidiWriter};
-use crate::buffer::{AudioBufferIn, AudioBufferOut};
 use crate::event::{DeltaEvent, RawMidiEvent};
 use core::cmp;
 use std::marker::PhantomData;
@@ -26,56 +24,10 @@ impl<S> AudioDummy<S> {
     }
 }
 
-impl<S> AudioReader<S> for AudioDummy<S>
-where
-    S: Copy,
-{
-    type Err = std::convert::Infallible;
-    fn number_of_channels(&self) -> usize {
-        0
-    }
-
-    fn frames_per_second(&self) -> u64 {
-        self.frames_per_second as u64
-    }
-
-    fn fill_buffer(&mut self, output: &mut AudioBufferOut<S>) -> Result<usize, Self::Err> {
-        let number_of_frames_written = cmp::min(self.length_in_frames, output.number_of_frames());
-        self.length_in_frames -= number_of_frames_written;
-        Ok(number_of_frames_written)
-    }
-}
-
-impl<S> AudioWriter<S> for AudioDummy<S>
-where
-    S: Copy,
-{
-    type Err = std::convert::Infallible;
-    fn write_buffer(&mut self, _buffer: &AudioBufferIn<S>) -> Result<(), Self::Err> {
-        Ok(())
-    }
-
-    fn number_of_channels(&self) -> usize {
-        self.number_of_channels
-    }
-}
-
 pub struct MidiDummy {}
 
 impl MidiDummy {
     pub fn new() -> Self {
         MidiDummy {}
     }
-}
-
-impl Iterator for MidiDummy {
-    type Item = DeltaEvent<RawMidiEvent>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        None
-    }
-}
-
-impl MidiWriter for MidiDummy {
-    fn write_event(&mut self, _event: DeltaEvent<RawMidiEvent>) {}
 }
