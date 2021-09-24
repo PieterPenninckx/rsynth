@@ -25,8 +25,9 @@
 #[macro_use]
 extern crate log;
 
-use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 use std::fmt::{Error, Write};
+
+use crate::meta::{AudioPort, General, Meta, MidiPort, Name, Port};
 
 #[macro_use]
 pub mod buffer;
@@ -49,6 +50,17 @@ pub trait AudioHandler {
     fn set_sample_rate(&mut self, sample_rate: f64);
 }
 
+/// Render audio with the given ports and a given context.
+/// Plugins and applications implement this trait.
+/// The type parameter `Ports` can typically be constructed with the [`derive_ports!`] macro.
 pub trait ContextualAudioRenderer<Ports, Context> {
+    /// Render audio with the given ports and context.
     fn render_buffer(&mut self, ports: Ports, context: &mut Context);
+}
+
+/// Delegate the handling of some backend-specific data to a generic plugin or applications.
+/// This trait is used to
+pub trait DelegateHandling<P, D> {
+    type Output;
+    fn delegate_handling(&mut self, p: &mut P, d: D) -> Self::Output;
 }

@@ -10,8 +10,8 @@
 //! [JACK]: http://www.jackaudio.org/
 //! [the cargo reference]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 use crate::backend::{HostInterface, Stop};
-use crate::buffer::DelegateHandling;
 use crate::event::{CoIterator, EventHandler, Indexed, RawMidiEvent, SysExEvent, Timed};
+use crate::DelegateHandling;
 use crate::{AudioHandler, ContextualAudioRenderer};
 use std::io;
 
@@ -60,13 +60,12 @@ impl<'c> CoIterator for MidiWriter<'c> {
 }
 
 /// Used to communicate with `Jack`.
-pub struct JackHost<'c, 'mp, 'mw> {
+pub struct JackHost<'c> {
     pub client: &'c Client,
-    pub midi_out_ports: &'mp mut [jack::MidiWriter<'mw>],
     pub control: jack::Control,
 }
 
-impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
+impl<'c> JackHost<'c> {
     /// Get access to the underlying [`Client`] so that you can use Jack-specific features.
     ///
     /// ['Client`]: ./jack/struct.Client.html
@@ -75,52 +74,71 @@ impl<'c, 'mp, 'mw> JackHost<'c, 'mp, 'mw> {
     }
 }
 
-impl<'c, 'mp, 'mw> HostInterface for JackHost<'c, 'mp, 'mw> {
+impl<'c, 'mp, 'mw> HostInterface for JackHost<'c> {
     fn stop(&mut self) {
         self.control = jack::Control::Quit
     }
 }
 
-impl<'c, 'mp, 'mw> Stop for JackHost<'c, 'mp, 'mw> {}
+impl<'c, 'mp, 'mw> Stop for JackHost<'c> {}
 
-impl<'c, 'mp, 'mw> EventHandler<Indexed<Timed<RawMidiEvent>>> for JackHost<'c, 'mp, 'mw> {
-    fn handle_event(&mut self, event: Indexed<Timed<RawMidiEvent>>) {
-        let Indexed { index, event } = event;
-        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
-            let raw_midi = RawMidi {
-                time: event.time_in_frames,
-                bytes: event.event.bytes(),
-            };
-            midi_out_port.write(&raw_midi); // TODO: error handling.
-        } else {
-            error!(
-                "midi port out of bounds: port index is {}, but only {} ports are available",
-                index,
-                self.midi_out_ports.len()
-            );
-        }
-    }
-}
-
-impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost<'c, 'mp, 'mw> {
-    fn handle_event(&mut self, event: Indexed<Timed<SysExEvent>>) {
-        let Indexed { index, event } = event;
-        if let Some(ref mut midi_out_port) = self.midi_out_ports.get_mut(index).as_mut() {
-            let raw_midi = RawMidi {
-                time: event.time_in_frames,
-                bytes: event.event.data(),
-            };
-            midi_out_port.write(&raw_midi); // TODO: error handling.
-        } else {
-            error!(
-                "midi port out of bounds: port index is {}, but only {} ports are available",
-                index,
-                self.midi_out_ports.len()
-            );
-        }
-    }
-}
-
+/// The `derive_jack_port_builder!` macro is not intended to be used without the [`derive_ports!`] macro.
+/// # Example
+/// ```
+/// use rsynth::{derive_ports, derive_jack_port_builder};
+/// use rsynth::event::{Timed, RawMidiEvent, CoIterator};
+///
+/// derive_ports! {
+///     struct MyPorts<'a> {
+///         audio_in: &'a [f32],
+///         audio_out: &'a mut [f32],
+///         midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+///         midi_out: &'a mut dyn CoIterator<Item = Timed<RawMidiEvent>>,
+///     }
+///
+///     derive_jack_port_builder! {
+///         struct MyPortsBuilder {
+///         }
+///     }
+/// }
+/// ```
+/// This will expand to
+/// ```
+/// use rsynth::event::{Timed, RawMidiEvent, CoIterator};
+/// use std::convert::TryFrom;
+/// use rsynth::backend::jack_backend::jack::{Client, Error, Control};
+/// use rsynth::{DelegateHandling, ContextualAudioRenderer};
+/// use jack::ProcessScope;
+/// use rsynth::backend::jack_backend::JackHost;
+///
+/// pub struct MyPorts<'a> {
+///     audio_in: &'a [f32],
+///     audio_out: &'a mut [f32],
+///     midi_in: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>,
+///     midi_out: &'a mut dyn CoIterator<Item = Timed<RawMidiEvent>>,
+/// }
+/// pub struct MyPortsBuilder {
+///     //...
+/// }
+///
+/// impl TryFrom<Client> for MyPortsBuilder {
+///     type Error = Error;
+///
+///     fn try_from(value: Client) -> Result<Self, Self::Error> {
+///         // ...
+/// #        todo!()
+///     }
+/// }
+///
+/// impl<'a, P> DelegateHandling<P, (&'a Client, &'a ProcessScope)> for MyPortsBuilder
+/// where for<'b, 'c> P: ContextualAudioRenderer<MyPorts<'b>, JackHost<'c>> {
+///     type Output = Control;
+///     fn delegate_handling(&mut self, p: &mut P,d: (&'a Client, &'a ProcessScope)) -> Self::Output {
+///         // ...
+/// #        todo!()
+///     }
+/// }
+/// ```
 #[macro_export]
 macro_rules! derive_jack_port_builder {
     (
@@ -165,10 +183,10 @@ macro_rules! derive_jack_port_builder {
             }
         }
 
-        impl<'a, P> $crate::buffer::DelegateHandling<P, (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope)> for $builder_name
+        impl<'a, P> $crate::DelegateHandling<P, (&'a $crate::backend::jack_backend::jack::Client, &'a $crate::backend::jack_backend::jack::ProcessScope)> for $builder_name
         where
-            for<'b, 'c, 'mp, 'mw> P:
-                $crate::ContextualAudioRenderer<$buffer_name<'b>, $crate::backend::jack_backend::JackHost<'c, 'mp, 'mw>>,
+            for<'b, 'c> P:
+                $crate::ContextualAudioRenderer<$buffer_name<'b>, $crate::backend::jack_backend::JackHost<'c>>,
         {
             type Output = $crate::backend::jack_backend::jack::Control;
 
@@ -180,7 +198,6 @@ macro_rules! derive_jack_port_builder {
                 use ::std::convert::TryFrom;
                 let mut jack_host = $crate::backend::jack_backend::JackHost {
                     client,
-                    midi_out_ports: &mut [],
                     control: jack::Control::Continue,
                 };
 
