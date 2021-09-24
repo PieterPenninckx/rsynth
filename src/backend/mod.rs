@@ -47,24 +47,4 @@ pub trait HostInterface {
 /// Based on some condition (`plugin_has_finished`), the plugin can signal to the backend
 /// that processing is finished by calling `stop()`.
 ///
-/// ```
-/// use rsynth::ContextualAudioRenderer;
-/// use rsynth::backend::{HostInterface, Stop};
-/// use rsynth::buffer::AudioBufferInOut;
-/// struct MyPlugin { /* ... */ }
-/// impl<H> ContextualAudioRenderer<f32, H> for MyPlugin
-/// where H: HostInterface + Stop
-/// {
-///     fn render_buffer(
-///         &mut self,
-///         buffer: &mut AudioBufferInOut<f32>,
-///         context: &mut H)
-///     {
-///         let plugin_has_finished = unimplemented!();
-///         if plugin_has_finished {
-///             context.stop();
-///         }
-///     }
-/// }
-/// ```
 pub trait Stop: HostInterface {}

@@ -53,8 +53,6 @@ Rather than trying to solve every problem (which is not feasible for the small t
 * [`midi-consts`](https://crates.io/crates/midi-consts): constants for low-level handling of midi data
 * [`rtrb`](crates.io/crates/rtrb), a realtime-safe single-producer single-consumer ring buffer that can be used to communicate between threads.
 
-Background on the design can be found in the [design.md](design.md) document.
-
 ## Examples
 There are full examples in 
 [the examples folder in the source code](https://github.com/PieterPenninckx/rsynth/tree/master/examples).

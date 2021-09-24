@@ -39,7 +39,7 @@ use std::ops::{Deref, DerefMut};
 /// fn my_function() {
 ///     let raw_midi: Timed<RawMidiEvent> = todo!();
 ///     // Note the explicit references on the next line.
-///     jack_function(&((&item).into()));
+///     jack_function(&((&raw_midi).into()));
 /// }
 /// ```
 impl<'a> Into<RawMidi<'a>> for &'a Timed<RawMidiEvent> {
@@ -125,7 +125,6 @@ impl<'c, 'mp, 'mw, 'e> EventHandler<Indexed<Timed<SysExEvent<'e>>>> for JackHost
 macro_rules! derive_jack_port_builder {
     (
         @(struct $builder_name:ident { $($whatever:tt)*})
-        @($(#[$local_meta:meta])*)
         @($($global_tail:tt)*)
         $buffer_name:ident
     ) => {
@@ -133,7 +132,6 @@ macro_rules! derive_jack_port_builder {
             @inner
             $buffer_name
             $builder_name
-            $(#[$local_meta:meta])*
             @($($global_tail)*)
             @()
             @()
@@ -144,13 +142,11 @@ macro_rules! derive_jack_port_builder {
         @inner
         $buffer_name:ident
         $builder_name:ident
-        $(#[$local_meta:meta])*
         @($(,)?)
         @($($struct_constructor:tt)*)
         @($(($try_from_field_name:ident, $try_from_type:ty))*)
         @($(($field_name:ident, $temp:ident))*)
     ) => {
-        $(#[$local_meta:meta])*
         pub struct $builder_name {
             $($struct_constructor)*
         }
@@ -206,7 +202,6 @@ macro_rules! derive_jack_port_builder {
         @inner
         $buffer_name:ident
         $builder_name:ident
-        $(#[$local_meta:meta])*
         @($field_name:ident : $field_type:ty)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
@@ -216,7 +211,6 @@ macro_rules! derive_jack_port_builder {
             @inner
             $buffer_name
             $builder_name
-            $(#[$local_meta:meta])*
             @()
             @($($struct_constructor)* $field_name : <$field_type as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <$field_type as $crate::backend::jack_backend::JackBuilder>::Port))
@@ -227,7 +221,6 @@ macro_rules! derive_jack_port_builder {
         @inner
         $buffer_name:ident
         $builder_name:ident
-        $(#[$local_meta:meta])*
         @($field_name:ident : $field_type:ty , $($global_tail:tt)*)
         @($($struct_constructor:tt)*)
         @($($try_from:tt)*)
@@ -237,7 +230,6 @@ macro_rules! derive_jack_port_builder {
             @inner
             $buffer_name
             $builder_name
-            $(#[$local_meta:meta])*
             @($($global_tail)*)
             @($($struct_constructor)* $field_name : <$field_type as $crate::backend::jack_backend::JackBuilder>::Port,)
             @($($try_from)* ($field_name, <$field_type as $crate::backend::jack_backend::JackBuilder>::Port))
@@ -374,21 +366,6 @@ impl JackBuilder for &'static mut [f32] {
     type Port = PortWrapper<Port<AudioOut>>;
 }
 
-fn plugtestje<'a>(port: &'a mut dyn Iterator<Item = Timed<RawMidiEvent>>) {}
-
-fn testje<'a>(
-    port: &'a Port<MidiIn>,
-    process_scope: &'a ProcessScope,
-) -> impl Iterator<Item = Timed<RawMidiEvent>> + 'a {
-    port.iter(process_scope)
-        .filter_map(|e| <Timed<RawMidiEvent>>::try_from(e).ok())
-}
-
-fn testje2<'a>(port: &'a Port<MidiIn>, process_scope: &'a ProcessScope) {
-    let mut x = testje(port, process_scope);
-    plugtestje(x.my_into());
-}
-
 pub trait MyInto<T> {
     fn my_into(self) -> T;
 }
@@ -398,6 +375,15 @@ where
     X: Iterator,
 {
     fn my_into(self) -> &'a mut dyn Iterator<Item = <X as Iterator>::Item> {
+        self
+    }
+}
+
+impl<'a, X> MyInto<&'a mut dyn CoIterator<Item = <X as CoIterator>::Item>> for &'a mut X
+where
+    X: CoIterator,
+{
+    fn my_into(self) -> &'a mut dyn CoIterator<Item = <X as CoIterator>::Item> {
         self
     }
 }
