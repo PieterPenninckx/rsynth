@@ -9,7 +9,6 @@
 /// #[cfg(feature = "backend-jack")]
 /// use rsynth::derive_jack_port_builder;
 ///
-///
 /// derive_ports! {
 ///     struct MyPorts<'a> {
 ///         audio_in: &'a [f32],
