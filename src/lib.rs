@@ -2,6 +2,9 @@
 //! A crate for developing audio plugins and applications in Rust, with a focus on software synthesis.
 //! Rsynth is well suited as a bootstrap for common audio plugin generators.
 //! It handles voices, voice-stealing, polyphony, etc. so the programmer's main focus can be DSP.
+//! 
+//! ## Deprecation notice
+//! This crate has been deprecated. See its README.md for more details.
 //!
 //! ## Back-ends
 //! `rsynth` currently supports the following back-ends:
