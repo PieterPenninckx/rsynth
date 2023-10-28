@@ -1,12 +1,20 @@
 # rsynth
 
-An API abstraction for API's for audio plugins and applications.
-Use it to write real-time audio effects, software synthesizers, ... and target different platforms
-(vst, jack, ...).
-It is currently most suitable for real-time or "streaming" audio processing.
-E.g. you cannot use it to reverse audio in time.
+A deprecated API abstraction for API's for audio plugins and applications.
+You could use it to write real-time audio effects, software synthesizers, ... and target different platforms
+(jack, offline processing, ...).
 
-## Feature matrix
+## This crate has been deprecated
+This crate has been deprecated. See [this blog post](https://nckx.be/blog/rsynth-deprecation/) for more information.
+
+### What should I do if I use this crate?
+At the time of writing, here are some options
+* Use [cpal](https://crates.io/crates/cpal) if you want to "just" play audio on various platforms.
+* Use [nih-plug](https://github.com/robbert-vdh/nih-plug) if this is a good solution for you.
+* Write the plugin as a “core” library (a Rust crate or module). This is anyhow something I'd recommend, also if you use [`nih-plug`](https://github.com/robbert-vdh/nih-plug), for instance. Per plugin standard that you want to support, create a separate crate that depends both on the “core” library and on an a library that is dedicated to that particular plugin standard (such as the [`lv2`](https://crates.io/crates/lv2) crate and the [`clack`](https://github.com/prokopyl/clack) crate (not (yet?) on crates.io). 
+
+## Old documentation
+### Feature matrix
 
 We focus on API's that are typically used for audio effects and software synthesizers.
 If you want to "just" play audio on various platforms, [cpal](https://crates.io/crates/cpal) may
@@ -27,7 +35,7 @@ be better suited for you.
 | Parameter changes                  |  ✘  |        ✘          |           ✘             |
 | GUI support                        |  ✘  |        ✘          |           ✘             |
 
-### Feature flags
+#### Feature flags
 
 Many features are behind feature flags: 
 * `all`: all the features below
@@ -39,14 +47,14 @@ Many features are behind feature flags:
     * `backend-combined-midly-0-5`: read and write `.mid` files with the `midly` crate 
   * `rsor-0-1`: add support for using the `rsor` crate for some methods (if you prefer `rsor` over `vecstorage`)
 
-## Documentation
+### Documentation
 
 The API documentation can be found
 * [on docs.rs](https://docs.rs/rsynth/) for the version that is distributed via crates.io.
 * [on GitHub pages](https://pieterpenninckx.github.io/rsynth/rsynth) for the documentation of the master branch
 * on your local machine after running `cargo rustdoc --features all`
 
-## Philosophy and design
+### Philosophy and design
 `rsynth` presents itself as a library, rather than a framework. 
 Rather than trying to solve every problem (which is not feasible for the small team), 
 `rsynth` is designed to be easy to combine with other crates for specific tasks, such as
@@ -57,41 +65,16 @@ Rather than trying to solve every problem (which is not feasible for the small t
 
 Background on the design can be found in the [design.md](design.md) document.
 
-## Examples
+### Examples
 There are full examples in 
 [the examples folder in the source code](https://github.com/PieterPenninckx/rsynth/tree/master/examples).
 
-## Applications and plugins using `rsynth`
-The following applications and plugins use `rsynth`:
-* [`print_chords`](https://crates.io/crates/print_chords), a stand-alone jack application that listens to a midi port and prints the chord names.
-
 ## Current State
-
-`rsynth` is in its early stage of development, and many changes are breaking changes.
-The team behind it is very small, so progress is slow.
-
-## Roadmap
-
-We try to focus on features that we are actually using ourselves.
-This helps to ensure that the features that we provide, can actually be used in practice.
-So if you want to use a particular feature that isn't there yet, feel free to open an issue (if
-needed), and you can volunteer to test the feature before it is merged.
-
-In the long term, `rsynth` can be split into multiple crates for maximum re-usability
-and for license clarity (e.g. when one back-end requires a different license).
-We're currently keeping everything together because it's easier to coordinate breaking changes
-over the various components in this way.
-
-## Contributing
-
-Contributions and suggestions are welcome!
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+This crate has been deprecated. See [this blog post](https://nckx.be/blog/rsynth-deprecation/) for more information.
 
 # License 
 
 The source code of `rsynth` is licensed under the MIT/BSD-3 License.
-
-Note: we plan to switch to MIT/Apache 2.0 in a future release.
 
 Note that in order to use `rsynth` in combination with other crates (libraries), the combined work needs
 to comply with the license of that crate as well. In particular, the following optional dependencies may require your attention:
