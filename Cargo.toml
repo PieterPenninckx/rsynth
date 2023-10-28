@@ -1,6 +1,6 @@
 [package]
 name = "rsynth"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Alexander Lozada <alexanderpaullozada@gmail.com>", "Pieter Penninckx"]
 description = "A library for developing audio plugins and applications, with a focus on software synthesis."
 license = "MIT OR BSD-3-Clause"
@@ -11,6 +11,7 @@ repository = "https://github.com/PieterPenninckx/rsynth"
 keywords = ["audio", "real-time", "synthesis"]
 categories = ["multimedia::audio"]
 exclude = [".github/"]
+maintenance = { status = "deprecated" }
 
 [features]
 all = ["backend-jack", "backend-vst", "backend-combined-all"]
